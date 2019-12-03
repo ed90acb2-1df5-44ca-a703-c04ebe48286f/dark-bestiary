@@ -1,0 +1,36 @@
+﻿namespace DarkBestiary.Items
+{
+    public enum ItemCategoryType
+    {
+        All,
+        Armor,
+        LightArmor,
+        MediumArmor,
+        HeavyArmor,
+        ChestArmor,
+        Jewelry,
+        Gems,
+        Ingredients,
+        Blueprints,
+        Relics,
+        Weapon,
+        PiercingMeleeWeapon,
+        SlashingMeleeWeapon,
+        CrushingMeleeWeapon,
+        TwoHandedWeapon,
+        OneHandedWeapon,
+        MeleeWeapon,
+        RangedWeapon,
+        MagicWeapon,
+        OneHandedMeleeWeapon,
+        TwoHandedRangedWeapon,
+        TwoHandedMeleeWeapon,
+        TwoHandedCrushingWeapon,
+        TwoHandedSlashingWeapon,
+        Firearms,
+        Polearms,
+        BowsAndCrossbows,
+        Shield,
+        Daggers,
+    }
+}
