@@ -13,8 +13,9 @@ namespace DarkBestiary.UI.Elements
         public void Initialize(string text, Color color, Vector2 position)
         {
             GetComponent<RectTransform>().position = position + Vector2.up * VerticalOffset;
-            GetComponent<TextMeshProUGUI>().color = color;
-            GetComponent<TextMeshProUGUI>().text = text;
+            var textMesh = GetComponent<TextMeshProUGUI>();
+            textMesh.color = color;
+            textMesh.text = text;
 
             Timer.Instance.Wait(Lifetime, () =>
             {

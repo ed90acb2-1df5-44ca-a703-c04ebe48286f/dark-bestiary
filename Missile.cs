@@ -1,4 +1,5 @@
-﻿using DarkBestiary.Effects;
+﻿using System.Linq;
+using DarkBestiary.Effects;
 using DarkBestiary.Extensions;
 using DarkBestiary.GameBoard;
 using DarkBestiary.Messaging;
@@ -19,15 +20,13 @@ namespace DarkBestiary
         public Effect FinalEffect { get; set; }
         public Effect CollideWithEntitiesEffect { get; set; }
         public Effect CollideWithEnvironmentEffect { get; set; }
-        public bool StopOnEnvironmentCollision { get; set; }
-        public bool StopOnEntityCollision { get; set; }
         public string ImpactPrefab { get; set; }
         public float FlyHeight { get; set; }
+        public bool IsPiercing { get; set; }
         public GameObject Graphics { get; set; }
 
         private GameObject caster;
         private object target;
-        private Vector3 destination;
 
         public void Launch(GameObject caster, object target, Vector3 destination)
         {
@@ -36,17 +35,25 @@ namespace DarkBestiary
                 return;
             }
 
-            SubscribeEvents();
-
             this.caster = caster;
             this.target = target;
-            this.destination = destination;
 
             transform.LookAt2D(destination);
-
+            SubscribeEvents();
             UpdateFlyHeight();
 
-            Mover.Start(gameObject, this.destination);
+            if (IsPiercing)
+            {
+                Mover.FindEnvironmentCollisionAndMove(gameObject, destination);
+            }
+            else if (CollideWithEntitiesEffect == null && CollideWithEnvironmentEffect == null)
+            {
+                Mover.Move(gameObject, destination);
+            }
+            else
+            {
+                Mover.FindAnyCollisionAndMove(gameObject, destination);
+            }
         }
 
         private void OnDestroy()
@@ -72,31 +79,20 @@ namespace DarkBestiary
 
         private void SubscribeEvents()
         {
-            Mover.Finished += OnMoverFinished;
-
-            Mover.CollidingWithEntity += OnCollidingWithEntity;
-            Mover.CollidingWithEnvironment += OnCollidingWithEnvironment;
-
+            Mover.Stopped += OnMoverStopped;
             BoardCell.AnyEntityEnterCell += OnEntityEnterCell;
             BoardCell.AnyEntityExitCell += OnEntityExitCell;
         }
 
         private void UnsubscribeEvents()
         {
-            Mover.Finished -= OnMoverFinished;
-
-            Mover.CollidingWithEntity -= OnCollidingWithEntity;
-            Mover.CollidingWithEnvironment -= OnCollidingWithEnvironment;
-
+            Mover.Stopped -= OnMoverStopped;
             BoardCell.AnyEntityEnterCell -= OnEntityEnterCell;
             BoardCell.AnyEntityExitCell -= OnEntityExitCell;
         }
 
-        private void OnMoverFinished()
+        private void OnMoverStopped()
         {
-            FinalEffect?.Clone().Apply(
-                this.caster, this.target is GameObject ? this.target : gameObject.transform.position);
-
             var impact = Resources.Load<GameObject>(ImpactPrefab);
 
             if (impact != null)
@@ -108,32 +104,23 @@ namespace DarkBestiary
 
             Timer.Instance.Wait(2, () => Destroy(gameObject));
 
+            ApplyEffects();
+
             Finished?.Invoke(this);
         }
 
-        private void OnCollidingWithEnvironment()
+        private void ApplyEffects()
         {
-            CollideWithEnvironmentEffect?.Clone().Apply(this.caster, transform.position.Snapped());
-
-            if (StopOnEnvironmentCollision)
+            if (Mover.CollidesWithEntity?.IsEnemyOf(this.caster) == true)
             {
-                Mover.Stop();
+                CollideWithEntitiesEffect?.Clone().Apply(this.caster, Mover.CollidesWithEntity);
             }
-        }
-
-        private void OnCollidingWithEntity(GameObject entity)
-        {
-            if (entity.IsAllyOf(this.caster))
+            else if (Mover.CollidesWithEnvironment)
             {
-                return;
+                CollideWithEnvironmentEffect?.Clone().Apply(this.caster, transform.position.Snapped());
             }
 
-            CollideWithEntitiesEffect?.Clone().Apply(this.caster, entity);
-
-            if (StopOnEntityCollision)
-            {
-                Mover.Stop();
-            }
+            FinalEffect?.Clone().Apply(this.caster, this.target is GameObject ? this.target : gameObject.transform.position);
         }
 
         private void OnEntityEnterCell(GameObject entity, BoardCell cell)

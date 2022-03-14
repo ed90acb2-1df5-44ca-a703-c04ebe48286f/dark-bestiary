@@ -3,14 +3,10 @@
     public struct CharacterCreationEventData
     {
         public string Name { get; }
-        public bool IsHardcore { get; }
-        public bool IsRandomSkills { get; }
 
-        public CharacterCreationEventData(string name, bool isHardcore, bool isRandomSkills)
+        public CharacterCreationEventData(string name)
         {
             Name = name;
-            IsHardcore = isHardcore;
-            IsRandomSkills = isRandomSkills;
         }
     }
 }

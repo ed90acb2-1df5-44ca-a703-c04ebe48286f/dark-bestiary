@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using DarkBestiary.Components;
 using DarkBestiary.Data;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Effects;
+using DarkBestiary.Extensions;
 using DarkBestiary.Messaging;
 using DarkBestiary.Validators;
 using UnityEngine;
@@ -14,7 +14,7 @@ namespace DarkBestiary.Behaviours
     {
         private readonly Effect effect;
 
-        public OnDeathBehaviour(EffectBehaviourData data, List<Validator> validators) : base(data, validators)
+        public OnDeathBehaviour(EffectBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.effect = Container.Instance.Resolve<IEffectRepository>().FindOrFail(data.EffectId);
         }
@@ -31,12 +31,14 @@ namespace DarkBestiary.Behaviours
 
         private void OnDied(EntityDiedEventData data)
         {
-            if (this.Validators.Any(v => !v.Validate(Caster, Target)))
+            if (!this.Validators.ByPurpose(ValidatorPurpose.Other).Validate(Caster, Target))
             {
                 return;
             }
 
-            this.effect.Clone().Apply(Caster, Target);
+            var clone = this.effect.Clone();
+            clone.StackCount = StackCount;
+            clone.Apply(Caster, Target);
         }
     }
 }

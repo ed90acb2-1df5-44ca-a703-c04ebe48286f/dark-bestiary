@@ -9,6 +9,7 @@ using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
 using DarkBestiary.Scenarios.Encounters;
 using DarkBestiary.Skills;
+using DarkBestiary.UI.Elements;
 using UnityEngine;
 
 namespace DarkBestiary.Components
@@ -16,6 +17,7 @@ namespace DarkBestiary.Components
     public class SpellbookComponent : Component
     {
         public static event Payload<Skill, SkillSet> AnySkillSetBonusApplied;
+        public static event Payload<Skill> AnySkillAdded;
 
         public event Payload<Skill> SkillLearned;
         public event Payload<Skill> SkillUnlearned;
@@ -99,9 +101,31 @@ namespace DarkBestiary.Components
             slotB.ChangeSkill(temp);
         }
 
+        public Skill FirstWeaponSkill()
+        {
+            return Slots
+                .Where(s => s.Skill.Type == SkillType.Weapon)
+                .OrderBy(s => s.Index)
+                .FirstOrDefault()?
+                .Skill;
+        }
+
+        public Skill LastWeaponSkill()
+        {
+            return Slots
+                .Where(s => s.Skill.Type == SkillType.Weapon)
+                .OrderByDescending(s => s.Index)
+                .FirstOrDefault()?
+                .Skill;
+        }
+
         public Skill FindOnActionBar(int id)
         {
-            return Slots.Where(slot => slot.Skill.Id == id).Select(slot => slot.Skill).FirstOrDefault();
+            return Slots.Where(slot => slot.Skill.Id == id)
+                .Select(slot => slot.Skill)
+                .OrderBy(skill => skill.IsOnCooldown())
+                .ThenBy(skill => skill.GetCost(ResourceType.ActionPoint))
+                .FirstOrDefault();
         }
 
         public Skill Find(int id)
@@ -135,6 +159,7 @@ namespace DarkBestiary.Components
             }
 
             SkillAdded?.Invoke(skill);
+            AnySkillAdded?.Invoke(skill);
         }
 
         public void Remove(Skill skill)
@@ -183,11 +208,6 @@ namespace DarkBestiary.Components
                 return;
             }
 
-            if (skill.IsOnCooldown())
-            {
-                throw new SkillIsOnCooldownException();
-            }
-
             if (slot.SkillType != skill.Type)
             {
                 throw new WrongSkillTypeException();
@@ -198,11 +218,22 @@ namespace DarkBestiary.Components
                 RemoveFromActionBar(slot.Skill);
             }
 
+            if (skill.Rarity?.Type == RarityType.Legendary)
+            {
+                var otherLegendary = Slots.FirstOrDefault(s => s.Skill.Rarity?.Type == RarityType.Legendary);
+
+                if (otherLegendary != null)
+                {
+                    RemoveFromActionBar(otherLegendary.Skill);
+                    UiErrorFrame.Instance.ShowMessage(I18N.Instance.Translate("exception_only_one_ultimate"));
+                }
+            }
+
             SetupSlot(slot, skill);
 
             if (skill.Behaviour != null)
             {
-                this.behaviours.Apply(skill.Behaviour, gameObject);
+                this.behaviours.ApplyStack(skill.Behaviour, gameObject);
             }
 
             ApplySkillSetBonuses(skill);
@@ -225,18 +256,13 @@ namespace DarkBestiary.Components
                 return;
             }
 
-            if (skill.IsOnCooldown())
-            {
-                throw new SkillIsOnCooldownException();
-            }
-
             foreach (var slot in Slots.Where(s => s.Skill == skill))
             {
                 CleanupSlot(slot);
 
                 if (skill.Behaviour != null)
                 {
-                    this.behaviours.RemoveAllStacks(skill.Behaviour.Id);
+                    this.behaviours.RemoveStack(skill.Behaviour.Id);
                 }
 
                 RemoveSkillSetBonuses(skill);
@@ -304,9 +330,7 @@ namespace DarkBestiary.Components
         {
             return Slots
                 .OrderBy(slot => slot.Index)
-                .ThenBy(slot => slot.Skill.IsEmpty())
-                .FirstOrDefault(
-                    slot => slot.SkillType == skill.Type && (slot.Skill.IsEmpty() || slot.Skill.IsDefault()));
+                .FirstOrDefault(slot => slot.SkillType == skill.Type && (slot.Skill.IsEmpty() || slot.Skill.IsDefault()));
         }
 
         private void SetupSlot(SkillSlot slot, Skill skill)
@@ -340,6 +364,11 @@ namespace DarkBestiary.Components
         private void OnRoundStarted(CombatEncounter arg)
         {
             LastUsedSkillThisRound = null;
+
+            foreach (var slot in Slots)
+            {
+                slot.Skill.ReduceCooldown(1);
+            }
         }
 
         private void OnSkillCooldownStarted(Skill skill)
@@ -359,12 +388,12 @@ namespace DarkBestiary.Components
 
         public int GetSkillSetPiecesEquipped(SkillSet set)
         {
-            return set.Skills.Count(s => IsOnActionBar(s.Id));
+            return set.SkillIds.Count(IsOnActionBar);
         }
 
         public int GetSkillSetPiecesObtained(SkillSet set)
         {
-            return set.Skills.Count(s => IsKnown(s.Id));
+            return set.SkillIds.Count(IsKnown);
         }
 
         private void ApplySkillSetBonuses(Skill skill)
@@ -392,7 +421,7 @@ namespace DarkBestiary.Components
 
                         foreach (var behaviour in bonus.Value)
                         {
-                            this.behaviours.Apply(behaviour, gameObject);
+                            this.behaviours.ApplyAllStacks(behaviour, gameObject);
                         }
 
                         AnySkillSetBonusApplied?.Invoke(skill, set);

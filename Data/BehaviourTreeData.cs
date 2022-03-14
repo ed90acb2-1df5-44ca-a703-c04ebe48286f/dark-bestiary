@@ -17,6 +17,7 @@ namespace DarkBestiary.Data
         public int UnitId;
         public float WaitDuration;
         public float Chance;
+        public int Count;
         public ResourceType ResourceType;
         public float ResourceAmount;
         public int Range;

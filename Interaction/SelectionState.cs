@@ -3,7 +3,6 @@ using DarkBestiary.Components;
 using DarkBestiary.Extensions;
 using DarkBestiary.GameBoard;
 using DarkBestiary.Managers;
-using DarkBestiary.Scenarios.Encounters;
 using UnityEngine;
 
 namespace DarkBestiary.Interaction
@@ -42,7 +41,7 @@ namespace DarkBestiary.Interaction
 
         public override void Tick(float delta)
         {
-            if (Input.GetKeyDown(KeyCode.F1))
+            if (Input.GetKeyDown(KeyBindings.Get(KeyType.Move)) && Game.Instance.State.IsScenario)
             {
                 MaybeSelect(CharacterManager.Instance.Character.Entity);
             }
@@ -55,7 +54,9 @@ namespace DarkBestiary.Interaction
                 return;
             }
 
-            MaybeSelect(cell.OccupiedBy);
+            var occupiedBy = cell.GameObjectsInside.FirstOrDefault(e => e.IsCharacter()) ?? cell.OccupiedBy;
+
+            MaybeSelect(occupiedBy);
         }
 
         private void MaybeSelect(GameObject entity)

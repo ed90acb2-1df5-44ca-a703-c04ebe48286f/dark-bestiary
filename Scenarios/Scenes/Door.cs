@@ -12,6 +12,7 @@ namespace DarkBestiary.Scenarios.Scenes
 
         [SerializeField] private bool disableCell;
         [SerializeField] private SpriteRenderer spriteRenderer;
+        [SerializeField] private Animator animator;
         [SerializeField] private Sprite opened;
         [SerializeField] private Sprite closed;
 
@@ -22,6 +23,11 @@ namespace DarkBestiary.Scenarios.Scenes
         {
             this.isOpened = true;
             this.spriteRenderer.sprite = this.opened;
+
+            if (this.animator != null)
+            {
+                this.animator.Play("open");
+            }
 
             if (this.disableCell)
             {

@@ -4,19 +4,18 @@ using System.Linq;
 using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
 using DarkBestiary.Items;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
     public class RecipeFileRepository : FileRepository<int, RecipeData, Recipe>, IRecipeRepository
     {
-        public RecipeFileRepository(IFileReader loader, RecipeMapper mapper) : base(loader, mapper)
+        public RecipeFileRepository(IFileReader reader, RecipeMapper mapper) : base(reader, mapper)
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/recipes.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/recipes.json";
         }
 
         public List<Recipe> Find(Func<RecipeData, bool> predicate = null)

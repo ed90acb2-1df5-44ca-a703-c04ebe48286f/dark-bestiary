@@ -30,7 +30,7 @@ namespace DarkBestiary.UI.Views.Unity
         [SerializeField] private Interactable startButton;
         [SerializeField] private BehaviourView traitPrefab;
         [SerializeField] private Transform traitContainer;
-        [SerializeField] private SpellbookSlot slotPrefab;
+        [SerializeField] private SkillSlotView slotPrefab;
         [SerializeField] private Transform slotContainer;
         [SerializeField] private InventoryItem rewardPrefab;
         [SerializeField] private Transform rewardContainer;
@@ -39,15 +39,15 @@ namespace DarkBestiary.UI.Views.Unity
 
         private List<ScenarioRow> scenarioRows;
         private List<ScenarioTypeTab> tabs;
-        private List<SpellbookSlot> slotViews;
+        private List<SkillSlotView> slotViews;
         private ScenarioRow selected;
         private ScenarioTypeTab activeTab;
         private float lastScreenWidth;
         private float lastScreenHeight;
 
-        protected override void OnInitialize()
+        public void Construct(List<ScenarioInfo> scenarios)
         {
-            this.slotViews = new List<SpellbookSlot>();
+            this.slotViews = new List<SkillSlotView>();
 
             foreach (var slot in CharacterManager.Instance.Character.Entity.GetComponent<SpellbookComponent>().Slots)
             {
@@ -59,25 +59,9 @@ namespace DarkBestiary.UI.Views.Unity
                 this.slotViews.Add(slotView);
             }
 
-            this.closeButton.PointerUp += Hide;
-            this.startButton.PointerUp += OnStartButtonClicked;
-        }
+            this.closeButton.PointerClick += Hide;
+            this.startButton.PointerClick += OnStartButtonClicked;
 
-        protected override void OnTerminate()
-        {
-            foreach (var slotView in this.slotViews)
-            {
-                slotView.SkillDroppedIn -= OnSlotSkillDroppedIn;
-                slotView.Selected -= OnSlotSkillSelected;
-                slotView.Terminate();
-            }
-
-            this.closeButton.PointerUp -= Hide;
-            this.startButton.PointerUp -= OnStartButtonClicked;
-        }
-
-        public void Construct(List<ScenarioInfo> scenarios)
-        {
             CreateScenarioRows(scenarios);
             AutoSelectScenario();
 
@@ -90,6 +74,19 @@ namespace DarkBestiary.UI.Views.Unity
             });
 
             OnTabClicked(this.tabs.First());
+        }
+
+        protected override void OnTerminate()
+        {
+            foreach (var slotView in this.slotViews)
+            {
+                slotView.SkillDroppedIn -= OnSlotSkillDroppedIn;
+                slotView.Selected -= OnSlotSkillSelected;
+                slotView.Terminate();
+            }
+
+            this.closeButton.PointerClick -= Hide;
+            this.startButton.PointerClick -= OnStartButtonClicked;
         }
 
         public void AddScenario(ScenarioInfo scenario)

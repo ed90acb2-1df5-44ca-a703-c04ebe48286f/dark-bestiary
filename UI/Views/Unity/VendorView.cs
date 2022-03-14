@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using DarkBestiary.Components;
 using DarkBestiary.Items;
 using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
@@ -14,51 +13,51 @@ namespace DarkBestiary.UI.Views.Unity
         public event Payload<Item> SellingItem;
         public event Payload<Item> BuyingItem;
 
-        [SerializeField] private InventoryPanel inventoryPanel;
-        [SerializeField] private EquipmentPanel equipmentPanel;
-        [SerializeField] private CharacterPanel characterPanel;
         [SerializeField] private VendorPanel vendorPanel;
         [SerializeField] private Interactable closeButton;
         [SerializeField] private Interactable sellJunkButton;
 
         private Item buyingItem;
-        private Character character;
-        private InventoryComponent inventory;
-        private EquipmentComponent equipment;
+        private InventoryPanel inventoryPanel;
 
-        public void Construct(Character character)
+        public void Construct(InventoryPanel inventoryPanel, List<VendorPanel.Category> categories)
         {
-            this.character = character;
-            this.inventory = character.Entity.GetComponent<InventoryComponent>();
-            this.equipment = character.Entity.GetComponent<EquipmentComponent>();
+            this.inventoryPanel = inventoryPanel;
 
-            this.vendorPanel.Construct();
-        }
+            this.vendorPanel.Construct(categories);
 
-        protected override void OnInitialize()
-        {
             this.vendorPanel.ItemRightClicked += OnVendorItemRightClicked;
             this.vendorPanel.ItemClicked += OnVendorItemClicked;
             this.vendorPanel.ItemDroppedIn += OnItemDroppedIn;
 
-            this.characterPanel.Initialize(this.character);
-            this.equipmentPanel.Initialize(this.equipment);
-            this.inventoryPanel.Initialize(this.inventory);
-            this.inventoryPanel.ItemRightClicked += OnInventoryItemRightClicked;
-
-            this.closeButton.PointerUp += OnCloseButtonPointerUp;
-            this.sellJunkButton.PointerUp += OnSellJunkButtonPointerUp;
+            this.closeButton.PointerClick += Hide;
+            this.sellJunkButton.PointerClick += OnSellJunkButtonPointerClick;
         }
 
         protected override void OnTerminate()
         {
-            this.closeButton.PointerUp -= OnCloseButtonPointerUp;
-            this.sellJunkButton.PointerUp -= OnSellJunkButtonPointerUp;
+            this.closeButton.PointerClick -= Hide;
+            this.sellJunkButton.PointerClick -= OnSellJunkButtonPointerClick;
+        }
 
-            this.characterPanel.Terminate();
-            this.equipmentPanel.Terminate();
-            this.inventoryPanel.Terminate();
-            this.inventoryPanel.ItemRightClicked -= OnInventoryItemRightClicked;
+        private void OnEnable()
+        {
+            if (this.inventoryPanel == null)
+            {
+                return;
+            }
+
+            this.inventoryPanel.ItemControlClicked += OnInventoryItemControlClicked;
+        }
+
+        private void OnDisable()
+        {
+            if (this.inventoryPanel == null)
+            {
+                return;
+            }
+
+            this.inventoryPanel.ItemControlClicked -= OnInventoryItemControlClicked;
         }
 
         public void RefreshAssortment(List<Item> assortment)
@@ -76,17 +75,12 @@ namespace DarkBestiary.UI.Views.Unity
             this.vendorPanel.MarkAffordable(item);
         }
 
-        private void OnCloseButtonPointerUp()
-        {
-            Hide();
-        }
-
-        private void OnSellJunkButtonPointerUp()
+        private void OnSellJunkButtonPointerClick()
         {
             SellJunk?.Invoke();
         }
 
-        private void OnInventoryItemRightClicked(InventoryItem inventoryItem)
+        private void OnInventoryItemControlClicked(InventoryItem inventoryItem)
         {
             TriggerSelling(inventoryItem.Item);
         }
@@ -113,14 +107,14 @@ namespace DarkBestiary.UI.Views.Unity
 
         private void TriggerSelling(Item item)
         {
-            AudioManager.Instance.PlayItemSell();
             SellingItem?.Invoke(item);
+            AudioManager.Instance.PlayItemSell();
         }
 
         private void TriggerBuying(Item item)
         {
-            AudioManager.Instance.PlayItemBuy();
             BuyingItem?.Invoke(item);
+            AudioManager.Instance.PlayItemBuy();
         }
     }
 }

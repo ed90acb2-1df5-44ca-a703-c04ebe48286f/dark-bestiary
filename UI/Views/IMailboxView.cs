@@ -8,9 +8,10 @@ namespace DarkBestiary.UI.Views
     {
         event Payload NextPage;
         event Payload PreviousPage;
+        event Payload TakeAll;
         event Payload<Item> Pick;
         event Payload<Item> Remove;
 
-        void Display(List<Item> items, int currentPage, int totalPages);
+        void Refresh(List<Item> items, int currentPage, int totalPages);
     }
 }

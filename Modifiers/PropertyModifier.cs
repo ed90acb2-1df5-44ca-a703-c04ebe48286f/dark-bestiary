@@ -20,9 +20,18 @@ namespace DarkBestiary.Modifiers
             Data = data;
         }
 
+        public string GetDescriptionText()
+        {
+            return I18N.Instance.Get("ui_increases_x_by_x").ToString(new object[]
+            {
+                Property.Name.ToString().ToLower(),
+                Property.ValueString(Property.Type, GetAmount())
+            });
+        }
+
         public override string ToString()
         {
-            return $"+{Property.ValueString(Property.Type, Property.Value())} {Property.Name}";
+            return $"+{Property.ValueString(Property.Type, GetAmount())} {Property.Name}";
         }
 
         public override float Modify(float value)

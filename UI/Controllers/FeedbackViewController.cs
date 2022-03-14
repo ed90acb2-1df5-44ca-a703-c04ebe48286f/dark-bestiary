@@ -61,7 +61,7 @@ namespace DarkBestiary.UI.Controllers
                 if (www.isNetworkError || www.isHttpError)
                 {
                     var feedbackResponse = JsonUtility.FromJson<FeedbackResponse>(www.downloadHandler.text);
-                    UiErrorFrame.Instance.Push(feedbackResponse?.message ?? www.error);
+                    UiErrorFrame.Instance.ShowMessage(feedbackResponse?.message ?? www.error);
                     yield break;
                 }
 

@@ -9,7 +9,7 @@ using UnityEngine.UI;
 
 namespace DarkBestiary.UI.Elements
 {
-    public class CraftViewRecipeRow : PoolableMonoBehaviour, IPointerUpHandler, IPointerEnterHandler, IPointerExitHandler
+    public class CraftViewRecipeRow : PoolableMonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
     {
         public event Payload<CraftViewRecipeRow> Clicked;
 
@@ -62,7 +62,7 @@ namespace DarkBestiary.UI.Elements
             ItemTooltip.Instance.Hide();
         }
 
-        public void OnPointerUp(PointerEventData pointer)
+        public void OnPointerClick(PointerEventData pointer)
         {
             Clicked?.Invoke(this);
         }

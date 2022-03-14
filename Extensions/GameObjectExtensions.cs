@@ -13,6 +13,18 @@ namespace DarkBestiary.Extensions
             return summoned == null ? null : summoned.Master;
         }
 
+        public static T GetOrAddComponent<T>(this GameObject gameObject) where T : MonoBehaviour
+        {
+            var component = gameObject.GetComponent<T>();
+
+            if (component == null)
+            {
+                component = gameObject.AddComponent<T>();
+            }
+
+            return component;
+        }
+
         public static void Terminate(this GameObject gameObject)
         {
             foreach (var component in gameObject.GetComponents<Component>())
@@ -114,6 +126,12 @@ namespace DarkBestiary.Extensions
             return unit != null && unit.IsAirborne;
         }
 
+        public static bool IsMovingViaScript(this GameObject gameObject)
+        {
+            var unit = gameObject.GetComponent<UnitComponent>();
+            return unit != null && unit.IsMovingViaScript;
+        }
+
         public static bool IsBlocksMovement(this GameObject gameObject)
         {
             var unit = gameObject.GetComponent<UnitComponent>();
@@ -130,6 +148,12 @@ namespace DarkBestiary.Extensions
         {
             var behaviours = gameObject.GetComponent<BehavioursComponent>();
             return behaviours != null && behaviours.IsInvisible;
+        }
+
+        public static bool IsUncontrollable(this GameObject gameObject)
+        {
+            var behaviours = gameObject.GetComponent<BehavioursComponent>();
+            return behaviours != null && behaviours.IsUncontrollable;
         }
 
         public static bool IsAlive(this GameObject gameObject)

@@ -14,9 +14,14 @@ namespace DarkBestiary.Items
         Dismantable = 1 << 4,
         HasRandomSuffix = 1 << 5,
         HasRandomSocketCount = 1 << 6,
-        HasBlueprint = 1 << 7,
-        Droppable = 1 << 8,
-        UniqueEquipped = 1 << 9,
-        QuestReward = 1 << 10,
+        HasRandomAffixes = 1 << 7,
+        HasBlueprint = 1 << 8,
+        Droppable = 1 << 9,
+        UniqueEquipped = 1 << 10,
+        QuestReward = 1 << 11,
+        CampaignOnly = 1 << 12,
+        VisionsOnly = 1 << 13,
+        Illusory = 1 << 14,
+        Sharpening = 1 << 15,
     }
 }

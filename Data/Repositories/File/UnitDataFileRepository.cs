@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
@@ -11,13 +10,13 @@ namespace DarkBestiary.Data.Repositories.File
     {
         internal class UnitDataMapper : FakeMapper<UnitData> {}
 
-        public UnitDataFileRepository(IFileReader loader) : base(loader, new UnitDataMapper())
+        public UnitDataFileRepository(IFileReader reader) : base(reader, new UnitDataMapper())
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/units.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/units.json";
         }
 
         public List<UnitData> Find(Func<UnitData, bool> predicate)

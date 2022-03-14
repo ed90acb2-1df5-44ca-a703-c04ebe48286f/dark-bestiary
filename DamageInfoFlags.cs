@@ -16,5 +16,6 @@ namespace DarkBestiary
         SpiritLink = 1 << 6,
         Invulnerable = 1 << 7,
         Cleave = 1 << 8,
+        Thorns = 1 << 9,
     }
 }

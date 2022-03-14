@@ -15,8 +15,8 @@ namespace DarkBestiary.UI.Elements
 
         private void Start()
         {
-            this.leftArrow.PointerUp += OnLeftArrowPointerUp;
-            this.rightArrow.PointerUp += OnRightArrowPointerUp;
+            this.leftArrow.PointerClick += OnLeftArrowPointerClick;
+            this.rightArrow.PointerClick += OnRightArrowPointerClick;
         }
 
         public void Initialize(int count)
@@ -30,7 +30,7 @@ namespace DarkBestiary.UI.Elements
             Changed?.Invoke(this.index);
         }
 
-        private void OnLeftArrowPointerUp()
+        private void OnLeftArrowPointerClick()
         {
             this.index--;
 
@@ -42,7 +42,7 @@ namespace DarkBestiary.UI.Elements
             Changed?.Invoke(this.index);
         }
 
-        private void OnRightArrowPointerUp()
+        private void OnRightArrowPointerClick()
         {
             this.index++;
 

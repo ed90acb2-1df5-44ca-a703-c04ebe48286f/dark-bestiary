@@ -11,7 +11,7 @@ namespace DarkBestiary.Behaviours
         private readonly List<GameObject> spheres = new List<GameObject>();
         private readonly SpheresBehaviourData data;
 
-        public SpheresBehaviour(SpheresBehaviourData data, List<Validator> validators) : base(data, validators)
+        public SpheresBehaviour(SpheresBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }
@@ -31,8 +31,13 @@ namespace DarkBestiary.Behaviours
             this.spheres.Clear();
         }
 
-        protected override void OnStackCountChanged(Behaviour behaviour)
+        protected override void OnStackCountChanged(Behaviour _, int delta)
         {
+            if (!IsApplied)
+            {
+                return;
+            }
+
             while (this.spheres.Count < StackCount)
             {
                 CreateSphere();

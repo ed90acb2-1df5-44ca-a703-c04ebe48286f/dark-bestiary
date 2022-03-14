@@ -16,7 +16,7 @@ namespace DarkBestiary.Behaviours
         private EquipmentComponent equipment;
 
         public DualWieldBehaviour(DualWieldBehaviourData data, IBehaviourRepository behaviourRepository,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.behaviour = behaviourRepository.Find(data.BehaviourId);
         }
@@ -47,7 +47,7 @@ namespace DarkBestiary.Behaviours
                 return;
             }
 
-            this.behaviours.Apply(this.behaviour, Target);
+            this.behaviours.ApplyAllStacks(this.behaviour, Target);
         }
 
         private void OnItemUnequipped(Item item)

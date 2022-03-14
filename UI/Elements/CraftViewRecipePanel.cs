@@ -32,12 +32,12 @@ namespace DarkBestiary.UI.Elements
             this.inventoryItem.IsDraggable = false;
             this.inventoryItem.Change(this.inventory.CreateEmptyItem());
 
-            this.craftButton.PointerUp += OnCraftButtonPointerUp;
+            this.craftButton.PointerClick += OnCraftButtonPointerClick;
         }
 
         public void Terminate()
         {
-            this.craftButton.PointerUp -= OnCraftButtonPointerUp;
+            this.craftButton.PointerClick -= OnCraftButtonPointerClick;
         }
 
         public void Refresh(Recipe recipe)
@@ -64,7 +64,7 @@ namespace DarkBestiary.UI.Elements
             }
         }
 
-        private void OnCraftButtonPointerUp()
+        private void OnCraftButtonPointerClick()
         {
             CraftButtonClicked?.Invoke(this);
         }

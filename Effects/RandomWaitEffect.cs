@@ -9,7 +9,7 @@ namespace DarkBestiary.Effects
     {
         private readonly RandomWaitEffectData data;
 
-        public RandomWaitEffect(RandomWaitEffectData data, List<Validator> validators) : base(data, validators)
+        public RandomWaitEffect(RandomWaitEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }

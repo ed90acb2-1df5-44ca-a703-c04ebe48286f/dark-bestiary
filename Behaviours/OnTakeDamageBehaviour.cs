@@ -15,7 +15,7 @@ namespace DarkBestiary.Behaviours
         private readonly Effect effect;
 
         public OnTakeDamageBehaviour(OnTakeDamageBehaviourData data,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
             this.effect = Container.Instance.Resolve<IEffectRepository>().FindOrFail(data.EffectId);
@@ -34,7 +34,8 @@ namespace DarkBestiary.Behaviours
         private void OnDamaged(EntityDamagedEventData data)
         {
             if (data.Damage.Amount < 1 && !data.Damage.IsDodged() &&
-                Mathf.Approximately(0, data.Damage.Absorbed) || data.Attacker == data.Victim)
+                Mathf.Approximately(0, data.Damage.Absorbed) && !data.Damage.IsInvulnerable() ||
+                data.Attacker == data.Victim)
             {
                 return;
             }

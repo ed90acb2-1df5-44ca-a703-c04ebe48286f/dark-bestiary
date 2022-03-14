@@ -16,6 +16,9 @@ namespace DarkBestiary.UI.Controllers
         protected override void OnInitialize()
         {
             View.DisplayModeChanging += OnDisplayModeChanging;
+            View.ToggleLoopMusic += OnToggleLoopMusic;
+            View.ToggleHideActingUnitHealth += OnToggleHideActingUnitHealth;
+            View.ToggleDisableUiSounds += OnToggleDisableUiSounds;
             View.ToggleVerticalSync += OnToggleVerticalSync;
             View.ToggleRunInBackground += OnToggleRunInBackground;
             View.ToggleAlwaysShowEnemyHealth += OnToggleAlwaysShowEnemyHealth;
@@ -23,25 +26,28 @@ namespace DarkBestiary.UI.Controllers
             View.ToggleDisplayFormulasInTooltips += OnToggleDisplayFormulasInTooltips;
             View.ToggleDisableErrorMessages += OnToggleDisableErrorMessages;
             View.ToggleDisableCameraShake += OnToggleDisableCameraShake;
-            View.ToggleDisableCombatText += OnToggleDisableCombatText;
             View.ToggleSummonedUnitsControlledByAi += OnToggleSummonedUnitsControlledByAi;
+            View.ToggleDisableCombatText += OnToggleDisableCombatText;
             View.ToggleHideBuffs += OnToggleHideBuffs;
             View.ToggleHideSkills += OnToggleHideSkills;
             View.ToggleHideHealth += OnToggleHideHealth;
             View.ToggleHideHealthText += OnToggleHideHealthText;
+            View.ToggleHighContrastMode += OnToggleHighContrastMode;
             View.LanguageChanging += OnLanguageChanging;
             View.MasterVolumeChanging += OnMasterVolumeChanging;
             View.MusicVolumeChanging += OnMusicVolumeChanging;
             View.ResolutionChanging += OnResolutionChanging;
             View.SoundVolumeChanging += OnSoundVolumeChanging;
             View.Resetting += OnResetting;
-            View.Showing += OnShowing;
-            View.Refresh(this.settings);
+
+            View.Construct(this.settings);
         }
 
         protected override void OnTerminate()
         {
             View.DisplayModeChanging -= OnDisplayModeChanging;
+            View.ToggleLoopMusic -= OnToggleLoopMusic;
+            View.ToggleHideActingUnitHealth -= OnToggleHideActingUnitHealth;
             View.ToggleVerticalSync -= OnToggleVerticalSync;
             View.ToggleRunInBackground -= OnToggleRunInBackground;
             View.ToggleAlwaysShowEnemyHealth -= OnToggleAlwaysShowEnemyHealth;
@@ -54,19 +60,23 @@ namespace DarkBestiary.UI.Controllers
             View.ToggleHideSkills -= OnToggleHideSkills;
             View.ToggleHideHealth -= OnToggleHideHealth;
             View.ToggleHideHealthText -= OnToggleHideHealthText;
+            View.ToggleHighContrastMode -= OnToggleHighContrastMode;
             View.LanguageChanging -= OnLanguageChanging;
             View.MasterVolumeChanging -= OnMasterVolumeChanging;
             View.MusicVolumeChanging -= OnMusicVolumeChanging;
             View.ResolutionChanging -= OnResolutionChanging;
             View.SoundVolumeChanging -= OnSoundVolumeChanging;
             View.Resetting -= OnResetting;
-            View.Showing -= OnShowing;
-            View.Hidding -= OnHidding;
         }
 
         private void OnToggleHideHealthText(bool value)
         {
             this.settings.SetHideHealthText(value);
+        }
+
+        private void OnToggleHighContrastMode(bool value)
+        {
+            this.settings.SetHighContrastMode(value);
         }
 
         private void OnToggleHideHealth(bool value)
@@ -119,6 +129,21 @@ namespace DarkBestiary.UI.Controllers
             this.settings.SetAlwaysShowSkills(value);
         }
 
+        private void OnToggleDisableUiSounds(bool value)
+        {
+            this.settings.SetDisableUiSounds(value);
+        }
+
+        private void OnToggleHideActingUnitHealth(bool value)
+        {
+            this.settings.SetHideActingUnitHealth(value);
+        }
+
+        private void OnToggleLoopMusic(bool value)
+        {
+            this.settings.SetLoopMusic(value);
+        }
+
         private void OnToggleVerticalSync(bool value)
         {
             this.settings.SetVerticalSync(value ? 1 : 0);
@@ -163,17 +188,6 @@ namespace DarkBestiary.UI.Controllers
         {
             this.settings.Reset();
             View.Refresh(this.settings);
-        }
-
-        private void OnShowing()
-        {
-            View.Hidding += OnHidding;
-        }
-
-        private void OnHidding()
-        {
-            View.Hidding -= OnHidding;
-            View.Hide();
         }
     }
 }

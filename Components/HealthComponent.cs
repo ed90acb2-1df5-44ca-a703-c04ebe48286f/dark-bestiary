@@ -27,6 +27,7 @@ namespace DarkBestiary.Components
         public float HealthAndShieldMax => (int) (HealthMax + Shield);
         public float HealthFraction => Health / HealthMax;
         public bool IsAlive { get; private set; } = true;
+        public bool IsInvulnerable { get; set; }
 
         public float Shield => (int) this.behaviours.Behaviours
             .OfType<ShieldBehaviour>().Sum(behaviour => behaviour.Amount);
@@ -104,7 +105,7 @@ namespace DarkBestiary.Components
                 return;
             }
 
-            Heal(gameObject, new Healing(regeneration, HealingFlags.Regeneration));
+            Heal(gameObject, new Healing(regeneration, HealFlags.Regeneration, null));
         }
 
         private void OnHealthPropertyChanged(Property property)
@@ -114,7 +115,7 @@ namespace DarkBestiary.Components
 
         public void Kill(GameObject killer)
         {
-            Kill(killer, new Damage(0, DamageType.Health));
+            Kill(killer, new Damage(0, DamageType.Health, WeaponSound.None, DamageFlags.None, DamageInfoFlags.None, null));
         }
 
         public void Kill(GameObject killer, Damage damage)
@@ -144,10 +145,19 @@ namespace DarkBestiary.Components
 
         public Damage Damage(GameObject attacker, Damage damage)
         {
-            if (!IsAlive || CombatEncounter.Active == null)
+            if (!IsAlive || CombatEncounter.Active == null || !gameObject.activeSelf || IsInvulnerable)
             {
+                damage.InfoFlags |= DamageInfoFlags.Invulnerable;
+                damage.Amount = 0;
                 return damage;
             }
+
+            if (!damage.IsCleave())
+            {
+                damage = attacker.GetComponent<OffenseComponent>().Modify(gameObject, damage);
+            }
+
+            damage = this.defense.Modify(attacker, damage);
 
             if (this.behaviours.IsInvulnerable)
             {
@@ -158,18 +168,19 @@ namespace DarkBestiary.Components
             }
             else
             {
-                damage = attacker.GetComponent<OffenseComponent>().Modify(gameObject, damage);
-                damage = Absorb(this.defense.Modify(attacker, damage));
+                damage = Absorb(damage);
                 damage = MaybeSpiritLink(attacker, damage);
             }
 
-            damage.Amount = Mathf.Ceil(damage.Amount);
+            damage.Amount = Mathf.Min(Mathf.Ceil(damage.Amount), Health);
 
-            Health -= damage.Amount;
-
-            if (Health < 1 && this.behaviours.IsImmortal)
+            if (Health - damage.Amount < 1 && this.behaviours.IsImmortal)
             {
                 Health = 1;
+            }
+            else
+            {
+                Health -= damage.Amount;
             }
 
             var eventData = new EntityDamagedEventData(attacker, gameObject, damage);
@@ -239,12 +250,19 @@ namespace DarkBestiary.Components
             var increased = healing;
             increased *= 1 + this.properties.Get(PropertyType.IncomingHealingIncrease).Value();
 
-            LastOverheal = 0;
-
-            if (!healing.IsRegeneration() && !healing.IsVampirism())
+            if (!healing.IsVampirism() && !healing.IsRegeneration() && RNG.Test(this.properties.Get(PropertyType.HealingCriticalChance).Value()))
             {
-                LastOverheal = Mathf.Max(0, increased.Amount - (HealthMax - Health));
+                increased *= 2;
             }
+
+            var overheal = Mathf.Max(0, increased.Amount - (HealthMax - Health));
+
+            if (healing.IsVampirism() || healing.IsRegeneration())
+            {
+                overheal /= 2.0f;
+            }
+
+            LastOverheal = overheal;
 
             Health += increased.Amount;
 

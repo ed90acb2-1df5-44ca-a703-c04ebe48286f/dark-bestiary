@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
+using UnityEngine;
+using UnityEngine.Networking;
 
 namespace DarkBestiary.Data.Readers.Json
 {
@@ -41,17 +44,48 @@ namespace DarkBestiary.Data.Readers.Json
                 return (T) Cache[path];
             }
 
+            var data = Application.platform == RuntimePlatform.Android
+                ? ReadFromApk<T>(path)
+                : ReadFromFile<T>(path);
+
+            Cache[path] = data;
+
+            return data;
+        }
+
+        private T ReadFromApk<T>(string path)
+        {
+            using (var request = UnityWebRequest.Get(new Uri(path, UriKind.Absolute)))
+            {
+                request.SendWebRequest();
+
+                while (!request.isDone)
+                {
+                }
+
+                if (request.isNetworkError || request.isHttpError)
+                {
+                    Debug.LogError(request.url + ": " + request.error);
+                    return default;
+                }
+
+                return Deserialize<T>(request.downloadHandler.text);
+            }
+        }
+
+        private T ReadFromFile<T>(string path)
+        {
             if (!File.Exists(path))
             {
                 return default;
             }
 
-            var json = File.ReadAllText(path);
-            var data = JsonConvert.DeserializeObject<T>(json, this.settings);
+            return Deserialize<T>(File.ReadAllText(path));
+        }
 
-            Cache[path] = data;
-
-            return data;
+        private T Deserialize<T>(string json)
+        {
+            return JsonConvert.DeserializeObject<T>(json, this.settings);
         }
     }
 }

@@ -121,7 +121,7 @@ namespace DarkBestiary.Scenarios.Encounters
 
             AnyCombatTeamTurnStarted?.Invoke(this);
 
-            if (Queue.Count == 0)
+            if (Queue.Count == 0 || Scene.Active.Entities.All().All(x => x.IsAllyOfPlayer()))
             {
                 Complete();
                 return;
@@ -198,13 +198,6 @@ namespace DarkBestiary.Scenarios.Encounters
         {
             if (data.Victim.IsCharacter())
             {
-                var character = CharacterManager.Instance.Character;
-
-                if (character.Data.IsHardcore)
-                {
-                    character.Data.IsDead = true;
-                }
-
                 Fail();
                 return;
             }

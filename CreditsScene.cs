@@ -27,20 +27,20 @@ namespace DarkBestiary
             this.sceneRepository = Container.Instance.Resolve<ISceneRepository>();
             this.unitRepository = Container.Instance.Resolve<IUnitRepository>();
 
-            this.continueButton.PointerUp += OnContinueButtonPointerUp;
+            this.continueButton.PointerClick += OnContinueButtonPointerClick;
 
             NextScene();
         }
 
         public void Terminate()
         {
-            this.continueButton.PointerUp -= OnContinueButtonPointerUp;
+            this.continueButton.PointerClick -= OnContinueButtonPointerClick;
             this.scene.ExitDoor -= OnExitDoor;
             this.scene.Terminate();
             Destroy(gameObject);
         }
 
-        private void OnContinueButtonPointerUp()
+        private void OnContinueButtonPointerClick()
         {
             Skipped?.Invoke();
         }

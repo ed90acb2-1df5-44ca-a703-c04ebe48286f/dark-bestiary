@@ -35,16 +35,13 @@ namespace DarkBestiary.UI.Views.Unity
 
             OnAnyMasteryExperienceChanged(null);
             OnMasteryRowClicked(this.masteryRows.First());
-        }
 
-        protected override void OnInitialize()
-        {
-            this.closeButton.PointerUp += Hide;
+            this.closeButton.PointerClick += Hide;
         }
 
         protected override void OnTerminate()
         {
-            this.closeButton.PointerUp -= Hide;
+            this.closeButton.PointerClick -= Hide;
 
             foreach (var masteryRow in this.masteryRows)
             {
@@ -77,12 +74,14 @@ namespace DarkBestiary.UI.Views.Unity
             this.title.text = this.selected.Mastery.Name;
             this.description.text = this.selected.Mastery.Description.ToString(new StringVariableContext(this.selected.Mastery.Owner));
 
-            var index = 0;
-
             foreach (var star in this.stars)
             {
-                index++;
-                star.gameObject.SetActive(this.selected.Mastery.Experience.Level >= index);
+                star.gameObject.SetActive(false);
+            }
+
+            foreach (var star in this.stars.Take(this.selected.Mastery.Experience.Level - 1))
+            {
+                star.gameObject.SetActive(true);
             }
         }
     }

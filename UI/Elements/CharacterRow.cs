@@ -11,6 +11,7 @@ namespace DarkBestiary.UI.Elements
     public class CharacterRow : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
     {
         public event Payload<CharacterRow> Delete;
+        public event Payload<CharacterRow> Edit;
         public event Payload<CharacterRow> Clicked;
         public event Payload<CharacterRow> DoubleClicked;
 
@@ -18,6 +19,7 @@ namespace DarkBestiary.UI.Elements
 
         [SerializeField] private TextMeshProUGUI infoText;
         [SerializeField] private TextMeshProUGUI nameText;
+        [SerializeField] private Interactable editButton;
         [SerializeField] private Interactable deleteButton;
         [SerializeField] private CanvasGroup deleteButtonContainer;
         [SerializeField] private Image outline;
@@ -30,23 +32,16 @@ namespace DarkBestiary.UI.Elements
 
             this.nameText.text = character.Name;
             this.infoText.text = $"{I18N.Instance.Get("ui_level")} {character.Entity.GetComponent<ExperienceComponent>().Experience.Level}";
-
-            if (character.Data.IsHardcore)
-            {
-                if (character.Data.IsDead)
-                {
-                    this.infoText.text += $"<color=red> ({I18N.Instance.Get("ui_dead")})</color>";
-                }
-                else
-                {
-                    this.infoText.text += $" ({I18N.Instance.Get("ui_hardcore")})";
-                }
-            }
-
-            this.deleteButton.PointerUp += OnDeleteButtonPointerUp;
+            this.editButton.PointerClick += OnEditButtonPointerClick;
+            this.deleteButton.PointerClick += OnDeleteButtonPointerClick;
         }
 
-        private void OnDeleteButtonPointerUp()
+        private void OnEditButtonPointerClick()
+        {
+            Edit?.Invoke(this);
+        }
+
+        private void OnDeleteButtonPointerClick()
         {
             Delete?.Invoke(this);
         }

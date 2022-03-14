@@ -15,31 +15,35 @@ namespace DarkBestiary.Managers
     {
         public static SettingsManager Instance { get; private set; }
 
+        public SettingsData Data { get; private set; }
+
+        public int ResolutionIndex => Data.ResolutionIndex;
+        public int DisplayModeIndex => Data.DisplayModeIndex;
+        public string Locale => Data.Locale;
+        public float MasterVolume => Data.MasterVolume;
+        public float MusicVolume => Data.MusicVolume;
+        public float SoundVolume => Data.SoundVolume;
+        public int VerticalSync => Data.VerticalSync;
+        public bool DisableUiSounds => Data.DisableUiSounds;
+        public bool LoopMusic => Data.LoopMusic;
+        public bool RunInBackground => Data.RunInBackground;
+
+        public bool HighContrastMode => Data.HighContrastMode;
+        public bool HideBuffs => Data.HideBuffs;
+        public bool HideSkills => Data.HideSkills;
+        public bool HideHealth => Data.HideHealth;
+        public bool HideHealthText => Data.HideHealthText;
+        public bool DisableErrorMessages => Data.DisableErrorMessages;
+        public bool SummonedUnitsControlledByAi => Data.SummonedUnitsControlledByAi;
+        public bool DisableCombatText => Data.DisableCombatText;
+        public bool DisableCameraShake => Data.DisableCameraShake;
+        public bool AlwaysShowHealth => Data.AlwaysShowHealth;
+        public bool HideActingUnitHealth => Data.HideActingUnitHealth;
+        public bool AlwaysShowSkills => Data.AlwaysShowSkills;
+        public bool DisplayFormulasInTooltips => Data.DisplayFormulasInTooltips;
+
         private readonly IFileReader reader;
         private readonly IAudioEngine audioEngine;
-
-        public int ResolutionIndex => this.data.ResolutionIndex;
-        public int DisplayModeIndex => this.data.DisplayModeIndex;
-        public string Locale => this.data.Locale;
-        public float MasterVolume => this.data.MasterVolume;
-        public float MusicVolume => this.data.MusicVolume;
-        public float SoundVolume => this.data.SoundVolume;
-        public int VerticalSync => this.data.VerticalSync;
-        public bool RunInBackground => this.data.RunInBackground;
-
-        public bool HideBuffs => this.data.HideBuffs;
-        public bool HideSkills => this.data.HideSkills;
-        public bool HideHealth => this.data.HideHealth;
-        public bool HideHealthText => this.data.HideHealthText;
-        public bool DisableErrorMessages => this.data.DisableErrorMessages;
-        public bool SummonedUnitsControlledByAi => this.data.SummonedUnitsControlledByAi;
-        public bool DisableCombatText => this.data.DisableCombatText;
-        public bool DisableCameraShake => this.data.DisableCameraShake;
-        public bool AlwaysShowHealth => this.data.AlwaysShowHealth;
-        public bool AlwaysShowSkills => this.data.AlwaysShowSkills;
-        public bool DisplayFormulasInTooltips => this.data.DisplayFormulasInTooltips;
-
-        private SettingsData data;
 
         public SettingsManager(IFileReader reader, IAudioEngine audioEngine)
         {
@@ -53,11 +57,11 @@ namespace DarkBestiary.Managers
         {
             try
             {
-                this.data = this.reader.Read<SettingsData>(GetDataPath()) ?? new SettingsData();
+                Data = this.reader.Read<SettingsData>(GetDataPath()) ?? new SettingsData();
             }
             catch (Exception exception)
             {
-                this.data = new SettingsData();
+                Data = new SettingsData();
             }
 
             Setup();
@@ -67,24 +71,25 @@ namespace DarkBestiary.Managers
 
         private void Setup()
         {
-            SetLocale(this.data.Locale);
-            SetMasterVolume(this.data.MasterVolume);
-            SetSoundVolume(this.data.SoundVolume);
-            SetMusicVolume(this.data.MusicVolume);
-            SetVerticalSync(this.data.VerticalSync);
-            SetRunInBackground(this.data.RunInBackground);
-            SetDisableErrorMessages(this.data.DisableErrorMessages);
-            SetAlwaysShowHealth(this.data.AlwaysShowHealth);
-            SetAlwaysShowSkills(this.data.AlwaysShowSkills);
-            SetHideHealthText(this.data.HideHealthText);
-            SetHideHealth(this.data.HideHealth);
-            SetHideSkills(this.data.HideSkills);
-            SetHideBuffs(this.data.HideBuffs);
+            SetLocale(Data.Locale);
+            SetMasterVolume(Data.MasterVolume);
+            SetSoundVolume(Data.SoundVolume);
+            SetMusicVolume(Data.MusicVolume);
+            SetVerticalSync(Data.VerticalSync);
+            SetRunInBackground(Data.RunInBackground);
+            SetDisableErrorMessages(Data.DisableErrorMessages);
+            SetHideActingUnitHealth(Data.HideActingUnitHealth);
+            SetAlwaysShowHealth(Data.AlwaysShowHealth);
+            SetAlwaysShowSkills(Data.AlwaysShowSkills);
+            SetHideHealthText(Data.HideHealthText);
+            SetHideHealth(Data.HideHealth);
+            SetHideSkills(Data.HideSkills);
+            SetHideBuffs(Data.HideBuffs);
         }
 
         public void Apply(SettingsData data)
         {
-            this.data = data;
+            Data = data;
 
             Setup();
 
@@ -131,79 +136,99 @@ namespace DarkBestiary.Managers
         public void SetLocale(string locale)
         {
             I18N.Instance.ChangeLocale(locale);
-            this.data.Locale = locale;
+            Data.Locale = locale;
         }
 
         public void SetDisplayFormulasInTooltips(bool value)
         {
-            this.data.DisplayFormulasInTooltips = value;
+            Data.DisplayFormulasInTooltips = value;
         }
 
         public void SetDisableErrorMessages(bool value)
         {
-            this.data.DisableErrorMessages = value;
+            Data.DisableErrorMessages = value;
         }
 
         public void SetDisableCombatText(bool value)
         {
-            this.data.DisableCombatText = value;
+            Data.DisableCombatText = value;
         }
 
         public void SetDisableCameraShake(bool value)
         {
-            this.data.DisableCameraShake = value;
+            Data.DisableCameraShake = value;
         }
 
         public void SetToggleSummonedUnitsControlledByAi(bool value)
         {
-            this.data.SummonedUnitsControlledByAi = value;
+            Data.SummonedUnitsControlledByAi = value;
+        }
+
+        public void SetLoopMusic(bool value)
+        {
+            Data.LoopMusic = value;
+        }
+
+        public void SetDisableUiSounds(bool value)
+        {
+            Data.DisableUiSounds = value;
         }
 
         public void SetHideHealthText(bool value)
         {
-            this.data.HideHealthText = value;
+            Data.HideHealthText = value;
             FloatingHealthBar.HideHealthText(value);
         }
 
         public void SetHideHealth(bool value)
         {
-            this.data.HideHealth = value;
+            Data.HideHealth = value;
             FloatingHealthBar.HideHealth(value);
         }
 
         public void SetHideBuffs(bool value)
         {
-            this.data.HideBuffs = value;
+            Data.HideBuffs = value;
             FloatingHealthBar.HideBuffs(value);
+        }
+
+        public void SetHighContrastMode(bool value)
+        {
+            Data.HighContrastMode = value;
         }
 
         public void SetHideSkills(bool value)
         {
-            this.data.HideSkills = value;
+            Data.HideSkills = value;
             FloatingActionBar.HideSkills(value);
+        }
+
+        public void SetHideActingUnitHealth(bool value)
+        {
+            Data.HideActingUnitHealth = value;
         }
 
         public void SetAlwaysShowHealth(bool value)
         {
-            this.data.AlwaysShowHealth = value;
+            Data.AlwaysShowHealth = value;
             FloatingHealthBar.AlwaysShow(value);
         }
 
         public void SetAlwaysShowSkills(bool value)
         {
-            this.data.AlwaysShowSkills = value;
+            Data.AlwaysShowSkills = value;
             FloatingActionBar.AlwaysShow(value);
         }
 
         public void SetVerticalSync(int value)
         {
-            this.data.VerticalSync = value;
+            Data.VerticalSync = value;
             QualitySettings.vSyncCount = value;
         }
 
         public void SetRunInBackground(bool value)
         {
-            this.data.RunInBackground = value;
+            Data.RunInBackground = value;
             Application.runInBackground = value;
         }
 
@@ -239,35 +264,35 @@ namespace DarkBestiary.Managers
         public void SetResolution(Resolution resolution)
         {
             Screen.SetResolution(resolution.width, resolution.height, Screen.fullScreenMode);
-            this.data.ResolutionIndex = GetResolutions().IndexOf(resolution);
+            Data.ResolutionIndex = GetResolutions().IndexOf(resolution);
         }
 
         public void SetMasterVolume(float volume)
         {
             this.audioEngine.SetMasterVolume(volume);
-            this.data.MasterVolume = volume;
+            Data.MasterVolume = volume;
         }
 
         public void SetMusicVolume(float volume)
         {
             this.audioEngine.SetMusicVolume(volume);
-            this.data.MusicVolume = volume;
+            Data.MusicVolume = volume;
         }
 
         public void SetSoundVolume(float volume)
         {
             this.audioEngine.SetSoundVolume(volume);
-            this.data.SoundVolume = volume;
+            Data.SoundVolume = volume;
         }
 
         private static string GetDataPath()
         {
-            return Application.persistentDataPath + "/settings.json";
+            return Environment.PersistentDataPath + "/settings.json";
         }
 
         private void OnApplicationQuitting()
         {
-            this.reader.Write(this.data, GetDataPath());
+            this.reader.Write(Data, GetDataPath());
         }
     }
 }

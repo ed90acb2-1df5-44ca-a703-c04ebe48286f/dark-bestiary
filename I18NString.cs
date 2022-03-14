@@ -10,7 +10,7 @@ namespace DarkBestiary
     {
         public List<I18NStringVariable> Variables { get; }
 
-        public string Id => this.data.Id;
+        public string Key => this.data.Key;
 
         private readonly I18NStringData data;
 
@@ -30,12 +30,12 @@ namespace DarkBestiary
 
         public override string ToString()
         {
-            if (string.IsNullOrEmpty(this.data.Id))
+            if (string.IsNullOrEmpty(this.data.Key))
             {
                 return "";
             }
 
-            return I18N.Instance.Translate(this.data.Id);
+            return I18N.Instance.Translate(this.data.Key);
         }
 
         public string ToString(GameObject entity)

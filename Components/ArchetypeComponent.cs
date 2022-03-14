@@ -42,10 +42,16 @@ namespace DarkBestiary.Components
             foreach (var archetypeAttributeData in this.data.Attributes)
             {
                 var attribute = attributes.Get(archetypeAttributeData.AttributeId);
+                var level = unit.Level;
+
+                if (level > 100 && attribute.Type != AttributeType.Constitution)
+                {
+                    level = 100 + (level - 100) / 3;
+                }
 
                 attribute.SetArchetypeBonus(
                     Curve.Evaluate(
-                        unit.Level * GetChallengeRatingMultiplier(attribute, unit.ChallengeRating),
+                        level * GetChallengeRatingMultiplier(attribute, unit.ChallengeRating),
                         archetypeAttributeData.Min,
                         archetypeAttributeData.Max,
                         archetypeAttributeData.CurveType

@@ -13,10 +13,10 @@ namespace DarkBestiary.Effects
     {
         private readonly Effect effect;
         private readonly SearchAreaEffectData data;
-        private readonly List<Validator> validators;
+        private readonly List<ValidatorWithPurpose> validators;
         private readonly IEffectRepository effectRepository;
 
-        public SearchPointsEffect(SearchAreaEffectData data, List<Validator> validators,
+        public SearchPointsEffect(SearchAreaEffectData data, List<ValidatorWithPurpose> validators,
             IEffectRepository effectRepository) : base(data, validators)
         {
             this.data = data;
@@ -90,6 +90,7 @@ namespace DarkBestiary.Effects
 
                 var clone = this.effect.Clone();
                 clone.Skill = Skill;
+                clone.DamageMultiplier = DamageMultiplier;
                 clone.Origin = Origin;
                 clone.StackCount = StackCount;
                 clone.Apply(caster, cells[index].transform.position);

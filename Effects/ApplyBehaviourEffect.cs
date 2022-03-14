@@ -12,7 +12,7 @@ namespace DarkBestiary.Effects
         private readonly IBehaviourRepository behaviourRepository;
         private readonly ApplyBehaviourEffectData data;
 
-        public ApplyBehaviourEffect(ApplyBehaviourEffectData data, List<Validator> validators,
+        public ApplyBehaviourEffect(ApplyBehaviourEffectData data, List<ValidatorWithPurpose> validators,
             IBehaviourRepository behaviourRepository) : base(data, validators)
         {
             this.data = data;
@@ -26,17 +26,11 @@ namespace DarkBestiary.Effects
 
         protected override void Apply(GameObject caster, GameObject target)
         {
-            var behavioursComponent = target.GetComponent<BehavioursComponent>();
-
             var behaviour = this.behaviourRepository.FindOrFail(this.data.BehaviourId);
+            behaviour.StackCount = Mathf.Max(this.data.Stacks, 1);
             behaviour.CanBeRemovedOnCast = Skill == null;
-            behavioursComponent.Apply(behaviour, caster);
 
-            if (this.data.Stacks > 1)
-            {
-                behavioursComponent.SetStackCount(this.data.BehaviourId,
-                    behavioursComponent.GetStackCount(this.data.BehaviourId) + this.data.Stacks - 1);
-            }
+            target.GetComponent<BehavioursComponent>().ApplyAllStacks(behaviour, caster);
 
             TriggerFinished();
         }

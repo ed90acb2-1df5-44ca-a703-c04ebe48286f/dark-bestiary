@@ -41,22 +41,26 @@ namespace DarkBestiary.Achievements
                 .OrderBy(a => a.Index)
                 .ToList();
 
-            foreach (var achievement in Achievements)
-            {
-                var status = this.data.AchievementStatuses.FirstOrDefault(data => data.AchievementId == achievement.Id);
-
-                if (status != null)
-                {
-                    achievement.ChangeQuantity(status.Quantity);
-                    achievement.Evaluate();
-                }
-
-                achievement.Unlocked += OnAchievementUnlocked;
-                achievement.Updated += OnAchievementUpdated;
-            }
-
             GameState.AnyGameStateEnter += OnAnyGameStateEnter;
             Application.quitting += OnApplicationQuitting;
+
+            // Wait for "SteamAchievementUnlocker" ...
+            Timer.Instance.WaitForFixedUpdate(() =>
+            {
+                foreach (var achievement in Achievements)
+                {
+                    var status = this.data.AchievementStatuses.FirstOrDefault(data => data.AchievementId == achievement.Id);
+
+                    if (status != null)
+                    {
+                        achievement.ChangeQuantity(status.Quantity);
+                        achievement.Evaluate();
+                    }
+
+                    achievement.Unlocked += OnAchievementUnlocked;
+                    achievement.Updated += OnAchievementUpdated;
+                }
+            });
         }
 
         private void OnAnyGameStateEnter(GameState gameState)
@@ -66,7 +70,7 @@ namespace DarkBestiary.Achievements
                 achievement.Unsubscribe();
             }
 
-            if (gameState.IsTown || gameState.IsScenario)
+            if (gameState.IsHub || gameState.IsScenario)
             {
                 foreach (var achievement in Achievements)
                 {

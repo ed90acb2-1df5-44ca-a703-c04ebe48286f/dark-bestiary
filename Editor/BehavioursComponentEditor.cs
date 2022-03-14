@@ -19,10 +19,11 @@ namespace DarkBestiary.Editor
 
             foreach (var behaviour in this.behaviours.Behaviours)
             {
+                var label = behaviour.Name.IsNullOrEmpty() ? behaviour.Label : behaviour.Name;
+
                 EditorGUILayout.LabelField(
-                    " #" + behaviour.Id + " " + behaviour.GetType() +
-                    behaviour.Name + " x" + behaviour.StackCount +
-                    $" ({behaviour.RemainingDuration}/{behaviour.Duration})");
+                    " #" + behaviour.Id + " " + label + " " + behaviour.GetType() +
+                    " x" + behaviour.StackCount + $" ({behaviour.RemainingDuration}/{behaviour.Duration})");
             }
         }
     }

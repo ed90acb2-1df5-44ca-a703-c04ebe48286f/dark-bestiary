@@ -6,6 +6,7 @@ namespace DarkBestiary.Data
     [Serializable]
     public class AchievementData : Identity<int>
     {
+        public bool IsEnabled;
         public int Index;
         public string NameKey;
         public string DescriptionKey;

@@ -11,6 +11,7 @@ namespace DarkBestiary.UI.Views.Unity
     {
         public event Payload NextPage;
         public event Payload PreviousPage;
+        public event Payload TakeAll;
         public event Payload<Item> Pick;
         public event Payload<Item> Remove;
 
@@ -18,6 +19,7 @@ namespace DarkBestiary.UI.Views.Unity
         [SerializeField] private MailboxItem itemPrefab;
         [SerializeField] private Transform itemContainer;
         [SerializeField] private TextMeshProUGUI navigationText;
+        [SerializeField] private Interactable takeAllButton;
         [SerializeField] private Interactable previousButton;
         [SerializeField] private Interactable nextButton;
 
@@ -30,31 +32,38 @@ namespace DarkBestiary.UI.Views.Unity
         {
             this.itemPool = MonoBehaviourPool<MailboxItem>.Factory(this.itemPrefab, this.itemContainer);
 
-            this.closeButton.PointerUp += Hide;
-            this.previousButton.PointerUp += OnPreviousButtonPointerUp;
-            this.nextButton.PointerUp += OnNextButtonPointerUp;
+            this.closeButton.PointerClick += Hide;
+            this.takeAllButton.PointerClick += OnTakeAllButtonPointerClick;
+            this.previousButton.PointerClick += OnPreviousButtonPointerClick;
+            this.nextButton.PointerClick += OnNextButtonPointerClick;
         }
 
         protected override void OnTerminate()
         {
             this.itemPool.Clear();
 
-            this.closeButton.PointerUp -= Hide;
-            this.previousButton.PointerUp -= OnPreviousButtonPointerUp;
-            this.nextButton.PointerUp -= OnNextButtonPointerUp;
+            this.closeButton.PointerClick -= Hide;
+            this.takeAllButton.PointerClick -= OnTakeAllButtonPointerClick;
+            this.previousButton.PointerClick -= OnPreviousButtonPointerClick;
+            this.nextButton.PointerClick -= OnNextButtonPointerClick;
         }
 
-        private void OnPreviousButtonPointerUp()
+        private void OnTakeAllButtonPointerClick()
+        {
+            TakeAll?.Invoke();
+        }
+
+        private void OnPreviousButtonPointerClick()
         {
             PreviousPage?.Invoke();
         }
 
-        private void OnNextButtonPointerUp()
+        private void OnNextButtonPointerClick()
         {
             NextPage?.Invoke();
         }
 
-        public void Display(List<Item> items, int currentPage, int totalPages)
+        public void Refresh(List<Item> items, int currentPage, int totalPages)
         {
             this.navigationText.text = $"{currentPage + 1}/{totalPages + 1}";
             this.navigationText.gameObject.SetActive(totalPages > 0);

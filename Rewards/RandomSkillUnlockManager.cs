@@ -7,6 +7,7 @@ using DarkBestiary.Managers;
 using DarkBestiary.Skills;
 using DarkBestiary.UI.Elements;
 using Zenject;
+using Component = DarkBestiary.Components.Component;
 
 namespace DarkBestiary.Rewards
 {
@@ -14,6 +15,7 @@ namespace DarkBestiary.Rewards
     {
         private readonly ISkillRepository skillRepository;
 
+        private ExperienceComponent experience;
         private SpellbookComponent spellbook;
         private Character character;
 
@@ -29,12 +31,8 @@ namespace DarkBestiary.Rewards
 
         private void OnCharacterSelected(Character character)
         {
-            if (!character.Data.IsRandomSkills)
-            {
-                return;
-            }
-
             this.character = character;
+            this.experience = character.Entity.GetComponent<ExperienceComponent>();
             this.spellbook = character.Entity.GetComponent<SpellbookComponent>();
             this.spellbook.Terminated += OnTerminated;
 
@@ -50,6 +48,16 @@ namespace DarkBestiary.Rewards
 
         private void OnLevelupPopupHidden()
         {
+            if (Game.Instance.IsCampaign)
+            {
+                return;
+            }
+
+            if (this.character.Data.FreeSkills == 0)
+            {
+                return;
+            }
+
             var skills = GetSkills();
 
             if (skills.Count == 0)
@@ -59,12 +67,13 @@ namespace DarkBestiary.Rewards
 
             SkillSelectPopup.Instance.Refreshed += OnRefreshSkills;
             SkillSelectPopup.Instance.Selected += OnSkillSelected;
-            SkillSelectPopup.Instance.Show(this.spellbook.Skills, skills, this.character.Data.Rerolls);
+            SkillSelectPopup.Instance.Show(this.spellbook.Skills, skills, this.character.Data.Rerolls, this.character.Data.FreeSkills);
         }
 
         private List<Skill> GetSkills()
         {
-            var skills = this.skillRepository.Tradable(s => !this.spellbook.IsKnown(s.Id))
+            var skills = this.skillRepository
+                .Tradable(s => !this.spellbook.IsKnown(s.Id) && !s.Flags.HasFlag(SkillFlags.Vision))
                 .Shuffle()
                 .Take(5)
                 .ToList();
@@ -86,7 +95,7 @@ namespace DarkBestiary.Rewards
 
             this.character.Data.Rerolls--;
 
-            SkillSelectPopup.Instance.Refresh(GetSkills(), this.character.Data.Rerolls);
+            SkillSelectPopup.Instance.Refresh(GetSkills(), this.character.Data.Rerolls, this.character.Data.FreeSkills);
         }
 
         private void OnSkillSelected(Skill skill)
@@ -94,7 +103,10 @@ namespace DarkBestiary.Rewards
             SkillSelectPopup.Instance.Refreshed -= OnRefreshSkills;
             SkillSelectPopup.Instance.Selected -= OnSkillSelected;
 
+            this.character.Data.FreeSkills--;
             this.spellbook.Add(skill);
+
+            Timer.Instance.WaitForFixedUpdate(OnLevelupPopupHidden);
         }
     }
 }

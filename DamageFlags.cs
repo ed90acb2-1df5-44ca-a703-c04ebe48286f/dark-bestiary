@@ -15,5 +15,6 @@ namespace DarkBestiary
         Magic = 1 << 5,
         Ranged = 1 << 6,
         DOT = 1 << 7,
+        True = 1 << 8,
     }
 }

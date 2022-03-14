@@ -20,7 +20,10 @@ namespace DarkBestiary.UI.Elements
 
         private IEnumerator FadeToAction(Action action, bool isLoading)
         {
-            UIManager.Instance.Cleanup();
+            foreach (var poolableMonoBehaviour in UIManager.Instance.PopupContainer.GetComponentsInChildren<PoolableMonoBehaviour>())
+            {
+                poolableMonoBehaviour.Despawn();
+            }
 
             yield return FadeInCoroutine();
 

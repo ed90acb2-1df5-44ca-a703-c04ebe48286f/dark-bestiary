@@ -11,17 +11,23 @@ namespace DarkBestiary.GameStates
 
         protected override void OnEnter()
         {
-            Board.Instance.gameObject.SetActive(true);
+            FloatingHealthbarManager.Instance.IsEnabled = false;
+            FloatingActionbarManager.Instance.IsEnabled = false;
 
             this.creditsScene = Object.Instantiate(Resources.Load<CreditsScene>("Prefabs/Credits"));
             this.creditsScene.Skipped += OnCreditsSkipped;
             this.creditsScene.Initialize();
+
+            Board.Instance.gameObject.SetActive(true);
 
             Container.Instance.Resolve<Interactor>().EnterDisabledState();
         }
 
         protected override void OnExit()
         {
+            FloatingHealthbarManager.Instance.IsEnabled = true;
+            FloatingActionbarManager.Instance.IsEnabled = true;
+
             this.creditsScene.Skipped -= OnCreditsSkipped;
             this.creditsScene.Terminate();
 
@@ -42,7 +48,7 @@ namespace DarkBestiary.GameStates
             }
             else
             {
-                Game.Instance.ToTown();
+                Game.Instance.ToHub();
             }
         }
     }

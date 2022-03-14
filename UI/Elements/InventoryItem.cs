@@ -1,4 +1,5 @@
-﻿using DarkBestiary.Extensions;
+﻿using System;
+using DarkBestiary.Extensions;
 using DarkBestiary.Items;
 using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
@@ -6,16 +7,18 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using Zenject;
 
-namespace DarkBestiary.UI.Elements
+ namespace DarkBestiary.UI.Elements
 {
     public class InventoryItem : PoolableMonoBehaviour,
         IBeginDragHandler,
         IEndDragHandler,
         IDragHandler,
-        IPointerUpHandler,
+        IPointerClickHandler,
         IPointerEnterHandler,
-        IPointerExitHandler
+        IPointerExitHandler,
+        ITickable
     {
         public static event Payload<InventoryItem> AnyBeginDrag;
         public static event Payload<InventoryItem> AnyEndDrag;
@@ -24,12 +27,13 @@ namespace DarkBestiary.UI.Elements
         public event Payload<InventoryItem> Blocked;
         public event Payload<InventoryItem> Unblocked;
         public event Payload<InventoryItem> DoubleClicked;
+        public event Payload<InventoryItem> ControlClicked;
         public event Payload<InventoryItem> RightClicked;
         public event Payload<InventoryItem> Clicked;
         public event Payload<InventoryItem> BeginDrag;
         public event Payload<InventoryItem> EndDrag;
 
-        public Item Item { get; private set; }
+        public Item Item { get; private set; } = Item.CreateEmpty();
         public bool ShowTooltip { get; set; } = true;
         public bool IsDraggable { get; set; } = true;
         public bool IsBlocked { get; private set; }
@@ -38,15 +42,19 @@ namespace DarkBestiary.UI.Elements
         [SerializeField] private Image icon;
         [SerializeField] private TextMeshProUGUI stackCountText;
         [SerializeField] private Image fade;
-        [SerializeField] private Image unidentifiedHighlight;
         [SerializeField] private Image rarityBorder;
         [SerializeField] private Image cooldownImage;
         [SerializeField] private TextMeshProUGUI cooldownText;
+        [SerializeField] private TextMeshProUGUI sharpeningText;
+        [SerializeField] private GameObject illusoryParticles;
+        [SerializeField] private GameObject outline;
 
         private RectTransform rectTransform;
         private RectTransform parentTransform;
         private Transform dragTransform;
         private float lastClickTime;
+        private bool isDragging;
+        private TickableManager tickableManager;
 
         private void Start()
         {
@@ -55,29 +63,59 @@ namespace DarkBestiary.UI.Elements
             this.dragTransform = UIManager.Instance.ViewCanvas.transform;
 
             Timer.Instance.WaitForFixedUpdate(FitParent);
+
+            OnSpawn();
         }
 
         private void OnDestroy()
         {
-            if (Item == null)
+            CleanUp();
+            OnDespawn();
+        }
+
+        protected override void OnSpawn()
+        {
+            if (this.tickableManager != null)
             {
                 return;
             }
 
-            CleanUp();
+            this.tickableManager = Container.Instance.Resolve<TickableManager>();
+            this.tickableManager.Add(this);
         }
 
-        public void Change(Item item)
+        protected override void OnDespawn()
+        {
+            if (this.tickableManager == null)
+            {
+                return;
+            }
+
+            this.tickableManager.Remove(this);
+            this.tickableManager = null;
+        }
+
+        public void Tick()
+        {
+            // Note: Fuck you Unity
+            // https://stackoverflow.com/questions/41537243/c-sharp-unity-ienddraghandler-onenddrag-not-always-called
+
+            if (this.isDragging && !Input.GetMouseButton(0))
+            {
+                OnEndDrag(null);
+            }
+        }
+
+        public void Change(Item item, bool subscribeToEvents = true)
         {
             CleanUp();
 
             Item = item;
-            Item.StackCountChanged += UpdateStackCount;
-            Item.SocketInserted += OnSocketInserted;
-            Item.Forged += OnForged;
-            Item.CooldownStarted += OnCooldownUpdated;
-            Item.CooldownUpdated += OnCooldownUpdated;
-            Item.CooldownFinished += OnCooldownFinished;
+
+            if (subscribeToEvents)
+            {
+                SubscribeToItemEvents(Item);
+            }
 
             name = $"Item - {Item.Name} #{Item.GetHashCode()}";
 
@@ -85,8 +123,12 @@ namespace DarkBestiary.UI.Elements
             this.icon.sprite = Resources.Load<Sprite>(Item.Icon);
             this.icon.enabled = !Item.IsEmpty;
 
+            if (this.illusoryParticles != null)
+            {
+                this.illusoryParticles.SetActive(Item.IsMarkedAsIllusory && Game.Instance.IsVisions);
+            }
+
             UpdateStackCount();
-            UpdateUnidentifiedStatus();
             UpdateRarityBorderColor();
 
             if (Item.IsOnCooldown)
@@ -94,7 +136,78 @@ namespace DarkBestiary.UI.Elements
                 UpdateCooldown();
             }
 
+            UpdateSharpening();
+
             ItemTooltip.Instance.Hide();
+        }
+
+        private void SubscribeToItemEvents(Item item)
+        {
+            item.StackCountChanged += UpdateStackCount;
+            item.SocketInserted += OnSocketInserted;
+            item.Enchanted += OnEnchanted;
+            item.Forged += OnForged;
+            item.SharpeningSuccess += OnSharpeningSuccess;
+            item.SharpeningFailed += OnSharpeningFailed;
+            item.SharpeningLevelChanged += OnSharpeningLevelChanged;
+            item.CooldownStarted += OnCooldownUpdated;
+            item.CooldownUpdated += OnCooldownUpdated;
+            item.CooldownFinished += OnCooldownFinished;
+        }
+
+        private void UnsubscribeFromItemEvents(Item item)
+        {
+            item.StackCountChanged -= UpdateStackCount;
+            item.SocketInserted -= OnSocketInserted;
+            item.Enchanted -= OnEnchanted;
+            item.Forged -= OnForged;
+            item.SharpeningSuccess -= OnSharpeningSuccess;
+            item.SharpeningFailed -= OnSharpeningFailed;
+            item.SharpeningLevelChanged -= OnSharpeningLevelChanged;
+            item.CooldownStarted -= OnCooldownUpdated;
+            item.CooldownUpdated -= OnCooldownUpdated;
+            item.CooldownFinished -= OnCooldownFinished;
+        }
+
+        private void CleanUp()
+        {
+            Unblock();
+            ClearCooldown();
+            Deselect();
+
+            if (Item == null)
+            {
+                return;
+            }
+
+            UnsubscribeFromItemEvents(Item);
+        }
+
+        public void Select()
+        {
+            this.outline.gameObject?.SetActive(true);
+        }
+
+        public void Deselect()
+        {
+            this.outline.gameObject?.SetActive(false);
+        }
+
+        private void OnSharpeningLevelChanged(Item item)
+        {
+            UpdateSharpening();
+        }
+
+        private void OnSharpeningSuccess(Item item)
+        {
+            AudioManager.Instance.PlayCraftSharpenSuccess();
+            Instantiate(UIManager.Instance.SparksParticle, transform).DestroyAsVisualEffect();
+        }
+
+        private void OnSharpeningFailed(Item item)
+        {
+            AudioManager.Instance.PlayCraftSharpenFailed();
+            Instantiate(UIManager.Instance.PuffParticle, transform).DestroyAsVisualEffect();
         }
 
         private void OnForged(Item item)
@@ -106,35 +219,48 @@ namespace DarkBestiary.UI.Elements
         private void OnSocketInserted(Item item, Item socket)
         {
             AudioManager.Instance.PlayCraftSocket();
+            Instantiate(UIManager.Instance.FlareParticle, transform).DestroyAsVisualEffect();
+        }
+
+        private void OnEnchanted(Item item, Item enchant)
+        {
+            AudioManager.Instance.PlayEnchant();
             Instantiate(UIManager.Instance.SparksParticle, transform).DestroyAsVisualEffect();
         }
 
-        private void CleanUp()
+        private void UpdateSharpening()
         {
-            Unblock();
-            ClearCooldown();
-
-            if (Item == null)
+            if (this.sharpeningText == null)
             {
                 return;
             }
 
-            Item.StackCountChanged -= UpdateStackCount;
-            Item.SocketInserted -= OnSocketInserted;
-            Item.Forged -= OnForged;
-            Item.CooldownStarted -= OnCooldownUpdated;
-            Item.CooldownUpdated -= OnCooldownUpdated;
-            Item.CooldownFinished -= OnCooldownFinished;
+            this.sharpeningText.gameObject.SetActive(Item.SharpeningLevel > 0);
+            this.sharpeningText.text = "+" + Item.SharpeningLevel;
         }
 
         private void OnCooldownUpdated(Item item)
         {
-            UpdateCooldown();
+            try
+            {
+                UpdateCooldown();
+            }
+            catch (Exception exception)
+            {
+                // ignored
+            }
         }
 
         private void OnCooldownFinished(Item item)
         {
-            ClearCooldown();
+            try
+            {
+                ClearCooldown();
+            }
+            catch (Exception exception)
+            {
+                // ignored
+            }
         }
 
         private void ClearCooldown()
@@ -160,11 +286,6 @@ namespace DarkBestiary.UI.Elements
             }
 
             this.rarityBorder.color = Item.Rarity.Color().With(a: 0.5f);
-        }
-
-        private void UpdateUnidentifiedStatus()
-        {
-            this.unidentifiedHighlight.color = this.unidentifiedHighlight.color.With(a: Item.IsIdentified ? 0 : 1);
         }
 
         public void UpdateStackCount()
@@ -193,7 +314,7 @@ namespace DarkBestiary.UI.Elements
             Unblocked?.Invoke(this);
         }
 
-        public void OnPointerUp(PointerEventData pointer)
+        public void OnPointerClick(PointerEventData pointer)
         {
             if (Item.IsEmpty || IsBlocked)
             {
@@ -211,6 +332,13 @@ namespace DarkBestiary.UI.Elements
                 return;
             }
 
+            if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl) ||
+                Input.GetKey(KeyCode.LeftCommand) || Input.GetKey(KeyCode.RightCommand))
+            {
+                ControlClicked?.Invoke(this);
+                return;
+            }
+
             Clicked?.Invoke(this);
 
             if (Time.time - this.lastClickTime < 0.25f)
@@ -223,22 +351,21 @@ namespace DarkBestiary.UI.Elements
 
         private void FitParent()
         {
-            if (this.parentTransform == null)
-            {
-                return;
-            }
-
-            this.rectTransform.sizeDelta =
-                new Vector2(this.parentTransform.rect.width, this.parentTransform.rect.height);
+            this.rectTransform.localScale = Vector3.one;
+            this.rectTransform.anchoredPosition = Vector3.zero;
+            this.rectTransform.sizeDelta = new Vector2(this.parentTransform.rect.width, this.parentTransform.rect.height);
         }
 
         public void OnBeginDrag(PointerEventData pointer)
         {
-            if (Item.IsEmpty || IsBlocked || !IsDraggable || pointer.button == PointerEventData.InputButton.Right)
+            if (Item.IsEmpty || IsBlocked || !IsDraggable || pointer.button == PointerEventData.InputButton.Right ||
+                Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.LeftCommand))
             {
                 pointer.pointerDrag = null;
                 return;
             }
+
+            this.isDragging = true;
 
             ItemTooltip.Instance.Hide();
 
@@ -257,14 +384,19 @@ namespace DarkBestiary.UI.Elements
 
         public void OnDrag(PointerEventData pointer)
         {
-            transform.position = pointer.position + new Vector2(32, -32);
+            transform.position = pointer.position + new Vector2(16, -16);
         }
 
         public void OnEndDrag(PointerEventData pointer)
         {
+            if (!this.isDragging)
+            {
+                return;
+            }
+
+            this.isDragging = false;
+
             transform.SetParent(this.parentTransform);
-            transform.position = this.parentTransform.position;
-            transform.localScale = Vector3.one;
 
             this.canvasGroup.blocksRaycasts = true;
             this.canvasGroup.interactable = true;

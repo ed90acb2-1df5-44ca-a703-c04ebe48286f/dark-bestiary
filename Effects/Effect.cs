@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using DarkBestiary.Components;
 using DarkBestiary.Data;
 using DarkBestiary.Extensions;
@@ -22,13 +21,14 @@ namespace DarkBestiary.Effects
         public int Id => this.data.Id;
         public string Name => this.data.Name;
         public object Origin { get; set; }
+        public float DamageMultiplier { get; set; } = 1;
         public Skill Skill { get; set; }
         public bool IsFailed { get; protected set; }
 
         public int StackCount
         {
             get => this.stackCount;
-            set => this.stackCount = Math.Max(1, value);
+            set => this.stackCount = Mathf.Clamp(value, 1, this.data.StackCountMax > 0 ? this.data.StackCountMax : int.MaxValue);
         }
 
         public GameObject Caster { get; protected set; }
@@ -36,7 +36,7 @@ namespace DarkBestiary.Effects
         public object Target { get; protected set; }
         public bool IsFinished { get; private set; }
 
-        protected readonly List<Validator> Validators;
+        protected readonly List<ValidatorWithPurpose> Validators;
 
         private static int sessionCounter;
 
@@ -45,7 +45,7 @@ namespace DarkBestiary.Effects
         private int stackCount = 1;
         private bool isApplied;
 
-        protected Effect(EffectData data, List<Validator> validators)
+        protected Effect(EffectData data, List<ValidatorWithPurpose> validators)
         {
             this.data = data;
             this.Validators = validators;
@@ -55,6 +55,7 @@ namespace DarkBestiary.Effects
         {
             var effect = New();
             effect.Skill = Skill;
+            effect.DamageMultiplier = DamageMultiplier;
 
             return effect;
         }
@@ -64,6 +65,7 @@ namespace DarkBestiary.Effects
             effect.Skill = Skill;
             effect.Origin = Origin;
             effect.StackCount = StackCount;
+            effect.DamageMultiplier = DamageMultiplier;
 
             return effect;
         }
@@ -89,13 +91,13 @@ namespace DarkBestiary.Effects
             Target = DetermineTarget(Caster, target);
             Origin = Origin ?? Caster;
 
-            if (!RNG.Test(this.data.Chance))
+            if (!RNG.Test(this.data.StackChance ? this.data.Chance * StackCount : this.data.Chance))
             {
                 TriggerFinished();
                 return;
             }
 
-            if (this.Validators.Any(validator => !validator.Validate(Caster, Target)))
+            if (!this.Validators.ByPurpose(ValidatorPurpose.Apply).Validate(Caster, Target))
             {
                 TriggerFinished();
                 return;

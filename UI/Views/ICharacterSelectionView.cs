@@ -8,9 +8,10 @@ namespace DarkBestiary.UI.Views
         event Payload Cancel;
         event Payload Create;
         event Payload Start;
+        event Payload<Character, string> RenameCharacter;
         event Payload<Character> SelectCharacter;
         event Payload<Character> DeleteCharacter;
 
-        void RedrawCharacters(List<Character> characters);
+        void Refresh(List<Character> characters);
     }
 }

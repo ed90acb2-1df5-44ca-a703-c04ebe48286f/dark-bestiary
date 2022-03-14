@@ -1,5 +1,6 @@
 using DarkBestiary.Data;
 using DarkBestiary.Data.Readers;
+using DarkBestiary.Managers;
 using UnityEngine;
 
 namespace DarkBestiary.Achievements
@@ -27,7 +28,7 @@ namespace DarkBestiary.Achievements
 
         private string GetDataPath()
         {
-            return Application.persistentDataPath + $"/{this.storageId}/achievements.save";
+            return Environment.PersistentDataPath + $"/{this.storageId}/achievements.save";
         }
     }
 }

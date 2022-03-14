@@ -1,5 +1,6 @@
 ﻿using DarkBestiary.Exceptions;
 using DarkBestiary.Messaging;
+using UnityEngine;
 
 namespace DarkBestiary.Currencies
 {
@@ -9,10 +10,17 @@ namespace DarkBestiary.Currencies
 
         public int Id { get; }
         public CurrencyType Type { get; }
-        public int Amount { get; private set; }
         public I18NString Name { get; }
         public I18NString Description { get; }
         public string Icon { get; }
+
+        public int Amount
+        {
+            get => this.amount;
+            private set => this.amount = Mathf.Max(0, value);
+        }
+
+        private int amount;
 
         public Currency(int id, CurrencyType type, int amount, string icon, I18NString name, I18NString description)
         {

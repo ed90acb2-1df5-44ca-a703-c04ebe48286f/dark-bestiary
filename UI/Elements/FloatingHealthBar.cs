@@ -6,7 +6,6 @@ using DarkBestiary.Components;
 using DarkBestiary.Extensions;
 using DarkBestiary.Items;
 using DarkBestiary.Messaging;
-using DarkBestiary.Scenarios.Encounters;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -25,20 +24,19 @@ namespace DarkBestiary.UI.Elements
         [SerializeField] private Image healthFiller;
         [SerializeField] private Image shieldFiller;
         [SerializeField] private Image shiny;
-        [SerializeField] private Image turnIndicator;
         [SerializeField] private TextMeshProUGUI text;
         [SerializeField] private BehaviourView behaviourPrefab;
         [SerializeField] private Transform behaviourContainer;
-
-        [Header("Icons")]
-        [SerializeField] private Sprite iconOn;
-        [SerializeField] private Sprite iconOff;
 
         [Header("Action Points")]
         [SerializeField] private Color colorOn;
         [SerializeField] private Color colorOff;
         [SerializeField] private GameObject actionPointsContainer;
         [SerializeField] private Image[] actionPoints;
+
+        [Header("Rage")]
+        [SerializeField] private Image rageFiller;
+        [SerializeField] private GameObject rageContainer;
 
         private static bool alwaysShow;
         private static bool hideBuffs;
@@ -79,11 +77,6 @@ namespace DarkBestiary.UI.Elements
 
         public void Initialize(HealthComponent health)
         {
-            AlwaysShowChanged += SetAlwaysShow;
-            SettingsChanged += OnSettingsChanged;
-            CombatEncounter.AnyCombatTurnStarted += OnAnyCombatTurnStartedOrEnded;
-            CombatEncounter.AnyCombatTurnEnded += OnAnyCombatTurnStartedOrEnded;
-
             this.shiny.color = Color.white;
 
             this.health = health;
@@ -91,9 +84,19 @@ namespace DarkBestiary.UI.Elements
             this.health.HealthChanged += OnHealthChanged;
             this.health.ShieldChanged += OnHealthChanged;
             this.health.Terminated += OnTerminated;
+            OnHealthChanged(health);
 
             this.resources = health.GetComponent<ResourcesComponent>();
             this.resources.ActionPointsChanged += OnActionPointsChanged;
+            OnActionPointsChanged(this.resources.Get(ResourceType.ActionPoint));
+
+            this.rageContainer.SetActive(health.GetComponent<SpellbookComponent>().Slots.Any(s => s.Skill.GetCost(ResourceType.Rage) > 0));
+
+            if (this.rageContainer.activeSelf)
+            {
+                this.resources.RageChanged += OnRageChanged;
+                OnRageChanged(this.resources.Get(ResourceType.Rage));
+            }
 
             this.behaviours = health.GetComponent<BehavioursComponent>();
             this.behaviours.BehaviourApplied += OnBehaviourApplied;
@@ -106,22 +109,21 @@ namespace DarkBestiary.UI.Elements
 
             this.unit = this.health.GetComponent<UnitComponent>();
             this.unit.OwnerChanged += OnOwnerChanged;
-
-            var actor = this.health.GetComponent<ActorComponent>();
-            Initialize(alwaysShow, alwaysHide, AttachmentPoint.OverHead, actor, this.health);
-
-            OnSettingsChanged();
             OnOwnerChanged(this.unit);
-            OnHealthChanged(health);
-            OnActionPointsChanged(this.resources.Get(ResourceType.ActionPoint));
+
+            Initialize(alwaysShow, alwaysHide, AttachmentPoint.OverHead, this.health.GetComponent<ActorComponent>(), this.health);
+
+            AlwaysShowChanged += SetAlwaysShow;
+            SettingsChanged += OnSettingsChanged;
+            OnSettingsChanged();
+
+            MaybeHide();
         }
 
         private void OnTerminated(Component component)
         {
             AlwaysShowChanged -= SetAlwaysShow;
             SettingsChanged -= OnSettingsChanged;
-            CombatEncounter.AnyCombatTurnStarted -= OnAnyCombatTurnStartedOrEnded;
-            CombatEncounter.AnyCombatTurnEnded -= OnAnyCombatTurnStartedOrEnded;
 
             this.health.Damaged -= OnDamage;
             this.health.HealthChanged -= OnHealthChanged;
@@ -149,6 +151,11 @@ namespace DarkBestiary.UI.Elements
             this.behaviourContainer.gameObject.SetActive(!hideBuffs);
         }
 
+        private void OnRageChanged(Resource resource)
+        {
+            this.rageFiller.fillAmount = resource.Amount / resource.MaxAmount;
+        }
+
         private void OnActionPointsChanged(Resource resource)
         {
             if (!this.actionPointsContainer.gameObject.activeSelf)
@@ -165,18 +172,6 @@ namespace DarkBestiary.UI.Elements
             }
 
             this.actionPointsContainer.gameObject.SetActive(true);
-        }
-
-        private void OnAnyCombatTurnStartedOrEnded(GameObject entity)
-        {
-            if (CombatEncounter.Active == null)
-            {
-                this.turnIndicator.sprite = this.iconOn;
-                return;
-            }
-
-            this.turnIndicator.sprite = CombatEncounter.Active.Queue.Contains(this.health.gameObject)
-                ? this.iconOn : this.iconOff;
         }
 
         private void OnBehaviourApplied(Behaviour behaviour)
@@ -215,7 +210,6 @@ namespace DarkBestiary.UI.Elements
         {
             UpdateColors();
             this.actionPointsContainer.SetActive(unit.IsPlayer);
-            this.turnIndicator.gameObject.SetActive(unit.IsPlayer);
         }
 
         private void OnHealthChanged(HealthComponent health)

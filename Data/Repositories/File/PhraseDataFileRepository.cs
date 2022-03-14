@@ -3,19 +3,18 @@ using System.Linq;
 using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
 using DarkBestiary.Extensions;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
     public class PhraseDataFileRepository : FileRepository<int, PhraseData, PhraseData>, IPhraseDataRepository
     {
-        public PhraseDataFileRepository(IFileReader loader) : base(loader, new FakeMapper<PhraseData>())
+        public PhraseDataFileRepository(IFileReader reader) : base(reader, new FakeMapper<PhraseData>())
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/phrases.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/phrases.json";
         }
 
         public PhraseData Random(Func<PhraseData, bool> predicate)

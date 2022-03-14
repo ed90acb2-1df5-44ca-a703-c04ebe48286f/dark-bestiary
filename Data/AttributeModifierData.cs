@@ -12,6 +12,17 @@ namespace DarkBestiary.Data
         public int AttributeId;
         public ModifierType Type;
         public AttributeFraction AttributeFraction = new AttributeFraction();
+
+        public AttributeModifierData()
+        {
+        }
+
+        public AttributeModifierData(int attributeId, float amount, ModifierType type)
+        {
+            this.Amount = amount;
+            this.AttributeId = attributeId;
+            this.Type = type;
+        }
     }
 
     [Serializable]

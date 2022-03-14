@@ -14,7 +14,7 @@ namespace DarkBestiary.Effects
         private readonly SearchPerimeterEffectData data;
         private readonly IEffectRepository effectRepository;
 
-        public SearchPerimeterEffect(SearchPerimeterEffectData data, List<Validator> validators,
+        public SearchPerimeterEffect(SearchPerimeterEffectData data, List<ValidatorWithPurpose> validators,
             IEffectRepository effectRepository) : base(data, validators)
         {
             this.data = data;

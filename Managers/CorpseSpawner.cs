@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using DarkBestiary.Components;
+using DarkBestiary.Extensions;
 using DarkBestiary.Messaging;
 using DarkBestiary.Scenarios;
 using UnityEngine;
@@ -39,6 +40,11 @@ namespace DarkBestiary.Managers
         {
             Timer.Instance.Wait(1.5f, () =>
             {
+                if (Scenario.Active == null)
+                {
+                    return;
+                }
+
                 this.corpses[episode].Add(Instantiate(prefab, position, Quaternion.identity));
             });
         }
@@ -85,7 +91,7 @@ namespace DarkBestiary.Managers
                 return;
             }
 
-            SpawnCorpse(GetCorpse(data.Victim), this.currentEpisode, data.Victim.transform.position);
+            SpawnCorpse(GetCorpse(data.Victim), this.currentEpisode, data.Victim.transform.position.Snapped());
         }
 
         private void OnAnyEpisodeStopped(Episode episode)

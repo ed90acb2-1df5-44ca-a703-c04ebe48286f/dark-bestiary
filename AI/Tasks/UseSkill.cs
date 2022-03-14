@@ -34,6 +34,7 @@ namespace DarkBestiary.AI.Tasks
             {
                 this.success = false;
                 skill.Used -= OnSkillUsed;
+                Debug.LogError(skill.Name + " " + exception.Message);
             }
         }
 

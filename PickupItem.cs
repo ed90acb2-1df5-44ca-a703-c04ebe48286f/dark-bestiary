@@ -2,6 +2,7 @@ using DarkBestiary.Components;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Extensions;
 using DarkBestiary.Managers;
+using FMODUnity;
 using UnityEngine;
 
 namespace DarkBestiary
@@ -9,9 +10,7 @@ namespace DarkBestiary
     public class PickupItem : MonoBehaviour
     {
         [SerializeField] private int itemId;
-
-        [FMODUnity.EventRef]
-        [SerializeField] private string sound;
+        [SerializeField] private EventReference sound;
         [SerializeField] private GameObject particles;
 
         private void OnMouseEnter()
@@ -27,7 +26,7 @@ namespace DarkBestiary
         private void OnMouseUp()
         {
             CursorManager.Instance.ChangeState(CursorManager.CursorState.Normal);
-            AudioManager.Instance.PlayOneShot(this.sound);
+            AudioManager.Instance.PlayOneShot(this.sound.Path);
 
             var item = Container.Instance.Resolve<IItemRepository>().Find(this.itemId);
 

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using DarkBestiary.Currencies;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Exceptions;
 using DarkBestiary.Items;
@@ -24,6 +25,11 @@ namespace DarkBestiary.UI.Controllers
                 new RecipeIngredient(this.itemRepository.FindOrFail(Constants.ItemIdDemonHeart), 1),
                 new RecipeIngredient(this.itemRepository.FindOrFail(Constants.ItemIdAdamantiteHammer), 1),
             };
+        }
+
+        protected override Currency GetCost()
+        {
+            return null;
         }
 
         protected override void Check(Item item)

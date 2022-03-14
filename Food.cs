@@ -32,7 +32,7 @@ namespace DarkBestiary
 
         public void Apply(BehavioursComponent behaviours)
         {
-            behaviours.Apply(Behaviour, behaviours.gameObject);
+            behaviours.ApplyAllStacks(Behaviour, behaviours.gameObject);
             IsApplied = true;
 
             Applied?.Invoke(this);

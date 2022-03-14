@@ -11,6 +11,7 @@ namespace DarkBestiary
 
         public Experience Snapshot { get; private set; }
 
+        public bool IsMaxLevel => Level >= MaxLevel;
         public int Level { get; private set; }
         public int MaxLevel { get; }
         public int Current { get; private set; }
@@ -23,7 +24,7 @@ namespace DarkBestiary
             this.formula = formula;
 
             MaxLevel = maxLevel;
-            Level = Math.Max(1, Math.Min(level, maxLevel));
+            Level = Mathf.Clamp(level, 1, MaxLevel);
             Current = Math.Max(experience, RequiredAtLevel(level));
         }
 
@@ -80,6 +81,8 @@ namespace DarkBestiary
 
                 Level = MaxLevel;
                 Current = RequiredNextLevel();
+                Changed?.Invoke(this);
+
                 break;
             }
         }

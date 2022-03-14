@@ -1,4 +1,5 @@
 using DarkBestiary.Managers;
+using DarkBestiary.Utility;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,6 +9,7 @@ namespace DarkBestiary.UI.Elements
     public class EndTurnButton : Interactable
     {
         [SerializeField] private TextMeshProUGUI text;
+        [SerializeField] private TextMeshProUGUI hotkeyText;
         [SerializeField] private Image globe;
 
         [Header("Colors")]
@@ -15,6 +17,11 @@ namespace DarkBestiary.UI.Elements
         [SerializeField] private Color normalTextColor;
         [SerializeField] private Color disabledGlobeColor;
         [SerializeField] private Color disabledTextColor;
+
+        private void Start()
+        {
+            this.hotkeyText.text = EnumTranslator.Translate(KeyBindings.Get(KeyType.EndTurn));
+        }
 
         protected override void OnActivate()
         {
@@ -32,12 +39,12 @@ namespace DarkBestiary.UI.Elements
 
         private void Update()
         {
-            if (!Active || UIManager.Instance.ViewStack.Count > 0)
+            if (!Active || UIManager.Instance.IsAnyFullscreenUiOpen())
             {
                 return;
             }
 
-            if (Input.GetKeyUp(KeyCode.Space))
+            if (Input.GetKeyUp(KeyBindings.Get(KeyType.EndTurn)))
             {
                 TriggerMouseUp();
             }

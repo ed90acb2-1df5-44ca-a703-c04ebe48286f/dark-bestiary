@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using DarkBestiary.Skills;
+using UnityEngine;
 
 namespace DarkBestiary.Values
 {
@@ -10,28 +11,9 @@ namespace DarkBestiary.Values
         public DamageFlags Flags { get; set; }
         public DamageInfoFlags InfoFlags { get; set; }
         public WeaponSound WeaponSound { get; set; }
+        public Skill Skill { get; set; }
 
-        public Damage(float amount, DamageType type)
-        {
-            Amount = amount;
-            Type = type;
-            WeaponSound = WeaponSound.None;
-            Flags = DamageFlags.None;
-            InfoFlags = DamageInfoFlags.None;
-            Absorbed = 0;
-        }
-
-        public Damage(float amount, DamageType type, DamageFlags flags, DamageInfoFlags infoFlags)
-        {
-            Amount = amount;
-            Type = type;
-            Flags = flags;
-            InfoFlags = infoFlags;
-            WeaponSound = WeaponSound.None;
-            Absorbed = 0;
-        }
-
-        public Damage(float amount, DamageType type, WeaponSound weaponSound, DamageFlags flags, DamageInfoFlags infoFlags)
+        public Damage(float amount, DamageType type, WeaponSound weaponSound, DamageFlags flags, DamageInfoFlags infoFlags, Skill skill)
         {
             Amount = amount;
             Type = type;
@@ -39,6 +21,7 @@ namespace DarkBestiary.Values
             Flags = flags;
             InfoFlags = infoFlags;
             Absorbed = 0;
+            Skill = skill;
         }
 
         public bool IsWeapon()
@@ -49,6 +32,11 @@ namespace DarkBestiary.Values
         public bool IsMagic()
         {
             return Flags.HasFlag(DamageFlags.Magic);
+        }
+
+        public bool IsTrue()
+        {
+            return Flags.HasFlag(DamageFlags.True);
         }
 
         public bool IsPhysicalType()
@@ -77,6 +65,16 @@ namespace DarkBestiary.Values
         public bool IsReflected()
         {
             return InfoFlags.HasFlag(DamageInfoFlags.Reflected);
+        }
+
+        public bool IsThorns()
+        {
+            return InfoFlags.HasFlag(DamageInfoFlags.Thorns);
+        }
+
+        public bool IsCleave()
+        {
+            return InfoFlags.HasFlag(DamageInfoFlags.Cleave);
         }
 
         public bool IsCritical()
@@ -111,23 +109,23 @@ namespace DarkBestiary.Values
 
         public static Damage operator +(Damage damage, float amount)
         {
-            return new Damage(damage.Amount + amount, damage.Type, damage.WeaponSound, damage.Flags, damage.InfoFlags);
+            return new Damage(damage.Amount + amount, damage.Type, damage.WeaponSound, damage.Flags, damage.InfoFlags, damage.Skill);
         }
 
         public static Damage operator -(Damage damage, float amount)
         {
             return new Damage(
-                Mathf.Max(0, damage.Amount - amount), damage.Type, damage.WeaponSound, damage.Flags, damage.InfoFlags);
+                Mathf.Max(0, damage.Amount - amount), damage.Type, damage.WeaponSound, damage.Flags, damage.InfoFlags, damage.Skill);
         }
 
         public static Damage operator *(Damage damage, float amount)
         {
-            return new Damage(damage.Amount * amount, damage.Type, damage.WeaponSound, damage.Flags, damage.InfoFlags);
+            return new Damage(damage.Amount * amount, damage.Type, damage.WeaponSound, damage.Flags, damage.InfoFlags, damage.Skill);
         }
 
         public static Damage operator /(Damage damage, float amount)
         {
-            return new Damage(damage.Amount / amount, damage.Type, damage.WeaponSound, damage.Flags, damage.InfoFlags);
+            return new Damage(damage.Amount / amount, damage.Type, damage.WeaponSound, damage.Flags, damage.InfoFlags, damage.Skill);
         }
 
         public static implicit operator float(Damage damage)

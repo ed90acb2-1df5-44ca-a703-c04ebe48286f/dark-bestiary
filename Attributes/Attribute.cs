@@ -104,7 +104,7 @@ namespace DarkBestiary.Attributes
                 aggregated += modifier.Modify(flat) - flat;
             }
 
-            return Mathf.Floor(aggregated);
+            return Mathf.Ceil(aggregated);
         }
 
         public Attribute Increase(float amount)

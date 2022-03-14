@@ -20,6 +20,7 @@ namespace DarkBestiary.Data
         public string NameKey;
         public string DescriptionKey;
         public string Ambience;
+        public string Music;
         public List<WeatherData> Weather = new List<WeatherData>();
     }
 

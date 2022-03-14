@@ -12,6 +12,7 @@ namespace DarkBestiary.UI.Elements
         IPointerEnterHandler,
         IPointerExitHandler,
         IPointerUpHandler,
+        IDropHandler,
         IBeginDragHandler,
         IEndDragHandler,
         IDragHandler
@@ -19,6 +20,7 @@ namespace DarkBestiary.UI.Elements
         public event Payload<RelicView> BeginDrag;
         public event Payload<RelicView> EndDrag;
         public event Payload<RelicView> Clicked;
+        public event Payload<GameObject> SomethingDroppedIn;
 
         public Relic Relic { get; private set; }
 
@@ -86,6 +88,11 @@ namespace DarkBestiary.UI.Elements
                 Relic.Unequipped -= OnRelicUnequipped;
                 Relic.Equipped -= OnRelicEquipped;
             }
+        }
+
+        public void OnDrop(PointerEventData pointer)
+        {
+            SomethingDroppedIn?.Invoke(pointer.pointerDrag);
         }
 
         private void OnRelicEquipped(Relic relic)

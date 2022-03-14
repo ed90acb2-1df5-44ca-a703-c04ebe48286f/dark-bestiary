@@ -12,10 +12,10 @@ namespace DarkBestiary.Effects
     public class SearchRandomPoints : Effect
     {
         private readonly SearchRandomPointsData data;
-        private readonly List<Validator> validators;
+        private readonly List<ValidatorWithPurpose> validators;
         private readonly IEffectRepository effectRepository;
 
-        public SearchRandomPoints(SearchRandomPointsData data, List<Validator> validators, IEffectRepository effectRepository)
+        public SearchRandomPoints(SearchRandomPointsData data, List<ValidatorWithPurpose> validators, IEffectRepository effectRepository)
             : base(data, validators)
         {
             this.data = data;
@@ -37,7 +37,7 @@ namespace DarkBestiary.Effects
         {
             var cells = BoardNavigator.Instance
                 .WithinCircle(target, this.data.RangeMax)
-                .Where(cell => cell.IsWalkable && !cell.IsOccupied)
+                .Where(cell => cell.IsWalkable && (this.data.IncludeOccupied || !cell.IsOccupied))
                 .Shuffle();
 
             if (this.data.RangeMin > 0)
@@ -52,6 +52,7 @@ namespace DarkBestiary.Effects
             {
                 var effect = this.effectRepository.Find(this.data.EffectId);
                 effect.Skill = Skill;
+                effect.DamageMultiplier = DamageMultiplier;
                 effect.Apply(caster, cell.transform.position);
             }
 

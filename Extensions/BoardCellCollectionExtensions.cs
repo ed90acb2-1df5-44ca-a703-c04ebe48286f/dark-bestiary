@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using DarkBestiary.Components;
 using DarkBestiary.GameBoard;
 using UnityEngine;
 
@@ -17,7 +16,7 @@ namespace DarkBestiary.Extensions
 
         public static IEnumerable<BoardCell> OnLineOfSight(this IEnumerable<BoardCell> cells, Vector3 origin)
         {
-            return cells.Where(cell => cell.IsOnLineOfSight(origin));
+            return cells.Where(cell => cell.IsLineOfSightWalkable(origin));
         }
 
         public static IEnumerable<BoardCell> Walkable(this IEnumerable<BoardCell> cells)

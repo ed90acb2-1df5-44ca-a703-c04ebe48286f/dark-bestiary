@@ -8,7 +8,9 @@
         Rare = 3,
         Unique = 4,
         Legendary = 5,
-        Lore = 6,
-        Blizzard = 7,
+        Vision = 6,
+        Mythic = 7,
+        Ancient = 8,
+        Blizzard = 9,
     }
 }

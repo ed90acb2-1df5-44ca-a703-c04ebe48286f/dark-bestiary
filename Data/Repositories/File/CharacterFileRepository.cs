@@ -11,15 +11,15 @@ namespace DarkBestiary.Data.Repositories.File
     {
         private readonly StorageId storageId;
 
-        public CharacterFileRepository(IFileReader loader, CharacterMapper mapper,
-            StorageId storageId) : base(loader, mapper)
+        public CharacterFileRepository(IFileReader reader, CharacterMapper mapper,
+            StorageId storageId) : base(reader, mapper)
         {
             this.storageId = storageId;
         }
 
         protected override string GetFilename()
         {
-            return Application.persistentDataPath + $"/{this.storageId}/characters.save";
+            return Environment.PersistentDataPath + $"/{this.storageId}/characters.save";
         }
 
         public List<Character> FindAllExcept(int exceptId)
@@ -56,7 +56,7 @@ namespace DarkBestiary.Data.Repositories.File
                 allData[index] = data;
             }
 
-            this.Loader.Write(allData, GetFilename());
+            this.Reader.Write(allData, GetFilename());
         }
 
         public override void Delete(int key)
@@ -72,7 +72,7 @@ namespace DarkBestiary.Data.Repositories.File
 
             allData.RemoveAt(index);
 
-            this.Loader.Write(allData, GetFilename());
+            this.Reader.Write(allData, GetFilename());
         }
 
         protected override List<CharacterData> LoadData()

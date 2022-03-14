@@ -11,7 +11,7 @@ namespace DarkBestiary.Effects
         private readonly LaunchMissileEffectData data;
         private readonly IMissileRepository missileRepository;
 
-        public LaunchMissileFromTargetEffect(LaunchMissileEffectData data, List<Validator> validators,
+        public LaunchMissileFromTargetEffect(LaunchMissileEffectData data, List<ValidatorWithPurpose> validators,
             IMissileRepository missileRepository) : base(data, validators, missileRepository)
         {
             this.data = data;

@@ -3,14 +3,16 @@ using DarkBestiary.Extensions;
 using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
 using DarkBestiary.Skills;
+using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using Zenject;
 
 namespace DarkBestiary.UI.Elements
 {
     [RequireComponent(typeof(CanvasGroup))]
-    public class SpellbookDraggableSkill : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+    public class SpellbookDraggableSkill : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, ITickable
     {
         public event Payload<SpellbookDraggableSkill> DroppedOut;
 
@@ -33,6 +35,29 @@ namespace DarkBestiary.UI.Elements
             this.dragTransform = UIManager.Instance.ViewCanvas.transform;
             this.canvasGroup = GetComponent<CanvasGroup>();
             this.originalSize = this.rectTransform.sizeDelta;
+
+            Container.Instance.Resolve<TickableManager>().Add(this);
+        }
+
+        private void OnDestroy()
+        {
+            var tickableManager = Container.Instance.Resolve<TickableManager>();
+
+            if (tickableManager.Tickables.Contains(this))
+            {
+                tickableManager.Remove(this);
+            }
+        }
+
+        public void Tick()
+        {
+            // Note: Fuck you Unity
+            // https://stackoverflow.com/questions/41537243/c-sharp-unity-ienddraghandler-onenddrag-not-always-called
+
+            if (IsDragging && !Input.GetMouseButton(0))
+            {
+                OnEndDrag(null);
+            }
         }
 
         public void Change(Skill skill)
@@ -69,7 +94,7 @@ namespace DarkBestiary.UI.Elements
             transform.position = pointer.position + new Vector2(32, -32);
         }
 
-        public void OnEndDrag(PointerEventData pointer)
+        public void OnEndDrag([CanBeNull] PointerEventData pointer)
         {
             IsDragging = false;
 
@@ -84,7 +109,7 @@ namespace DarkBestiary.UI.Elements
 
             CursorManager.Instance.ChangeState(CursorManager.CursorState.Normal);
 
-            if (!pointer.hovered.NotNull().Any(hovered => hovered.GetComponent<SpellbookSlot>()))
+            if (pointer != null && !pointer.hovered.NotNull().Any(hovered => hovered.GetComponent<SkillSlotView>()))
             {
                 DroppedOut?.Invoke(this);
             }

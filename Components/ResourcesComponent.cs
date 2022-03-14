@@ -1,15 +1,12 @@
 ﻿using System.Collections.Generic;
-using DarkBestiary.Attributes;
-using DarkBestiary.Behaviours;
-using DarkBestiary.Effects;
 using DarkBestiary.Exceptions;
 using DarkBestiary.GameStates;
 using DarkBestiary.Messaging;
 using DarkBestiary.Properties;
 using DarkBestiary.Scenarios;
 using DarkBestiary.Scenarios.Encounters;
+using DarkBestiary.Skills;
 using UnityEngine;
-using Behaviour = DarkBestiary.Behaviours.Behaviour;
 
 namespace DarkBestiary.Components
 {
@@ -44,10 +41,7 @@ namespace DarkBestiary.Components
 
             OnMaxActionPointsChanged(actionPointsProperty);
 
-            HealthComponent.AnyEntityHealed += OnEntityHealed;
-            HealthComponent.AnyEntityDamaged += OnEntityDamaged;
-            BehavioursComponent.AnyBehaviourApplied += OnAnyBehaviourApplied;
-
+            Skill.AnySkillUsed += OnAnySkillUsed;
             Episode.AnyEpisodeStarted += OnAnyEpisodeInitialized;
             GameState.AnyGameStateEnter += OnAnyGameStateEnter;
             CombatEncounter.AnyCombatEnded += OnAnyCombatEnded;
@@ -60,52 +54,24 @@ namespace DarkBestiary.Components
             this.resources[ResourceType.Rage].Changed -= OnRageChanged;
             this.properties.Get(PropertyType.MaximumActionPoints).Changed -= OnMaxActionPointsChanged;
 
-            HealthComponent.AnyEntityHealed -= OnEntityHealed;
-            HealthComponent.AnyEntityDamaged -= OnEntityDamaged;
-            BehavioursComponent.AnyBehaviourApplied -= OnAnyBehaviourApplied;
-
+            Skill.AnySkillUsed -= OnAnySkillUsed;
             Episode.AnyEpisodeStarted -= OnAnyEpisodeInitialized;
             GameState.AnyGameStateEnter -= OnAnyGameStateEnter;
             CombatEncounter.AnyCombatEnded -= OnAnyCombatEnded;
             CombatEncounter.AnyCombatRoundStarted -= OnAnyCombatRoundStarted;
         }
 
-        private void OnAnyBehaviourApplied(Behaviour behaviour)
+        private void OnAnySkillUsed(SkillUseEventData payload)
         {
-            if (behaviour is ShieldBehaviour shieldBehaviour)
-            {
-                Restore(ResourceType.Rage, shieldBehaviour.Amount / CalculatePower() * 100);
-            }
-        }
-
-        private void OnEntityHealed(EntityHealedEventData data)
-        {
-            if (data.Healer != gameObject || data.Target != gameObject ||
-                data.Healing.IsRegeneration() || data.Healing.IsVampirism())
+            if (payload.Caster != gameObject || CombatEncounter.Active == null)
             {
                 return;
             }
 
-            Restore(ResourceType.Rage, data.Healing.Amount / CalculatePower() * 100);
-        }
+            var rage = Mathf.Max(1, payload.Skill.GetCost(ResourceType.ActionPoint)) * 2;
+            rage *= this.properties.Get(PropertyType.RageGeneration).Value();
 
-        private void OnEntityDamaged(EntityDamagedEventData data)
-        {
-            if (data.Attacker != gameObject)
-            {
-                return;
-            }
-
-            Restore(ResourceType.Rage, data.Damage.Amount / CalculatePower() * 100);
-        }
-
-        private float CalculatePower()
-        {
-            return (this.attributes.Get(AttributeType.Defense).Value() +
-                    this.attributes.Get(AttributeType.Resistance).Value() +
-                    this.properties.Get(PropertyType.Thorns).Value() +
-                    this.properties.Get(PropertyType.SpellPower).Value() +
-                    this.properties.Get(PropertyType.AttackPower).Value()) * 30;
+            Restore(ResourceType.Rage, rage);
         }
 
         private void OnRageChanged(Resource resource)

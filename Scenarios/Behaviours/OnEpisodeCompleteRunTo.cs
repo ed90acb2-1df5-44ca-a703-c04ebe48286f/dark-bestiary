@@ -14,6 +14,11 @@ namespace DarkBestiary.Scenarios.Behaviours
             Episode.AnyEpisodeCompleted += OnAnyEpisodeCompleted;
         }
 
+        private void OnDestroy()
+        {
+            Episode.AnyEpisodeCompleted -= OnAnyEpisodeCompleted;
+        }
+
         private void OnAnyEpisodeCompleted(Episode episode)
         {
             Episode.AnyEpisodeCompleted -= OnAnyEpisodeCompleted;

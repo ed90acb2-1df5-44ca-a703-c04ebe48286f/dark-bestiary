@@ -13,6 +13,7 @@ namespace DarkBestiary.UI.Elements
 
         private readonly Vector3 offset = new Vector3(0, 2, 0);
 
+        private Camera mainCamera;
         private Transform target;
         private bool isTemporary;
         private float duration;
@@ -39,8 +40,10 @@ namespace DarkBestiary.UI.Elements
 
         private void OnShow(string text, Transform target)
         {
+            transform.SetAsLastSibling();
             gameObject.SetActive(true);
 
+            this.mainCamera = Camera.main;
             this.text.text = text;
             this.target = target;
 
@@ -60,7 +63,7 @@ namespace DarkBestiary.UI.Elements
 
         private void Update()
         {
-            transform.position = Camera.main.WorldToScreenPoint(this.target.position + this.offset);
+            transform.position = this.mainCamera.WorldToScreenPoint(this.target.position + this.offset);
 
             if (!this.isTemporary)
             {

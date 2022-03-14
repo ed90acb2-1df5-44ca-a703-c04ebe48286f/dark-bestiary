@@ -3,7 +3,6 @@ using System.Linq;
 using DarkBestiary.Data;
 using DarkBestiary.Extensions;
 using DarkBestiary.GameBoard;
-using DarkBestiary.Modifiers;
 using DarkBestiary.Validators;
 using DarkBestiary.Values;
 using UnityEngine;
@@ -15,25 +14,27 @@ namespace DarkBestiary.Behaviours
         private readonly PerSurroundingEnemyDamageBehaviourData data;
 
         public PerSurroundingEnemyDamageBehaviour(PerSurroundingEnemyDamageBehaviourData data,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }
 
-        protected override Damage OnModify(GameObject victim, GameObject attacker, Damage damage)
+        protected override float OnGetDamageMultiplier(GameObject victim, GameObject attacker, ref Damage damage)
         {
             var enemyCount = BoardNavigator.Instance
-                .EntitiesInRadius(victim.transform.position, this.data.Range)
-                .Count(entity => entity.IsEnemyOf(victim));
+                .EntitiesInRadius(attacker.transform.position, this.data.Range)
+                .Count(entity => entity.IsEnemyOf(attacker));
 
             if (enemyCount < this.data.MinimumNumberOfEnemies)
             {
-                return damage;
+                return 0;
             }
 
-            return new Damage(new FloatModifier(
-                Mathf.Clamp(enemyCount * this.data.AmountPerEnemy, this.data.Min, this.data.Max),
-                ModifierType).Modify(damage.Amount), damage.Type, damage.WeaponSound, damage.Flags, damage.InfoFlags);
+            return Mathf.Clamp(
+                enemyCount * (this.data.AmountPerEnemy * StackCount),
+                this.data.Min,
+                this.data.Max
+            );
         }
     }
 }

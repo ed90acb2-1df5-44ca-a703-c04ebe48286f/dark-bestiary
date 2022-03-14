@@ -5,6 +5,7 @@ using DarkBestiary.Components;
 using DarkBestiary.Data;
 using DarkBestiary.Exceptions;
 using DarkBestiary.Extensions;
+using DarkBestiary.Interaction;
 using DarkBestiary.Items;
 using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
@@ -31,12 +32,15 @@ namespace DarkBestiary.Scenarios
         public I18NString Commentary { get; }
         public float PositionX { get; }
         public float PositionY { get; }
+        public bool IsUnlocked { get; }
         public bool IsStart { get; }
         public bool IsEnd { get; }
         public bool IsDisposable { get; }
+        public bool IsAscension { get; }
+        public bool IsDepths { get; }
         public bool IsFailed { get; private set; }
         public List<Item> GuaranteedRewards { get; }
-        public List<Item> ChoosableRewards { get; }
+        public List<Item> ChoosableRewards { get; set; }
         public List<Episode> Episodes { get; }
         public List<int> Children { get; }
         public bool IsActiveEpisodeLast => ActiveEpisodeIndex == Episodes.Count - 1;
@@ -51,7 +55,8 @@ namespace DarkBestiary.Scenarios
 
         private readonly CharacterManager characterManager;
 
-        private ScenarioSummaryRecorder summaryRecorder;
+        private SummaryRecorder summaryRecorder;
+        private DeathRecapRecorder deathRecapRecorder;
         private ScenarioLootRecorder lootRecorder;
 
         private GameObject weather;
@@ -67,7 +72,10 @@ namespace DarkBestiary.Scenarios
             Index = data.Index;
             PositionX = data.PositionX;
             PositionY = data.PositionY;
+            IsUnlocked = data.IsUnlocked;
             IsDisposable = data.IsDisposable;
+            IsAscension = data.IsAscension;
+            IsDepths = data.IsDepths;
             IsStart = data.IsStart;
             IsEnd = data.IsEnd;
             Name = I18N.Instance.Get(data.NameKey);
@@ -87,18 +95,34 @@ namespace DarkBestiary.Scenarios
             Active = this;
             StartNextEpisode();
 
-            this.summaryRecorder = new ScenarioSummaryRecorder();
+            this.summaryRecorder = new SummaryRecorder();
             this.summaryRecorder.Start();
 
-            this.lootRecorder = new ScenarioLootRecorder();
+            this.deathRecapRecorder = new DeathRecapRecorder();
+            this.deathRecapRecorder.Start();
+
+            this.lootRecorder = new ScenarioLootRecorder(this);
             this.lootRecorder.Start();
 
             AnyScenarioStarted?.Invoke(this);
         }
 
+        public void AddExperience(int experience)
+        {
+            this.lootRecorder.AddExperience(experience);
+        }
+
+        public void AddLoot(IEnumerable<Item> items)
+        {
+            this.lootRecorder.AddItems(items);
+        }
+
         public void Terminate()
         {
             MusicManager.Instance.Stop();
+            this.summaryRecorder.Stop();
+            this.deathRecapRecorder.Stop();
+            this.lootRecorder.Stop();
 
             AnyScenarioExit?.Invoke(this);
 
@@ -117,9 +141,14 @@ namespace DarkBestiary.Scenarios
             Active = null;
         }
 
-        public ScenarioSummary GetSummary()
+        public Summary GetSummary()
         {
             return this.summaryRecorder.GetResult();
+        }
+
+        public DeathRecapRecorder GetDeathRecap()
+        {
+            return this.deathRecapRecorder;
         }
 
         public ScenarioLoot GetLoot()
@@ -202,25 +231,27 @@ namespace DarkBestiary.Scenarios
                 this.activeEpisode.Initialize(this);
             }
 
-            MusicManager.Instance.Play(this.activeEpisode.Scene.Data.Environment.Ambience);
             this.activeEpisode.Start();
         }
 
-        private void GiveLootAndExperience()
+        public void GiveExperience()
         {
-            this.summaryRecorder.Stop();
-            this.lootRecorder.Stop();
-
             var character = this.characterManager.Character.Entity;
             var loot = this.lootRecorder.GetResult();
 
             var experienceMultiplier = character.GetComponent<PropertiesComponent>()
                 .Get(PropertyType.Experience).Value();
 
-            var experienceGain = (int) (loot.Experience.Sum() * experienceMultiplier);
+            var experienceGain = (int) (loot.Experience * experienceMultiplier);
 
             var experience = character.GetComponent<ExperienceComponent>();
             experience.GiveExperience(experienceGain);
+
+            if (Game.Instance.IsCampaign)
+            {
+                var specializations = character.GetComponent<SpecializationsComponent>();
+                specializations.SkillPoints += loot.SkillPoints;
+            }
 
             var reliquary = character.GetComponent<ReliquaryComponent>();
             reliquary.GiveExperience(experienceGain);
@@ -252,14 +283,16 @@ namespace DarkBestiary.Scenarios
 
         private void OnCompleted()
         {
+            Interactor.Instance.EnterSelectionState();
             StoppedAt = DateTime.Now;
-            GiveLootAndExperience();
+            GiveExperience();
         }
 
         private void OnFailed()
         {
+            Interactor.Instance.EnterSelectionState();
             StoppedAt = DateTime.Now;
-            GiveLootAndExperience();
+            GiveExperience();
         }
     }
 }

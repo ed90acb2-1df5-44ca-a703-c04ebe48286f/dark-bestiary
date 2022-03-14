@@ -9,8 +9,8 @@ namespace DarkBestiary.GameStates
 
         protected override void OnEnter()
         {
-            this.controller = Container.Instance.Instantiate<MainMenuViewController>();
-            this.controller.Initialize();
+            this.controller = ViewControllerRegistry.Initialize<MainMenuViewController>();
+            this.controller.View.Show();
 
             MusicManager.Instance.Play("event:/Music/MainMenu");
         }

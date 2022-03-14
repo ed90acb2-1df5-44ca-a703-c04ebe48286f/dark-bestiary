@@ -12,7 +12,7 @@ namespace DarkBestiary.Effects
     {
         private readonly EmptyEffectData data;
 
-        public TeleportBehindTargetEffect(EmptyEffectData data, List<Validator> validators) : base(data, validators)
+        public TeleportBehindTargetEffect(EmptyEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }

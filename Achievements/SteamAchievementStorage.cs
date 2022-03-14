@@ -1,5 +1,6 @@
 #if !DISABLESTEAMWORKS
 
+using System;
 using System.Linq;
 using DarkBestiary.Data;
 using DarkBestiary.Data.Readers;
@@ -42,7 +43,7 @@ namespace DarkBestiary.Achievements
 
         private string GetDataPath()
         {
-            return Application.persistentDataPath + $"/{this.storageId}/achievements.save";
+            return Environment.PersistentDataPath + $"/{this.storageId}/achievements.save";
         }
 
         private void SyncSteamAchievementStatuses(AchievementsSaveData data)
@@ -68,7 +69,7 @@ namespace DarkBestiary.Achievements
                 }
                 else
                 {
-                    status.Quantity = 0;
+                    status.Quantity = Math.Min(status.Quantity, achievement.RequiredQuantity);
                     status.IsUnlocked = false;
                     status.UnlockedAt = 0;
                 }

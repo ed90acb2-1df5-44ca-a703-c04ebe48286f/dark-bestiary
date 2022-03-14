@@ -324,6 +324,14 @@ namespace DarkBestiary.GameBoard
             }
         }
 
+        public int DistanceInCells(Vector3 origin, Vector3 target)
+        {
+            var cellA = NearestCell(origin);
+            var cellB = NearestCell(target);
+
+            return Mathf.Abs(cellA.X - cellB.X) + Mathf.Abs(cellA.Y - cellB.Y);
+        }
+
         public BoardCell NearestCell(Vector3 position)
         {
             return Board.Cells.OrderBy(c => (c.transform.position - position).sqrMagnitude).First();

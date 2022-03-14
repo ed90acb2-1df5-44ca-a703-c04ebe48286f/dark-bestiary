@@ -1,4 +1,5 @@
 using DarkBestiary.Managers;
+using FMODUnity;
 using TMPro;
 using UnityEngine;
 
@@ -8,32 +9,27 @@ namespace DarkBestiary.UI.Elements
     {
         [SerializeField] private TextMeshProUGUI text;
         [SerializeField] private Interactable closeButton;
-
-        [Header("Sounds")]
-        [FMODUnity.EventRef]
-        [SerializeField] private string openSound;
-
-        [FMODUnity.EventRef]
-        [SerializeField] private string closeSound;
+        [SerializeField] private EventReference openSoundEventReference;
+        [SerializeField] private EventReference closeSoundEventReference;
 
         private void Start()
         {
-            this.closeButton.PointerUp += Hide;
+            this.closeButton.PointerClick += Hide;
 
             Instance.gameObject.SetActive(false);
         }
 
         public void Hide()
         {
-            AudioManager.Instance.PlayOneShot(this.closeSound);
+            AudioManager.Instance.PlayOneShot(this.closeSoundEventReference.Path);
             gameObject.SetActive(false);
         }
 
         public void Show(string text)
         {
-            AudioManager.Instance.PlayOneShot(this.openSound);
+            AudioManager.Instance.PlayOneShot(this.openSoundEventReference.Path);
             gameObject.SetActive(true);
-            this.text.text = text;
+            this.text.text = text.Replace("\t", "    ");
         }
 
         private void Update()

@@ -7,11 +7,13 @@ namespace DarkBestiary.Randomization
     public class RandomizerTable : RandomizerObject, IRandomizerTable
     {
         public int Count { get; set; }
+        public bool IgnoreLevel { get; set; }
         public List<IRandomizerObject> Contents { get; }
 
-        private readonly List<IRandomizerObject> unique = new List<IRandomizerObject>();
+        private readonly List<object> unique = new List<object>();
 
-        public RandomizerTable(int count =1,
+        public RandomizerTable(
+            int count = 1,
             float probability = 0,
             bool unique = true,
             bool guaranteed = true,
@@ -60,7 +62,7 @@ namespace DarkBestiary.Randomization
 
             unguaranteed = unguaranteed.DistinctBy(value => value.Probability).Count() == 1
                 ? unguaranteed.Shuffle().ToList()
-                : unguaranteed.OrderBy(item => item.Probability).ToList();
+                : unguaranteed.OrderByDescending(item => item.Probability).ToList();
 
             var probabilitySum = unguaranteed.Sum(item => item.Probability);
 
@@ -70,6 +72,11 @@ namespace DarkBestiary.Randomization
 
                 foreach (var item in unguaranteed)
                 {
+                    if (item.Unique && this.unique.Any(e => e.Equals(item)))
+                    {
+                        continue;
+                    }
+
                     item.OnCheck();
 
                     growingProbability += item.Probability;
@@ -89,14 +96,12 @@ namespace DarkBestiary.Randomization
 
         private void PopulateResult(List<IRandomizerObject> result, IRandomizerObject entry)
         {
-            if (entry is RandomizerNullValue || entry.Unique && this.unique.Contains(entry))
+            entry.OnHit();
+
+            if (entry is RandomizerNullValue || entry.Unique && this.unique.Any(e => e.Equals(entry)))
             {
                 return;
             }
-
-            entry.OnHit();
-
-            this.unique.Add(entry);
 
             if (entry is IRandomizerTable table)
             {
@@ -108,7 +113,19 @@ namespace DarkBestiary.Randomization
                 return;
             }
 
-            result.Add(entry);
+            var item = entry;
+
+            if (item is RandomizerRandomItemValue random)
+            {
+                item = random.Clone();
+            }
+
+            if (item.Unique)
+            {
+                this.unique.Add(item);
+            }
+
+            result.Add(item);
         }
     }
 }

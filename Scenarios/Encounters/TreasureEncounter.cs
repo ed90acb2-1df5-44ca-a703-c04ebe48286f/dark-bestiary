@@ -78,6 +78,7 @@ namespace DarkBestiary.Scenarios.Encounters
 
             Skill.AnySkillUsed -= OnAnySkillUsed;
 
+            this.panel.CompleteButtonClicked -= OnCompleteButtonClicked;
             Object.Destroy(this.panel.gameObject);
 
             var equipment = this.character.GetComponent<EquipmentComponent>();
@@ -115,6 +116,13 @@ namespace DarkBestiary.Scenarios.Encounters
                 UIManager.Instance.ViewCanvas.transform);
 
             this.panel.ChangeBombCount(0, this.totalBombCount);
+            this.panel.CompleteButtonClicked += OnCompleteButtonClicked;
+        }
+
+        private void OnCompleteButtonClicked()
+        {
+            AddExperienceAndLoot();
+            Complete();
         }
 
         private void CreateCells()
@@ -144,22 +152,23 @@ namespace DarkBestiary.Scenarios.Encounters
                     sapperCell.Opened += OnCellOpened;
                     sapperCell.Close();
                 }
+
+                this.sapperCells.Where(c => c.BombsNearby == 0).Random().Open();
             });
         }
 
         private void OnCellOpened(SapperCell opened)
         {
+            if (IsCompleted)
+            {
+                return;
+            }
+
             if (opened.IsBomb)
             {
-                Object.Instantiate(
-                        Resources.Load<GameObject>(ExplosionPrefabPath),
-                        opened.transform.position,
-                        Quaternion.identity)
-                    .DestroyAsVisualEffect();
-
-                Fail();
-
+                Object.Instantiate(Resources.Load<GameObject>(ExplosionPrefabPath), opened.transform.position, Quaternion.identity).DestroyAsVisualEffect();
                 this.character.GetComponent<ActorComponent>().PlayAnimation("death");
+                Fail();
                 return;
             }
 
@@ -177,12 +186,26 @@ namespace DarkBestiary.Scenarios.Encounters
                 if (sapperCell.BombsNearby > 0)
                 {
                     sapperCell.OpenSilently();
+                    continue;
                 }
-                else
+
+                sapperCell.Open();
+
+                if (IsCompleted)
                 {
-                    sapperCell.Open();
+                    return;
                 }
             }
+
+            if (this.sapperCells.Count(c => !c.IsOpened) > this.totalBombCount)
+            {
+                return;
+            }
+
+            Object.Instantiate(Resources.Load<GameObject>(TreasureChestPrefabPath), opened.transform.position, Quaternion.identity, Scene.Active.transform);
+
+            AddExperienceAndLoot();
+            Complete();
         }
 
         private void OnAnySkillUsed(SkillUseEventData data)
@@ -203,19 +226,12 @@ namespace DarkBestiary.Scenarios.Encounters
             var cell = CellAt(position);
             cell.SetMarked(false);
             cell.Open();
+        }
 
-            if (this.sapperCells.Count(c => !c.IsOpened) > this.totalBombCount)
-            {
-                return;
-            }
-
-            Object.Instantiate(
-                Resources.Load<GameObject>(TreasureChestPrefabPath),
-                position,
-                Quaternion.identity,
-                Scene.Active.transform);
-
-            Complete();
+        private void AddExperienceAndLoot()
+        {
+            Scenario.Active.AddExperience(this.character.GetComponent<ExperienceComponent>().Experience.Level * RNG.Range(10, 30));
+            Scenario.Active.AddLoot(this.itemRepository.Random(RNG.Range(5, 15), item => item.RarityId == Constants.ItemRarityIdJunk));
         }
 
         private void Mark(Vector3 position)

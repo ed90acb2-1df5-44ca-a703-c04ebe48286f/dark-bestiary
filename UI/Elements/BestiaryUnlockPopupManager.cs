@@ -6,13 +6,13 @@ namespace DarkBestiary.UI.Elements
 {
     public class BestiaryUnlockPopupManager : Singleton<BestiaryUnlockPopupManager>
     {
-        [SerializeField] private BestiaryUnlockPopup popupPrefab;
+        [SerializeField] private TextPopup popupPrefab;
 
-        private MonoBehaviourPool<BestiaryUnlockPopup> pool;
+        private MonoBehaviourPool<TextPopup> pool;
 
         private void Start()
         {
-            this.pool = MonoBehaviourPool<BestiaryUnlockPopup>.Factory(
+            this.pool = MonoBehaviourPool<TextPopup>.Factory(
                 this.popupPrefab, UIManager.Instance.PopupContainer, 2);
 
             CharacterManager.BestiaryUpdated += OnBestiaryUpdated;
@@ -20,7 +20,7 @@ namespace DarkBestiary.UI.Elements
 
         private void OnBestiaryUpdated(UnitComponent unit)
         {
-            this.pool.Spawn().Construct(unit);
+            this.pool.Spawn().Construct(unit.Name);
         }
     }
 }

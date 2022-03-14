@@ -10,7 +10,7 @@ namespace DarkBestiary.Effects
     {
         private readonly RemoveBehaviourEffectData data;
 
-        public RemoveBehaviourEffect(RemoveBehaviourEffectData data, List<Validator> validators) : base(data, validators)
+        public RemoveBehaviourEffect(RemoveBehaviourEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }

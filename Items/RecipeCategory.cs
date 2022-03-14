@@ -5,5 +5,7 @@ namespace DarkBestiary.Items
         None,
         Alchemy,
         Blacksmith,
+        Transmutation,
+        Runeforge,
     }
 }

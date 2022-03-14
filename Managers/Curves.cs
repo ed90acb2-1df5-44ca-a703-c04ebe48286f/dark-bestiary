@@ -7,5 +7,6 @@ namespace DarkBestiary.Managers
         public AnimationCurve Parabolic;
         public AnimationCurve Logarithmic;
         public AnimationCurve Exponential;
+        public AnimationCurve Linear;
     }
 }

@@ -13,7 +13,7 @@ namespace DarkBestiary.Behaviours
         private readonly IEffectRepository effectRepository;
 
         public OnScenarioStartBehaviour(EffectBehaviourData data, IEffectRepository effectRepository,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
             this.effectRepository = effectRepository;
@@ -33,7 +33,9 @@ namespace DarkBestiary.Behaviours
         {
             Timer.Instance.Wait(0.5f, () =>
             {
-                this.effectRepository.Find(this.data.EffectId).Apply(Caster, Caster);
+                var effect = this.effectRepository.Find(this.data.EffectId);
+                effect.StackCount = StackCount;
+                effect.Apply(Caster, Caster);
             });
         }
     }

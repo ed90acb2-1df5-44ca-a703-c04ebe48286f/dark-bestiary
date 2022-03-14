@@ -21,7 +21,6 @@ namespace DarkBestiary.UI.Views
         event Payload<FeedbackRequest> Submitted;
 
         void SetFormFieldsInteractable(bool interactable);
-
         void ClearFormFields();
     }
 }

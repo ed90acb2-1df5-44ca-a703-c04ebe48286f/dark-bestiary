@@ -18,15 +18,15 @@ namespace DarkBestiary.Data.Readers.Json
             var json = JObject.Load(reader);
             var type = json["Type"].Value<string>();
 
-            if (type == typeof(LevelupReward).Name) return json.ToObject<LevelupRewardData>(serializer);
-            if (type == typeof(RewardCollection).Name) return json.ToObject<RewardCollectionData>(serializer);
-            if (type == typeof(AttributesReward).Name) return json.ToObject<AttributesRewardData>(serializer);
-            if (type == typeof(PropertiesReward).Name) return json.ToObject<PropertiesRewardData>(serializer);
-            if (type == typeof(RandomSkillsUnlockReward).Name) return json.ToObject<RandomSkillsUnlockRewardData>(serializer);
-            if (type == typeof(ItemsReward).Name) return json.ToObject<ItemsRewardData>(serializer);
-            if (type == typeof(TalentPointsReward).Name) return json.ToObject<TalentPointsRewardData>(serializer);
-            if (type == typeof(CurrenciesReward).Name) return json.ToObject<CurrenciesRewardData>(serializer);
-            if (type == typeof(AttributePointsReward).Name) return json.ToObject<AttributePointsRewardData>(serializer);
+            if (type == nameof(LevelupReward)) return json.ToObject<LevelupRewardData>(serializer);
+            if (type == nameof(RewardCollection)) return json.ToObject<RewardCollectionData>(serializer);
+            if (type == nameof(AttributesReward)) return json.ToObject<AttributesRewardData>(serializer);
+            if (type == nameof(PropertiesReward)) return json.ToObject<PropertiesRewardData>(serializer);
+            if (type == nameof(RandomSkillsUnlockReward)) return json.ToObject<RandomSkillsUnlockRewardData>(serializer);
+            if (type == nameof(ItemsReward)) return json.ToObject<ItemsRewardData>(serializer);
+            if (type == nameof(TalentPointsReward)) return json.ToObject<TalentPointsRewardData>(serializer);
+            if (type == nameof(CurrenciesReward)) return json.ToObject<CurrenciesRewardData>(serializer);
+            if (type == nameof(AttributePointsReward)) return json.ToObject<AttributePointsRewardData>(serializer);
 
             throw new InvalidDataException($"Unknown reward type {type}");
         }

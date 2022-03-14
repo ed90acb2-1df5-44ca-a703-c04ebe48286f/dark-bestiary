@@ -9,7 +9,7 @@ namespace DarkBestiary.Effects
     {
         private readonly string formula;
 
-        protected FormulaBasedEffect(FormulaBasedEffectData data, List<Validator> validators) : base(data, validators)
+        protected FormulaBasedEffect(FormulaBasedEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.formula = data.Formula;
         }

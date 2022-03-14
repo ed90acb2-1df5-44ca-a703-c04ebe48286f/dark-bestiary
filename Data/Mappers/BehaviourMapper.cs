@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using DarkBestiary.Behaviours;
 using DarkBestiary.Data.Repositories;
+using DarkBestiary.Validators;
 
 namespace DarkBestiary.Data.Mappers
 {
@@ -40,7 +41,21 @@ namespace DarkBestiary.Data.Mappers
             }
 
             return Container.Instance.Instantiate(
-                Mapping[data.Type], new object[] {data, this.validatorRepository.Find(data.Validators)}) as Behaviour;
+                Mapping[data.Type],
+                new object[]
+                {
+                    data,
+                    CreateValidators(data)
+                }) as Behaviour;
+        }
+
+        private List<ValidatorWithPurpose> CreateValidators(BehaviourData behaviour)
+        {
+            return behaviour.Validators
+                .Select(validator =>
+                    new ValidatorWithPurpose(
+                        this.validatorRepository.Find(validator.ValidatorId), validator.ValidatorPurpose))
+                .ToList();
         }
     }
 }

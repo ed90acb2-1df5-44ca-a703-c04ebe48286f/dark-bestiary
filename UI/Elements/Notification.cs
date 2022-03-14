@@ -12,10 +12,10 @@ namespace DarkBestiary.UI.Elements
 
         private void Start()
         {
-            this.closeButton.PointerUp += OnCloseButtonPointerUp;
+            this.closeButton.PointerClick += OnCloseButtonPointerClick;
         }
 
-        private void OnCloseButtonPointerUp()
+        private void OnCloseButtonPointerClick()
         {
             Closed?.Invoke();
 

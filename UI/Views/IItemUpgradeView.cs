@@ -1,6 +1,10 @@
 using System.Collections.Generic;
+using DarkBestiary.Components;
+using DarkBestiary.Currencies;
 using DarkBestiary.Items;
 using DarkBestiary.Messaging;
+using DarkBestiary.UI.Elements;
+using JetBrains.Annotations;
 
 namespace DarkBestiary.UI.Views
 {
@@ -10,12 +14,10 @@ namespace DarkBestiary.UI.Views
         event Payload<Item> ItemRemoved;
         event Payload UpgradeButtonClicked;
 
-        void ChanceTitle(string title);
-
-        void Construct(Character character);
-
+        void Construct(InventoryPanel inventoryPanel, InventoryComponent characterInventory, InventoryComponent ingredientInventory);
+        void ChangeTitle(string title);
         void Refresh(Item item, List<RecipeIngredient> ingredients);
-
+        void RefreshCost([CanBeNull] Currency cost);
         void Cleanup();
     }
 }

@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using DarkBestiary.Components;
 using DarkBestiary.Extensions;
 using DarkBestiary.Items;
 using DarkBestiary.Managers;
+using DarkBestiary.Messaging;
 using DarkBestiary.Modifiers;
 using DarkBestiary.Properties;
 using DarkBestiary.Skills;
@@ -16,11 +18,21 @@ namespace DarkBestiary.UI.Elements
 {
     public class ItemTooltip : Singleton<ItemTooltip>
     {
+        public event Payload<ItemTooltip> Shown;
+        public event Payload<ItemTooltip> Hidden;
+
+        public bool DisplayPrice { get; set; } = true;
+        public bool HasOverflow { get; private set; }
+
         [SerializeField] private Sprite emptySocket;
         [SerializeField] private CustomText textPrefab;
+        [SerializeField] private TextWithIcon textWithIconPrefab;
+        [SerializeField] private ItemTooltipRune runePrefab;
         [SerializeField] private ItemTooltipDifference differencePrefab;
         [SerializeField] private GameObject separatorPrefab;
+        [SerializeField] private SkillTooltipSet setPrefab;
         [SerializeField] private ItemTooltipHeader headerPrefab;
+        [SerializeField] private ItemTooltipStars starsPrefab;
         [SerializeField] private ItemTooltipSocket socketPrefab;
         [SerializeField] private SkillTooltipCost costPrefab;
         [SerializeField] private ItemTooltipPrice pricePrefab;
@@ -31,12 +43,16 @@ namespace DarkBestiary.UI.Elements
         private Character character;
 
         private ItemTooltipHeader header;
+        private ItemTooltipStars stars;
         private ItemTooltipPrice price;
 
         private MonoBehaviourPool<ItemTooltipDifference> differencePool;
         private MonoBehaviourPool<ItemTooltipSocket> socketPool;
         private MonoBehaviourPool<SkillTooltipCost> costPool;
         private MonoBehaviourPool<CustomText> textPool;
+        private MonoBehaviourPool<TextWithIcon> textWithIconPool;
+        private MonoBehaviourPool<ItemTooltipRune> runePool;
+        private MonoBehaviourPool<SkillTooltipSet> setPool;
         private GameObjectPool separatorPool;
 
         private bool isInitialized;
@@ -45,6 +61,30 @@ namespace DarkBestiary.UI.Elements
         {
             Initialize();
             Instance.Hide();
+        }
+
+        private void Update()
+        {
+            if (!(Mathf.Abs(Input.mouseScrollDelta.y) > 0))
+            {
+                return;
+            }
+
+            if (HasOverflow)
+            {
+                ChangePivotY(Input.mouseScrollDelta.y > 0 ? 0 : 1);
+            }
+        }
+
+        private void ChangePivotY(int pivotY)
+        {
+            if (Math.Abs(pivotY - this.rectTransform.pivot.y) < Mathf.Epsilon)
+            {
+                return;
+            }
+
+            this.rectTransform.ChangePivot(new Vector2(this.rectTransform.pivot.x, pivotY));
+            this.rectTransform.ClampPositionToParent(this.parentRectTransform);
         }
 
         public void Initialize()
@@ -61,7 +101,10 @@ namespace DarkBestiary.UI.Elements
             this.socketPool = MonoBehaviourPool<ItemTooltipSocket>.Factory(this.socketPrefab, this.container);
             this.costPool = MonoBehaviourPool<SkillTooltipCost>.Factory(this.costPrefab, this.container);
             this.textPool = MonoBehaviourPool<CustomText>.Factory(this.textPrefab, this.container);
+            this.textWithIconPool = MonoBehaviourPool<TextWithIcon>.Factory(this.textWithIconPrefab, this.container);
+            this.runePool = MonoBehaviourPool<ItemTooltipRune>.Factory(this.runePrefab, this.container);
             this.separatorPool = GameObjectPool.Factory(this.separatorPrefab, this.container);
+            this.setPool = MonoBehaviourPool<SkillTooltipSet>.Factory(this.setPrefab, this.container);
 
             this.rectTransform = GetComponent<RectTransform>();
             this.parentRectTransform = this.rectTransform.parent.GetComponent<RectTransform>();
@@ -82,10 +125,13 @@ namespace DarkBestiary.UI.Elements
             this.price.Terminate();
 
             this.differencePool.Clear();
+            this.separatorPool.Clear();
             this.socketPool.Clear();
             this.costPool.Clear();
             this.textPool.Clear();
-            this.separatorPool.Clear();
+            this.setPool.Clear();
+            this.textWithIconPool.Clear();
+            this.runePool.Clear();
         }
 
         private void OnCharacterSelected(Character character)
@@ -99,7 +145,16 @@ namespace DarkBestiary.UI.Elements
 
             Clear();
 
+            CreateStars(item);
             CreateHeader(item);
+
+            if (item.IsMarkedAsIllusory)
+            {
+                CreateText().Text = " ";
+                var text = CreateText();
+                text.Color = Color.green;
+                text.Text = I18N.Instance.Get("ui_illusory");
+            }
 
             var isBlueprint = item.IsBlueprint;
 
@@ -114,43 +169,58 @@ namespace DarkBestiary.UI.Elements
                 CreateRelicAlreadyKnownNotification(item);
             }
 
-            if (!isBlueprint && item.IsIdentified && (item.IsArmor || item.IsWeapon || item.IsJewelry))
+            CreateSharpeningModifiers(item);
+
+            if (item.LearnSkill != null)
             {
-                CreateQuality(item);
+                CreateSkillAlreadyKnownNotification(item);
             }
 
-            CreateFixedModifiers(item);
+            if (!item.Flags.HasFlag(ItemFlags.HasRandomSuffix))
+            {
+                CreateFixedModifiers(item);
+            }
+
             CreateModifiers(item);
             CreateSockets(item);
+            CreateEnchantDescription(item);
             CreateWeaponSkillDescription(item.WeaponSkillA);
             CreateWeaponSkillDescription(item.WeaponSkillB);
+
+            if (item.Flags.HasFlag(ItemFlags.HasRandomSuffix))
+            {
+                CreateFixedModifiersAsPassive(item);
+            }
+
             CreatePassiveDescription(item);
-            CreateUnlockSkillDescription(item);
             CreateConsumeDescription(item);
+            CreateUnlockSkillDescription(item.UnlockSkill);
+            CreateLearnSkillDescription(item.LearnSkill);
             CreateLore(item);
             CreateSetInfo(item);
+            CreateAffixes(item);
+            CreateRunes(item);
             CreateDifference(item);
-            CreateInfo(item);
+            CreateRequiredLevelLabel(item);
+            CreateWarnings(item);
             CreatePrice(item);
 
             LayoutRebuilder.ForceRebuildLayoutImmediate(this.rectTransform);
 
-            if (rect == null)
+            if (rect != null)
             {
-                return;
+                this.rectTransform.MoveTooltip(rect, this.parentRectTransform);
+                this.rectTransform.ClampPositionToParent();
             }
 
-            this.rectTransform.MoveTooltip(rect, this.parentRectTransform);
-            this.rectTransform.ClampPositionToParent();
-        }
+            HasOverflow = this.rectTransform.rect.height - this.parentRectTransform.rect.height > 0;
 
-        private void CreateQuality(Item item)
-        {
-            CreateText().Text = " ";
+            if (HasOverflow)
+            {
+                ChangePivotY(0);
+            }
 
-            CreateText().Text = item.Suffix == null
-                ? $"{I18N.Instance.Get("ui_quality")}: 100%"
-                : $"{I18N.Instance.Get("ui_quality")}: {item.Suffix.Quality * 100:F0}%";
+            Shown?.Invoke(this);
         }
 
         private void CreateRecipeAlreadyKnownNotification(Item item)
@@ -163,6 +233,20 @@ namespace DarkBestiary.UI.Elements
                 text.Text = I18N.Instance.Get("ui_already_known");
                 text.Color = Color.red;
             }
+        }
+
+        private void CreateSkillAlreadyKnownNotification(Item item)
+        {
+            if (!this.character.Entity.GetComponent<SpellbookComponent>().IsKnown(item.LearnSkill.Id))
+            {
+                return;
+            }
+
+            CreateText().Text = " ";
+
+            var text = CreateText();
+            text.Text = I18N.Instance.Get("ui_already_known");
+            text.Color = Color.red;
         }
 
         private void CreateRelicAlreadyKnownNotification(Item item)
@@ -183,6 +267,7 @@ namespace DarkBestiary.UI.Elements
         public void Hide()
         {
             gameObject.SetActive(false);
+            Hidden?.Invoke(this);
         }
 
         private void Clear()
@@ -192,6 +277,38 @@ namespace DarkBestiary.UI.Elements
             this.socketPool.DespawnAll();
             this.costPool.DespawnAll();
             this.textPool.DespawnAll();
+            this.setPool.DespawnAll();
+            this.textWithIconPool.DespawnAll();
+            this.runePool.DespawnAll();
+        }
+
+        private void CreateAffixes(Item item)
+        {
+            if (item.Affixes.Count == 0)
+            {
+                return;
+            }
+
+            CreateSeparator();
+
+            var index = 0;
+
+            foreach (var affix in item.Affixes)
+            {
+                index++;
+
+                var text = CreateTextWithIcon();
+                text.Color = affix.Rarity.Color();
+                text.Icon.sprite = Resources.Load<Sprite>(affix.Icon);
+
+                var nameText = affix.Name + (affix.IsUnique ? $" ({I18N.Instance.Translate("ui_talent")})" : "");
+                text.Text = $"{nameText}\n<color=white>{affix.Description}</color>";
+
+                if (index < item.Affixes.Count)
+                {
+                    CreateText().Text = " ";
+                }
+            }
         }
 
         private void CreateSetInfo(Item item)
@@ -219,7 +336,7 @@ namespace DarkBestiary.UI.Elements
                     ? Color.white
                     : Color.grey;
 
-                row.Text = "    " + setItem.Name;
+                row.Text = "    " + setItem.BaseName;
             }
 
             CreateText().Text = " ";
@@ -243,11 +360,6 @@ namespace DarkBestiary.UI.Elements
 
         private void CreateDifference(Item item)
         {
-            if (!item.IsIdentified)
-            {
-                return;
-            }
-
             var equipment = this.character.Entity.GetComponent<EquipmentComponent>();
 
             if (equipment.IsEquipped(item))
@@ -285,7 +397,7 @@ namespace DarkBestiary.UI.Elements
 
         private void CreateAttributeDifferenceRow(Attribute attribute, float delta)
         {
-            CreateDifference().Construct(delta > 0, $"{(int) Mathf.Abs(delta)} {attribute.Name}");
+            CreateDifference().Construct(delta > 0, $"{Mathf.Ceil(Mathf.Abs(delta))} {attribute.Name}");
         }
 
         private void CreatePropertyDifferenceRow(Property property, float delta)
@@ -293,7 +405,7 @@ namespace DarkBestiary.UI.Elements
             CreateDifference().Construct(delta > 0, $"{Property.ValueString(property.Type, Mathf.Abs(delta))} {property.Name}");
         }
 
-        private void CreateInfo(Item item)
+        private void CreateRequiredLevelLabel(Item item)
         {
             if (item.RequiredLevel <= 1)
             {
@@ -312,9 +424,23 @@ namespace DarkBestiary.UI.Elements
             }
         }
 
+        private void CreateWarnings(Item item)
+        {
+            if (item.Rarity.Id != Constants.ItemRarityIdVision || !item.IsEquipment)
+            {
+                return;
+            }
+
+            CreateText().Text = " ";
+
+            var warning = CreateText();
+            warning.Text = I18N.Instance.Translate("exception_equip_more_than_one_item_of_type");
+            warning.Color = Color.red;
+        }
+
         private void CreatePrice(Item item)
         {
-            if (item.GetPrice().Count == 0)
+            if (!DisplayPrice || item.GetPrice().Count == 0)
             {
                 this.price.gameObject.SetActive(false);
                 return;
@@ -323,6 +449,26 @@ namespace DarkBestiary.UI.Elements
             this.price.gameObject.SetActive(true);
             this.price.Refresh(item.GetPrice());
             this.price.transform.SetAsLastSibling();
+        }
+
+        private void CreateRunes(Item item)
+        {
+            if (item.Runes.Count == 0)
+            {
+                return;
+            }
+
+            CreateSeparator();
+
+            for (var i = 0; i < item.Runes.Count; i++)
+            {
+                CreateRuneSocket(item.Runes[i], item, i);
+
+                if (i < item.Runes.Count - 1)
+                {
+                    CreateText().Text = " ";
+                }
+            }
         }
 
         private void CreateSockets(Item item)
@@ -336,41 +482,19 @@ namespace DarkBestiary.UI.Elements
 
             foreach (var socket in item.Sockets)
             {
-                var socketBonusText =
-                    string.Join(", ", socket.GetAttributeModifiers().Select(modifier => modifier.ToString())) +
-                    string.Join(", ", socket.GetPropertyModifiers().Select(modifier => modifier.ToString()));
+                var socketBonusParts = new List<string>(4);
+                socketBonusParts.AddRange(socket.GetAttributeModifiers().Select(modifier => modifier.ToString()));
+                socketBonusParts.AddRange(socket.GetPropertyModifiers().Select(modifier => modifier.ToString()));
 
                 CreateSocket().Construct(
                     socket.IsEmpty ? this.emptySocket : Resources.Load<Sprite>(socket.Icon),
-                    socket.IsEmpty ? I18N.Instance.Get("ui_empty_socket") : socketBonusText
+                    socket.IsEmpty ? I18N.Instance.Get("ui_empty_socket") : string.Join(", ", socketBonusParts)
                 );
             }
         }
 
-        private void CreateFixedModifiers(Item item)
-        {
-            var attributeModifiers = item.GetFixedAttributeModifiers();
-            var propertyModifiers = item.GetFixedPropertyModifiers();
-
-            if (attributeModifiers.Count == 0 && propertyModifiers.Count == 0)
-            {
-                return;
-            }
-
-            CreateText().Text = " ";
-            CreateAttributeModifiers(attributeModifiers);
-            CreatePropertyModifiers(propertyModifiers);
-        }
-
         private void CreateModifiers(Item item)
         {
-            if (!item.IsIdentified)
-            {
-                CreateText().Text = " ";
-                CreateText().Text = $"[{I18N.Instance.Get("ui_random_attributes")}]";
-                return;
-            }
-
             var attributeModifiers = item.GetAttributeModifiers(false);
             var propertyModifiers = item.GetPropertyModifiers(false);
 
@@ -397,7 +521,7 @@ namespace DarkBestiary.UI.Elements
         {
             foreach (var group in modifiers.OrderBy(mod => mod.Attribute.Index).GroupBy(mod => mod.Attribute.Id))
             {
-                CreateText().Text = $"+{group.Sum(mod => mod.GetAmount())} {group.First().Attribute.Name}";
+                CreateText().Text = $"+{Mathf.Ceil(group.Sum(mod => mod.GetAmount()))} {group.First().Attribute.Name}";
             }
         }
 
@@ -411,9 +535,57 @@ namespace DarkBestiary.UI.Elements
             CreateText().Text = " ";
 
             var lore = CreateText();
-            lore.Style = FontStyles.Italic;
-            lore.Color = Color.gray;
+            lore.Color = new Color(0.9f, 0.8f, 0.5f);
             lore.Text = item.Lore;
+        }
+
+        private void CreateSharpeningModifiers(Item item)
+        {
+            if (item.SharpeningLevel < 1)
+            {
+                return;
+            }
+
+            CreateText().Text = $"{I18N.Instance.Translate("ui_improved")}: {item.GetSharpeningAttributeModifiers().First()}";
+        }
+
+        private void CreateFixedModifiers(Item item)
+        {
+            var attributeModifiers = item.GetFixedAttributeModifiers();
+            var propertyModifiers = item.GetFixedPropertyModifiers();
+
+            if (attributeModifiers.Count == 0 && propertyModifiers.Count == 0)
+            {
+                return;
+            }
+
+            CreateText().Text = " ";
+
+            CreateAttributeModifiers(attributeModifiers);
+            CreatePropertyModifiers(propertyModifiers);
+        }
+
+        private void CreateFixedModifiersAsPassive(Item item)
+        {
+            var attributeModifiers = item.GetFixedAttributeModifiers();
+            var propertyModifiers = item.GetFixedPropertyModifiers();
+
+            if (attributeModifiers.Count == 0 && propertyModifiers.Count == 0)
+            {
+                return;
+            }
+
+            CreateText().Text = " ";
+
+            foreach (var modifier in attributeModifiers)
+            {
+                CreatePassiveDescriptionText(modifier.GetDescriptionText());
+            }
+
+            foreach (var modifier in propertyModifiers)
+            {
+                CreatePassiveDescriptionText(modifier.GetDescriptionText());
+            }
         }
 
         private void CreatePassiveDescription(Item item)
@@ -424,10 +596,29 @@ namespace DarkBestiary.UI.Elements
             }
 
             CreateText().Text = " ";
+            CreatePassiveDescriptionText(item.PassiveDescription.ToString(new StringVariableContext(this.character.Entity)));
+        }
+
+        private void CreatePassiveDescriptionText(string description)
+        {
+            var text = CreateText();
+            text.Color = Color.green;
+            text.Text = I18N.Instance.Get("ui_passive") + ": " + description;
+        }
+
+        private void CreateEnchantDescription(Item item)
+        {
+            if (item.EnchantmentBehaviour == null)
+            {
+                return;
+            }
+
+            CreateText().Text = " ";
 
             var description = CreateText();
-            description.Text = I18N.Instance.Get("ui_passive") + ": " + item.PassiveDescription.ToString(new StringVariableContext(this.character.Entity));
             description.Color = Color.green;
+            description.Text = I18N.Instance.Get("ui_enchantment") + ": " + item.EnchantmentBehaviour.Description
+                                   .ToString(new StringVariableContext(this.character.Entity));
         }
 
         private void CreateConsumeDescription(Item item)
@@ -442,6 +633,74 @@ namespace DarkBestiary.UI.Elements
             var description = CreateText();
             description.Text = I18N.Instance.Get("ui_using") + ": " + item.ConsumeDescription;
             description.Color = Color.green;
+        }
+
+        private void CreateLearnSkillDescription(Skill skill)
+        {
+            if (skill == null)
+            {
+                return;
+            }
+
+            CreateText().Text = " ";
+            CreateText().Text = skill.Description.ToString(new StringVariableContext(this.character.Entity, skill));
+
+            if (skill.GetCost(ResourceType.ActionPoint) > 0 || skill.GetCost(ResourceType.Rage) > 0 || skill.Cooldown > 0)
+            {
+                CreateCost().Refresh(skill);
+            }
+
+            CreateSkillRequirements(skill);
+            CreateSkillSets(skill);
+        }
+
+        private void CreateSkillRequirements(Skill skill)
+        {
+            if (!skill.HaveEquipmentRequirements() && !skill.RequiresDualWielding())
+            {
+                return;
+            }
+
+            CreateText().Text = " ";
+
+            if (skill.HaveEquipmentRequirements())
+            {
+                var text = CreateText();
+                text.Color = skill.EquipmentRequirementsMet() ? Color.white : Color.red;
+                text.Text = $"{I18N.Instance.Get("ui_requires")}: {skill.RequiredItemCategory.Name}";
+            }
+
+            if (skill.RequiresDualWielding())
+            {
+                var text = CreateText();
+                text.Color = skill.DualWieldRequirementMet() ? Color.white : Color.red;
+                text.Text = $"{I18N.Instance.Get("ui_requires")}: {I18N.Instance.Get("ui_dual_wield")}";
+            }
+        }
+
+        private void CreateSkillSets(Skill skill)
+        {
+            if (skill.Sets.Count == 0)
+            {
+                return;
+            }
+
+            CreateText().Text = " ";
+            CreateSeparator();
+            CreateText().Text = " ";
+
+            foreach (var set in skill.Sets)
+            {
+                CreateSet().Construct(skill.Caster, set);
+                CreateText().Text = " ";
+            }
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate(this.rectTransform);
+        }
+
+        private SkillTooltipSet CreateSet()
+        {
+            return this.setPool.Spawn();
         }
 
         private void CreateWeaponSkillDescription(Skill skill)
@@ -463,9 +722,9 @@ namespace DarkBestiary.UI.Elements
             }
         }
 
-        private void CreateUnlockSkillDescription(Item item)
+        private void CreateUnlockSkillDescription(Skill skill)
         {
-            if (item.UnlockSkill == null)
+            if (skill == null)
             {
                 return;
             }
@@ -474,13 +733,15 @@ namespace DarkBestiary.UI.Elements
 
             var description = CreateText();
             description.Color = Color.green;
-            description.Text = $"{I18N.Instance.Get("ui_skill")}: " +
-                               item.UnlockSkill.Description.ToString(new StringVariableContext(this.character.Entity, item.UnlockSkill));
+            description.Text = $"{I18N.Instance.Translate("ui_skill")}: {skill.Description.ToString(new StringVariableContext(this.character.Entity, skill))}";
 
-            if (item.UnlockSkill.GetCost(ResourceType.ActionPoint) > 0 || item.UnlockSkill.Cooldown > 0)
+            if (skill.GetCost(ResourceType.ActionPoint) > 0 || skill.Cooldown > 0)
             {
-                CreateCost().Refresh(item.UnlockSkill);
+                CreateCost().Refresh(skill);
             }
+
+            CreateSkillRequirements(skill);
+            CreateSkillSets(skill);
         }
 
         private void CreateHeader(Item item)
@@ -490,8 +751,7 @@ namespace DarkBestiary.UI.Elements
                 this.header = Instantiate(this.headerPrefab, this.container);
             }
 
-            var itemName = item.IsIdentified ? item.ColoredName : item.ColoredBaseName;
-            var title = $"<smallcaps>{itemName}</smallcaps>\n<size=70%><color=#ccc>{item.Type.Name}";
+            var title = $"<smallcaps>{item.ColoredName}</smallcaps>\n<size=70%><color=#ccc>{item.Type.Name}";
 
             if (item.IsBlueprint)
             {
@@ -524,6 +784,17 @@ namespace DarkBestiary.UI.Elements
             this.header.Construct(Resources.Load<Sprite>(item.Icon), title);
         }
 
+        private void CreateStars(Item item)
+        {
+            if (this.stars == null)
+            {
+                this.stars = Instantiate(this.starsPrefab, this.container);
+            }
+
+            this.stars.gameObject.SetActive(item.ForgeLevel > 0);
+            this.stars.Construct(item.ForgeLevel);
+        }
+
         private ItemTooltipDifference CreateDifference()
         {
             return this.differencePool.Spawn();
@@ -537,6 +808,21 @@ namespace DarkBestiary.UI.Elements
         private SkillTooltipCost CreateCost()
         {
             return this.costPool.Spawn();
+        }
+
+        private TextWithIcon CreateTextWithIcon()
+        {
+            var icon = this.textWithIconPool.Spawn();
+            icon.Icon.gameObject.SetActive(true);
+            icon.Text = "";
+
+            return icon;
+        }
+
+        private void CreateRuneSocket(Item rune, Item item, int index)
+        {
+            var instance = this.runePool.Spawn();
+            instance.Construct(rune, Item.DetermineRuneTypeByIndex(index, item));
         }
 
         private CustomText CreateText()

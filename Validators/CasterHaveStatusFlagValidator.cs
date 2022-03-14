@@ -18,6 +18,8 @@ namespace DarkBestiary.Validators
         {
             var flags = caster.GetComponent<BehavioursComponent>().GetStatusFlags();
 
+            var temp = this.data.Flags & flags;
+
             return this.data.Flags == StatusFlags.None || (this.data.Flags & flags) > 0;
         }
     }

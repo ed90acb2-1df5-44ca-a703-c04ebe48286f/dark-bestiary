@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Items;
+using UnityEngine;
 
 namespace DarkBestiary
 {
@@ -11,7 +12,26 @@ namespace DarkBestiary
         private const int DefaultCraftRecipeScrapCount = 6;
         private const int DefaultCraftRecipeDustCount = 2;
 
-        public static float GetQualityMultiplier(Item item)
+        public static readonly Dictionary<int, float> SharpeningTable = new Dictionary<int, float>()
+        {
+             {1, 0.9f},
+             {2, 0.9f},
+             {3, 0.8f},
+             {4, 0.8f},
+             {5, 0.6f},
+             {6, 0.6f},
+             {7, 0.5f},
+             {8, 0.5f},
+             {9, 0.4f},
+            {10, 0.4f},
+            {11, 0.3f},
+            {12, 0.3f},
+            {13, 0.2f},
+            {14, 0.2f},
+            {15, 0.1f},
+        };
+
+        public static float GetRarityMultiplier(Item item)
         {
             var fraction = 1.0f;
 
@@ -20,46 +40,9 @@ namespace DarkBestiary
                 fraction = 2.0f;
             }
 
-            return fraction + ((int) item.Rarity.Type - 2) * 0.25f;
-        }
+            var rarityIndex = (int) item.Rarity.Type;
 
-        private static List<Item> GetCraftIngredients(Item item)
-        {
-            var itemRepository = Container.Instance.Resolve<IItemRepository>();
-
-            var ingredients = new List<Item>
-            {
-                itemRepository.Find(Constants.ItemIdScrap)
-                    .SetStack((int) (DefaultCraftRecipeScrapCount * GetQualityMultiplier(item))),
-            };
-
-            if ((int) item.Rarity.Type > 1)
-            {
-                ingredients.Add(itemRepository.Find(Constants.ItemIdMagicDust)
-                    .SetStack((int) (DefaultCraftRecipeDustCount * GetQualityMultiplier(item))));
-            }
-
-            if ((int) item.Rarity.Type > 2)
-            {
-                ingredients.Add(itemRepository.Find(Constants.ItemIdGlowingEssence).SetStack(1));
-            }
-
-            if ((int) item.Rarity.Type > 3)
-            {
-                ingredients.Add(itemRepository.Find(Constants.ItemIdShadowCrystal).SetStack(1));
-            }
-
-            if (item.Rarity.Type == RarityType.Unique)
-            {
-                ingredients.Add(itemRepository.Find(Constants.ItemIdSphereOfTransmutation).SetStack(1));
-            }
-
-            if (item.Rarity.Type == RarityType.Legendary)
-            {
-                ingredients.Add(itemRepository.Find(Constants.ItemIdSphereOfAugmentation).SetStack(1));
-            }
-
-            return ingredients;
+            return fraction + Mathf.Min(rarityIndex - 2, 5) * 0.25f;
         }
 
         public static List<Item> GetForgeIngredients(Item item)
@@ -76,16 +59,16 @@ namespace DarkBestiary
             AddToResult(result, itemRepository.Find(Constants.ItemIdScrap), item.Level * 5);
             AddToResult(result, itemRepository.Find(Constants.ItemIdMagicDust), item.Level);
 
-            if ((int) item.Rarity.Type > 2)
+            if (item.Rarity.Type >= RarityType.Rare)
             {
                 AddToResult(result, itemRepository.Find(Constants.ItemIdGlowingEssence),
-                    (int) Math.Ceiling(item.Level * 0.5f * GetQualityMultiplier(item)));
+                    (int) Math.Ceiling(item.Level * 0.5f * GetRarityMultiplier(item)));
             }
 
-            if ((int) item.Rarity.Type > 3)
+            if (item.Rarity.Type >= RarityType.Unique)
             {
                 AddToResult(result, itemRepository.Find(Constants.ItemIdShadowCrystal),
-                    (int) Math.Ceiling(item.Level * 0.5f * GetQualityMultiplier(item)));
+                    (int) Math.Ceiling(item.Level * 0.5f * GetRarityMultiplier(item)));
             }
 
             AddToResult(result, itemRepository.Find(Constants.ItemIdCatalyst),
@@ -100,22 +83,62 @@ namespace DarkBestiary
             return result;
         }
 
-        public static List<Item> GetDismantleIngredients(Item item)
+        public static List<Item> RollDismantleIngredients(Item item)
         {
-            var result = new List<Item>();
-            result.AddRange(item.Sockets.Where(socket => !socket.IsEmpty));
+            var repository = Container.Instance.Resolve<IItemRepository>();
 
-            result.AddRange(
-                GetCraftIngredients(item).Select(ingredient => ingredient.SetStack(ingredient.StackCount / 2)));
+            var ingredients = new List<Item>
+            {
+                repository.Find(Constants.ItemIdScrap)
+                    .SetStack((int) (DefaultCraftRecipeScrapCount * GetRarityMultiplier(item))),
+            };
 
-            result.AddRange(
-                GetForgeIngredients(item)
-                    .Where(ingredient => ingredient.Id != Constants.ItemIdCatalyst &&
-                                         ingredient.Id != Constants.ItemIdStabilizer &&
-                                         ingredient.Id != Constants.ItemIdSphereOfAugmentation)
-                    .Select(ingredient => ingredient.SetStack(ingredient.StackCount / 2)));
+            if (item.Rarity.Type >= RarityType.Magic)
+            {
+                ingredients.Add(repository.Find(Constants.ItemIdMagicDust)
+                    .SetStack((int) (DefaultCraftRecipeDustCount * GetRarityMultiplier(item))));
+            }
 
-            return result;
+            if (item.Rarity.Type >= RarityType.Rare)
+            {
+                ingredients.Add(repository.Find(Constants.ItemIdGlowingEssence).SetStack(RNG.Range(1, 2)));
+            }
+
+            if (item.Rarity.Type >= RarityType.Unique)
+            {
+                ingredients.Add(repository.Find(Constants.ItemIdGlowingEssence).SetStack(RNG.Range(2, 4)));
+                ingredients.Add(repository.Find(Constants.ItemIdShadowCrystal).SetStack(1));
+            }
+
+            if (item.Rarity.Type >= RarityType.Legendary)
+            {
+                ingredients.Add(repository.Find(Constants.ItemIdGlowingEssence).SetStack(RNG.Range(4, 6)));
+                ingredients.Add(repository.Find(Constants.ItemIdShadowCrystal).SetStack(RNG.Range(1, 2)));
+            }
+
+            if (item.Rarity.Type == RarityType.Unique && RNG.Test(0.5f))
+            {
+                ingredients.Add(repository.Find(Constants.ItemIdSphereOfTransmutation).SetStack(1));
+            }
+
+            if (item.Rarity.Type == RarityType.Legendary && RNG.Test(0.5f))
+            {
+                ingredients.Add(repository.Find(Constants.ItemIdSphereOfAugmentation).SetStack(1));
+            }
+
+            if (item.Rarity.Type > RarityType.Legendary)
+            {
+                ingredients.Add(repository.Find(Constants.ItemIdSphereOfAugmentation).SetStack(2));
+            }
+
+            if (item.Rarity.Type == RarityType.Vision && RNG.Test(0.5f))
+            {
+                ingredients.Add(repository.Find(Constants.ItemIdSphereOfVisions).SetStack(1));
+            }
+
+            ingredients.AddRange(item.Sockets.Where(socket => !socket.IsEmpty));
+
+            return ingredients;
         }
 
         private static void AddToResult(ICollection<Item> result, Item item, int count)

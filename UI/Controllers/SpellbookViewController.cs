@@ -34,7 +34,7 @@ namespace DarkBestiary.UI.Controllers
             View.RemoveFromActionBar += OnRemoveFromActionBar;
             View.Replace += OnSkillReplace;
             View.Construct(this.skillSetRepository.FindAll(), this.spellbook.Slots, GetCategories());
-            View.RefreshAvailableSkills(this.spellbook.Skills);
+            View.Refresh(this.spellbook.Skills);
         }
 
         protected override void OnTerminate()
@@ -55,7 +55,7 @@ namespace DarkBestiary.UI.Controllers
 
         private void OnSkillAdded(Skill skill)
         {
-            View.RefreshAvailableSkills(this.spellbook.Skills);
+            View.Refresh(this.spellbook.Skills);
         }
 
         private void OnSkillReplace(Skill skillA, Skill skillB)
@@ -76,7 +76,7 @@ namespace DarkBestiary.UI.Controllers
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
         }
 
@@ -87,14 +87,13 @@ namespace DarkBestiary.UI.Controllers
                 return;
             }
 
-            try
+            if (skill.IsOnCooldown())
             {
-                this.spellbook.RemoveFromActionBar(skill);
+                UiErrorFrame.Instance.ShowMessage(I18N.Instance.Get("exception_skill_is_on_cooldown"));
+                return;
             }
-            catch (GameplayException exception)
-            {
-                UiErrorFrame.Instance.Push(exception.Message);
-            }
+
+            this.spellbook.RemoveFromActionBar(skill);
         }
     }
 }

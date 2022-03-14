@@ -19,7 +19,7 @@ namespace DarkBestiary.Behaviours
 
         public ItemBasedBehaviour(ItemBasedBehaviourData data,
             IItemCategoryRepository itemCategoryRepository, IBehaviourRepository behaviourRepository,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.behaviour = behaviourRepository.FindOrFail(data.BehaviourId);
             this.requiredCategory = itemCategoryRepository.FindOrFail(data.ItemCategoryId);
@@ -57,7 +57,7 @@ namespace DarkBestiary.Behaviours
 
             if (stackCount == 0)
             {
-                this.behaviours.Apply(this.behaviour, Caster);
+                this.behaviours.ApplyAllStacks(this.behaviour, Caster);
             }
 
             this.behaviours.SetStackCount(this.behaviour.Id, itemsCount);

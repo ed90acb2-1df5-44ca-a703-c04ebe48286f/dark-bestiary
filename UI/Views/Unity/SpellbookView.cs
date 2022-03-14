@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using DarkBestiary.Extensions;
 using DarkBestiary.Items;
 using DarkBestiary.Messaging;
 using DarkBestiary.Skills;
@@ -21,7 +20,7 @@ namespace DarkBestiary.UI.Views.Unity
         [SerializeField] private Transform categoryTabContainer;
         [SerializeField] private TMP_InputField searchInput;
         [SerializeField] private Button closeButton;
-        [SerializeField] private SpellbookSlot slotPrefab;
+        [SerializeField] private SkillSlotView slotPrefab;
         [SerializeField] private Transform slotContainer;
         [SerializeField] private SpellbookSkill skillPrefab;
         [SerializeField] private Transform skillContainer;
@@ -30,7 +29,7 @@ namespace DarkBestiary.UI.Views.Unity
         [SerializeField] private Transform skillSetButtonContainer;
 
         private readonly List<SpellbookSkill> skillViews = new List<SpellbookSkill>();
-        private readonly List<SpellbookSlot> slotViews = new List<SpellbookSlot>();
+        private readonly List<SkillSlotView> slotViews = new List<SkillSlotView>();
 
         private SkillSetButton activeSkillSet;
         private SkillCategoryTab activeTab;
@@ -44,10 +43,7 @@ namespace DarkBestiary.UI.Views.Unity
             OnCategoryTabClicked(this.categoryTabContainer.GetComponentsInChildren<SkillCategoryTab>().First());
             CreateSkillSetButtons(sets);
             CreateSlots(this.slots);
-        }
 
-        protected override void OnInitialize()
-        {
             this.closeButton.onClick.AddListener(OnCloseButtonClicked);
             this.searchInput.onValueChanged.AddListener(OnInputChanged);
         }
@@ -64,7 +60,7 @@ namespace DarkBestiary.UI.Views.Unity
 
         private void CreateSkillSetButtons(IEnumerable<SkillSet> sets)
         {
-            foreach (var set in sets.OrderBy(s => s.Name.Id))
+            foreach (var set in sets.OrderBy(s => s.Name.Key))
             {
                 var skillSetButton = Instantiate(this.skillSetButtonPrefab, this.skillSetButtonContainer);
                 skillSetButton.Clicked += OnSkillSetButtonClicked;
@@ -104,7 +100,7 @@ namespace DarkBestiary.UI.Views.Unity
             }
         }
 
-        public void RefreshAvailableSkills(List<Skill> skills)
+        public void Refresh(List<Skill> skills)
         {
             foreach (var skill in skills)
             {
@@ -206,9 +202,9 @@ namespace DarkBestiary.UI.Views.Unity
             Replace?.Invoke(skillA, skillB);
         }
 
-        private void OnSlotSkillPointerUp(SpellbookSlot slot)
+        private void OnSlotSkillPointerUp(SkillSlotView slotView)
         {
-            OnSlotSkillDroppedOut(slot.Slot.Skill);
+            OnSlotSkillDroppedOut(slotView.Slot.Skill);
         }
 
         private void OnSlotSkillDroppedIn(SkillSlot slot, Skill skill)

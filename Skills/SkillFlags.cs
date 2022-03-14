@@ -23,5 +23,7 @@ namespace DarkBestiary.Skills
         Item = 1 << 13,
         DualWield = 1 << 14,
         FixedRange = 1 << 15,
+        Vision = 1 << 16,
+        DisableMulticast = 1 << 17,
     }
 }

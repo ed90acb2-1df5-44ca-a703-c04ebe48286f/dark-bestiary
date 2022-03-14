@@ -10,7 +10,7 @@ namespace DarkBestiary.Effects
     {
         private readonly EffectData data;
 
-        public ShowEffect(EffectData data, List<Validator> validators) : base(data, validators)
+        public ShowEffect(EffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }

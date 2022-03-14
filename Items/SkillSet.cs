@@ -1,8 +1,6 @@
 ﻿using System.Collections.Generic;
 using DarkBestiary.Behaviours;
 using DarkBestiary.Data;
-using DarkBestiary.Data.Repositories;
-using DarkBestiary.Skills;
 
 namespace DarkBestiary.Items
 {
@@ -11,15 +9,8 @@ namespace DarkBestiary.Items
         public int Id { get; }
         public I18NString Name { get; }
         public string Icon { get; }
-
-        // TODO: Circular dependency ducttape
-        public List<Skill> Skills =>
-            this.skills ?? (this.skills = Container.Instance.Resolve<ISkillRepository>().Find(this.skillIds));
-
+        public List<int> SkillIds { get; }
         public Dictionary<int, List<Behaviour>> Behaviours { get; }
-
-        private List<Skill> skills;
-        private readonly List<int> skillIds;
 
         public SkillSet(SkillSetData data, Dictionary<int, List<Behaviour>> behaviours)
         {
@@ -27,8 +18,7 @@ namespace DarkBestiary.Items
             Icon = data.Icon;
             Name = I18N.Instance.Get(data.NameKey);
             Behaviours = behaviours;
-
-            this.skillIds = data.Skills;
+            SkillIds = data.Skills;
         }
     }
 }

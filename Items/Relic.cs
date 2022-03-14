@@ -58,7 +58,7 @@ namespace DarkBestiary.Items
                 return;
             }
 
-            Owner.GetComponent<BehavioursComponent>().Apply(Behaviour, Owner);
+            Owner.GetComponent<BehavioursComponent>().ApplyAllStacks(Behaviour, Owner);
 
             Experience.LevelUp += OnLevelUp;
             OnLevelUp(Experience);

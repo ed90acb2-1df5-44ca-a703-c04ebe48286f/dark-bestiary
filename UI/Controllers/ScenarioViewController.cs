@@ -42,7 +42,7 @@ namespace DarkBestiary.UI.Controllers
         {
             if (!this.scenario.IsEnd || this.scenario.IsFailed)
             {
-                Game.Instance.ToTown();
+                Game.Instance.ToHub();
                 return;
             }
 

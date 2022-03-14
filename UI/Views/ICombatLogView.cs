@@ -6,6 +6,6 @@ namespace DarkBestiary.UI.Views
     {
         event Payload CloseButtonClicked;
 
-        void AddRow(string row);
+        void Add(string row);
     }
 }

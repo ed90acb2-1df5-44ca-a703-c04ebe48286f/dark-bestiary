@@ -3,7 +3,6 @@ using DarkBestiary.Components;
 using DarkBestiary.Data;
 using DarkBestiary.Extensions;
 using DarkBestiary.Scenarios.Scenes;
-using UnityEngine;
 
 namespace DarkBestiary.AI.Tasks
 {
@@ -15,18 +14,30 @@ namespace DarkBestiary.AI.Tasks
 
         protected override BehaviourTreeStatus OnTick(BehaviourTreeContext context, float delta)
         {
-            var closest = Scene.Active.Entities
+            var enemies = Scene.Active.Entities
                 .Alive(entity => entity.IsEnemyOf(context.Entity) &&
                                  !entity.GetComponent<BehavioursComponent>().IsInvisible)
                 .OrderBy(entity => (context.Entity.transform.position - entity.transform.position).sqrMagnitude)
-                .FirstOrDefault();
+                .ToList();
 
-            if (closest == null)
+            var target = enemies.FirstOrDefault();
+
+            if (enemies.Count > 1)
+            {
+                target = enemies.FirstOrDefault(e => !e.GetComponent<BehavioursComponent>().IsUncontrollableAndBreaksOnHit);
+
+                if (target == null)
+                {
+                    target = enemies.FirstOrDefault();
+                }
+            }
+
+            if (target == null)
             {
                 return BehaviourTreeStatus.Failure;
             }
 
-            context.TargetEntity = closest.gameObject;
+            context.TargetEntity = target;
 
             return BehaviourTreeStatus.Success;
         }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using DarkBestiary.Behaviours;
 using DarkBestiary.Data;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Modifiers;
@@ -9,11 +10,12 @@ namespace DarkBestiary.Items
     public class ItemModifier
     {
         public int Id { get; }
-        public I18NString Text { get; }
+        public I18NString SuffixText { get; }
+        public Behaviour Behaviour { get; }
         public Rarity Rarity { get; }
         public List<ItemModifier> ItemModifiers { get; }
         public bool IsSuffix => this.data.IsSuffix;
-        public float Quality { get; set; }
+        public float Weight => this.data.Weight;
 
         private readonly ItemModifierData data;
         private readonly IAttributeRepository attributeRepository;
@@ -22,7 +24,7 @@ namespace DarkBestiary.Items
 
         public ItemModifier(ItemModifierData data,
             IAttributeRepository attributeRepository, IPropertyRepository propertyRepository,
-            IRarityRepository rarityRepository, IItemModifierRepository itemModifierRepository)
+            IRarityRepository rarityRepository, IBehaviourRepository behaviourRepository, IItemModifierRepository itemModifierRepository)
         {
             this.data = data;
             this.attributeRepository = attributeRepository;
@@ -31,26 +33,28 @@ namespace DarkBestiary.Items
             Id = data.Id;
             Rarity = rarityRepository.Find(data.RarityId);
             ItemModifiers = itemModifierRepository.Find(data.ItemModifiers);
-            Text = I18N.Instance.Get(data.SuffixTextKey);
-            Quality = 1;
+            SuffixText = I18N.Instance.Get(data.SuffixTextKey);
+            Behaviour = behaviourRepository.Find(data.BehaviourId);
         }
 
-        public void ChangeQuality(float quality)
+        public List<Behaviour> GetBehaviourModifiers()
         {
-            Quality = quality;
+            var behaviours = new List<Behaviour>();
 
-            foreach (var itemModifier in ItemModifiers)
+            if (Behaviour != null)
             {
-                itemModifier.ChangeQuality(Quality);
+                behaviours.Add(Behaviour);
             }
+
+            foreach (var modifier in ItemModifiers)
+            {
+                behaviours.AddRange(modifier.GetBehaviourModifiers());
+            }
+
+            return behaviours;
         }
 
-        public void RollQuality()
-        {
-            ChangeQuality(IsSuffix ? RNG.Range(0.8f, 1.2f) : 1);
-        }
-
-        public List<AttributeModifier> GetAttributeModifiers(int level, float multiplier = 1)
+        public List<AttributeModifier> GetAttributeModifiers(int level, int forgeLevel, float multiplier = 1)
         {
             var modifiers = new List<AttributeModifier>();
 
@@ -62,7 +66,14 @@ namespace DarkBestiary.Items
                                  attributeModifierCurveData.Max,
                                  attributeModifierCurveData.CurveType) * multiplier;
 
-                amount *= Quality;
+                var forge = Curve.Evaluate(
+                    forgeLevel,
+                    attributeModifierCurveData.Min,
+                    attributeModifierCurveData.Max,
+                    attributeModifierCurveData.CurveType) * multiplier;
+
+                forge *= 0.75f;
+                amount += forge;
 
                 var attributeData = new AttributeModifierData
                 {
@@ -76,7 +87,7 @@ namespace DarkBestiary.Items
                 modifiers.Add(attributeModifier);
             }
 
-            modifiers.AddRange(ItemModifiers.SelectMany(m => m.GetAttributeModifiers(level, multiplier)));
+            modifiers.AddRange(ItemModifiers.SelectMany(m => m.GetAttributeModifiers(level, forgeLevel, multiplier)));
 
             return modifiers;
         }
@@ -95,19 +106,13 @@ namespace DarkBestiary.Items
                                  propertyModifierCurveData.Max,
                                  propertyModifierCurveData.CurveType) * (property.IsUnscalable ? 1 : multiplier);
 
-                amount *= Quality;
-
                 var forge = Curve.Evaluate(
                                 forgeLevel,
                                 propertyModifierCurveData.Min,
                                 propertyModifierCurveData.Max,
                                 propertyModifierCurveData.CurveType) * (property.IsUnscalable ? 1 : multiplier);
 
-                if (property.IsFractional())
-                {
-                    forge *= 0.25f;
-                }
-
+                forge *= property.IsFractional() ? 0.25f : 0.75f;
                 amount += forge;
 
                 var propertyData = new PropertyModifierData

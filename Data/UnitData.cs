@@ -6,6 +6,7 @@ namespace DarkBestiary.Data
     [Serializable]
     public class UnitData : Identity<int>
     {
+        public string Label;
         public string NameKey;
         public string DescriptionKey;
         public string Model;

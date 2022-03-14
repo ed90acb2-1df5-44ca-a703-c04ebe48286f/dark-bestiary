@@ -120,7 +120,11 @@ namespace DarkBestiary.Scenarios
         {
             IsCompleted = true;
 
-            Scene.OpenExitDoor();
+            if (!Scenario.IsActiveEpisodeLast)
+            {
+                Scene.MoveEntitiesAwayFromExitDoor();
+                Scene.OpenExitDoor();
+            }
 
             Completed?.Invoke(this);
             AnyEpisodeCompleted?.Invoke(this);

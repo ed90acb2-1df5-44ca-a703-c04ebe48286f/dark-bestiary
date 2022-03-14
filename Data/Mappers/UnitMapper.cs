@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using DarkBestiary.Components;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Items;
@@ -55,6 +56,7 @@ namespace DarkBestiary.Data.Mappers
 
             var components = new List<Component>
             {
+                entity.AddComponent<ThreatComponent>(),
                 entity.AddComponent<UnitComponent>().Construct(data),
                 entity.AddComponent<PropertiesComponent>().Construct(this.propertyRepository.FindAll()),
                 entity.AddComponent<AttributesComponent>().Construct(this.attributeRepository.FindAll()),
@@ -66,6 +68,7 @@ namespace DarkBestiary.Data.Mappers
                 entity.AddComponent<ResourcesComponent>(),
                 entity.AddComponent<BehavioursComponent>(),
                 entity.AddComponent<HealthComponent>(),
+                entity.AddComponent<AttackOfOpportunityComponent>(),
             };
 
             var archetypeData = this.archetypeDataRepository.Find(data.ArchetypeId);
@@ -87,10 +90,29 @@ namespace DarkBestiary.Data.Mappers
             GiveSkills(data, entity);
             GiveBehaviours(data, entity);
             GiveLoot(data, entity);
+            GiveEquipment(data, entity);
 
             entity.GetComponent<HealthComponent>().Restore();
 
             return entity;
+        }
+
+        private void GiveEquipment(UnitData data, GameObject entity)
+        {
+            if (data.Equipment.Count == 0)
+            {
+                return;
+            }
+
+            var equipment = entity.AddComponent<EquipmentComponent>();
+            equipment.Construct();
+            equipment.Initialize();
+
+            foreach (var item in data.Equipment.Select(this.itemRepository.Find))
+            {
+                item.ChangeOwner(entity);
+                equipment.Equip(item);
+            }
         }
 
         private void GiveLoot(UnitData data, GameObject entity)
@@ -137,7 +159,7 @@ namespace DarkBestiary.Data.Mappers
 
         private void GiveBehaviours(UnitData data, GameObject entity)
         {
-            // Note: Wait owner assignment
+            // Note: Wait for owner assignment
 
             Timer.Instance.WaitForFixedUpdate(() =>
             {
@@ -145,7 +167,7 @@ namespace DarkBestiary.Data.Mappers
 
                 foreach (var behaviour in this.behaviourRepository.Find(data.Behaviours))
                 {
-                    behavioursComponent.Apply(behaviour, entity);
+                    behavioursComponent.ApplyAllStacks(behaviour, entity);
                 }
             });
         }

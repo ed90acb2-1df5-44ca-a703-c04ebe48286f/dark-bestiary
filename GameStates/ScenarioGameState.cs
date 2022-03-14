@@ -14,7 +14,8 @@ namespace DarkBestiary.GameStates
 
         private NavigationViewController navigationViewController;
         private ScenarioViewController scenarioViewController;
-        private HudController hudController;
+        private ActionBarViewController actionBarViewController;
+        private TargetFrameViewController targetFrameViewController;
 
         public ScenarioGameState(Scenario scenario, Character character)
         {
@@ -28,14 +29,17 @@ namespace DarkBestiary.GameStates
 
             this.scenario.Initialize();
 
-            this.navigationViewController = Container.Instance.Instantiate<NavigationViewController>();
-            this.navigationViewController.Initialize();
+            this.navigationViewController = ViewControllerRegistry.Initialize<NavigationViewController>();
+            this.navigationViewController.View.Show();
 
-            this.scenarioViewController = Container.Instance.Instantiate<ScenarioViewController>(new[] {this.scenario});
-            this.scenarioViewController.Initialize();
+            this.scenarioViewController = ViewControllerRegistry.Initialize<ScenarioViewController>(new[] {this.scenario});
+            this.scenarioViewController.View.Show();
 
-            this.hudController = Container.Instance.Instantiate<HudController>();
-            this.hudController.Initialize();
+            this.actionBarViewController = ViewControllerRegistry.Initialize<ActionBarViewController>();
+            this.actionBarViewController.View.Show();
+
+            this.targetFrameViewController = ViewControllerRegistry.Initialize<TargetFrameViewController>();
+            this.targetFrameViewController.View.Hide();
 
             var health = this.character.Entity.GetComponent<HealthComponent>();
             health.Health = health.HealthMax;
@@ -52,7 +56,8 @@ namespace DarkBestiary.GameStates
 
             this.navigationViewController.Terminate();
             this.scenarioViewController.Terminate();
-            this.hudController.Terminate();
+            this.actionBarViewController.Terminate();
+            this.targetFrameViewController.Terminate();
 
             this.scenario.Terminate();
 
@@ -64,8 +69,8 @@ namespace DarkBestiary.GameStates
             actor.PlayAnimation("idle");
             actor.Model.FlipX(false);
 
+            this.character.Entity.GetComponent<EquipmentComponent>().ResetAltWeaponCooldown();
             this.character.Entity.GetComponent<SpellbookComponent>().ResetCooldowns();
-
             this.character.Entity.GetComponent<HealthComponent>().Revive();
 
             Timer.Instance.WaitForFixedUpdate(() => Board.Instance.gameObject.SetActive(false));

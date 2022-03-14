@@ -27,7 +27,7 @@ namespace DarkBestiary.Commands
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
 
             Done?.Invoke(this);

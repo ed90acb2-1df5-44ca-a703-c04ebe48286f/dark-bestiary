@@ -26,7 +26,7 @@ namespace DarkBestiary.Effects
         private ActorComponent actor;
         private BehavioursComponent behaviours;
 
-        public MoveEffect(MoveEffectData data, List<Validator> validators,
+        public MoveEffect(MoveEffectData data, List<ValidatorWithPurpose> validators,
             IPathfinder pathfinder, BoardNavigator boardNavigator) : base(data, validators)
         {
             this.data = data;
@@ -88,9 +88,9 @@ namespace DarkBestiary.Effects
             this.behaviours.BehaviourApplied += OnBehaviourApplied;
 
             this.mover = Mover.Factory(new MoverData(MoverType.Linear, GetSpeed(caster), 0, 0, false));
-            this.mover.Finished += OnMoverFinished;
+            this.mover.Stopped += OnMoverStopped;
 
-            OnMoverFinished();
+            OnMoverStopped();
         }
 
         private void OnDeath(EntityDiedEventData data)
@@ -124,18 +124,18 @@ namespace DarkBestiary.Effects
             this.mover.Stop();
         }
 
-        private void OnMoverFinished()
+        private void OnMoverStopped()
         {
             if (this.queue.Count > 0)
             {
                 var nextPosition = this.queue.Dequeue();
 
-                this.mover.Start(this.actor.gameObject, nextPosition);
+                this.mover.Move(this.actor.gameObject, nextPosition);
                 this.actor.Model.LookAt(nextPosition);
                 return;
             }
 
-            this.mover.Finished -= OnMoverFinished;
+            this.mover.Stopped -= OnMoverStopped;
 
             this.actor.GetComponent<HealthComponent>().Died -= OnDeath;
 

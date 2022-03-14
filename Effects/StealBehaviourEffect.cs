@@ -12,7 +12,7 @@ namespace DarkBestiary.Effects
     {
         private readonly EmptyEffectData data;
 
-        public StealBehaviourEffect(EmptyEffectData data, List<Validator> validators) : base(data, validators)
+        public StealBehaviourEffect(EmptyEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }
@@ -34,7 +34,7 @@ namespace DarkBestiary.Effects
             if (stealed != null)
             {
                 targetBehaviours.RemoveAllStacks(stealed.Id);
-                caster.GetComponent<BehavioursComponent>().Apply(stealed, caster);
+                caster.GetComponent<BehavioursComponent>().ApplyAllStacks(stealed, caster);
             }
 
             TriggerFinished();

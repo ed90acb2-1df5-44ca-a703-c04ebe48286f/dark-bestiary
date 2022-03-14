@@ -55,6 +55,26 @@ namespace DarkBestiary.Components
             return Properties[type];
         }
 
+        public float AveragePhysicalResistance()
+        {
+            return Properties.Where(
+                p => p.Key == PropertyType.PiercingResistance ||
+                     p.Key == PropertyType.CrushingResistance ||
+                     p.Key == PropertyType.PiercingResistance).Average(p => p.Value.Value());
+        }
+
+        public float AverageMagicalResistance()
+        {
+            return Properties.Where(
+                p => p.Key == PropertyType.ArcaneResistance ||
+                     p.Key == PropertyType.ColdResistance ||
+                     p.Key == PropertyType.FireResistance ||
+                     p.Key == PropertyType.HolyResistance ||
+                     p.Key == PropertyType.LightningResistance ||
+                     p.Key == PropertyType.PoisonResistance ||
+                     p.Key == PropertyType.ShadowResistance).Average(p => p.Value.Value());
+        }
+
         public Property Get(int id)
         {
             return Properties.Values.First(property => property.Id == id);

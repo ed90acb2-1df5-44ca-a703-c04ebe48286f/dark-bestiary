@@ -7,6 +7,7 @@ using DarkBestiary.Extensions;
 using DarkBestiary.GameStates;
 using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
+using DarkBestiary.Skills;
 using DarkBestiary.UI.Views;
 using UnityEngine;
 
@@ -61,8 +62,15 @@ namespace DarkBestiary.UI.Controllers
             View.BackgroundSelected += OnBackgroundSelected;
 
             var customization = CharacterCustomizationValues.Instance;
-            View.Construct(this.backgroundRepository.FindAll(), customization.HairColors, customization.SkinColors,
-                customization.Hairstyles.Count, customization.Beards.Count);
+
+            View.Construct(new CharacterCreationViewContext(
+                    this.backgroundRepository.FindAll(),
+                    customization.HairColors,
+                    customization.SkinColors,
+                    customization.Hairstyles.Count,
+                    customization.Beards.Count
+                )
+            );
         }
 
         protected override void OnTerminate()
@@ -121,6 +129,9 @@ namespace DarkBestiary.UI.Controllers
 
             var health = this.dummy.GetComponent<HealthComponent>();
             health.Health = health.HealthMax;
+
+            var commonSkillSlots = this.dummy.gameObject.GetComponent<SpellbookComponent>().Slots.Where(s => !s.IsEmpty && s.SkillType == SkillType.Common).ToList();
+            View.UpdateSkillSlots(commonSkillSlots);
         }
 
         private void OnCancel()
@@ -130,33 +141,74 @@ namespace DarkBestiary.UI.Controllers
 
         private void OnCreate(CharacterCreationEventData data)
         {
-            this.characterDataRepository.Save(new CharacterData
-            {
-                UnitId = 1,
-                Name = data.Name,
-                IsHardcore = data.IsHardcore,
-                IsRandomSkills = data.IsRandomSkills,
-                HairstyleIndex = this.hairstyleIndex,
-                BeardIndex = this.beardIndex,
-                SkinColorIndex = this.skinColorIndex,
-                HairColorIndex = this.hairColorIndex,
-                BeardColorIndex = this.beardColorIndex,
-                Attributes = new CharacterAttributeData {Points = 1}
-            });
-
             this.characterManager.Character?.Entity.Terminate();
 
-            this.characterManager.Select(
-                this.characterRepository.Find(
-                    this.characterDataRepository
-                        .FindAll()
-                        .OrderByDescending(element => element.Id).Select(element => element.Id)
-                        .First()));
+            InventoryComponent.IsAutoIngredientStashEnabled = true;
+            this.characterManager.Select(CreateCharacter(data));
 
             this.characterManager.Character.Entity.transform.position = new Vector3(-100, 0, 0);
             this.background.Apply(this.characterManager.Character.Entity);
 
-            Game.Instance.ToIntro();
+            ProceedToNextGameState();
+        }
+
+        private Character CreateCharacter(CharacterCreationEventData data)
+        {
+            return Game.Instance.IsVisions
+                ? CreateTemporaryCharacter(data)
+                : CreatePersistentCharacter(data);
+        }
+
+        private Character CreateTemporaryCharacter(CharacterCreationEventData data)
+        {
+            return this.characterMapper.ToEntity(new CharacterData
+                {
+                    UnitId = 1,
+                    Name = data.Name,
+                    HairstyleIndex = this.hairstyleIndex,
+                    BeardIndex = this.beardIndex,
+                    SkinColorIndex = this.skinColorIndex,
+                    HairColorIndex = this.hairColorIndex,
+                    BeardColorIndex = this.beardColorIndex,
+                    Attributes = new CharacterAttributeData {Points = 0}
+                }
+            );
+        }
+
+        private Character CreatePersistentCharacter(CharacterCreationEventData data)
+        {
+            this.characterDataRepository.Save(new CharacterData
+                {
+                    UnitId = 1,
+                    Name = data.Name,
+                    HairstyleIndex = this.hairstyleIndex,
+                    BeardIndex = this.beardIndex,
+                    SkinColorIndex = this.skinColorIndex,
+                    HairColorIndex = this.hairColorIndex,
+                    BeardColorIndex = this.beardColorIndex,
+                    Attributes = new CharacterAttributeData {Points = 0}
+                }
+            );
+
+            var characterId = this.characterDataRepository
+                .FindAll()
+                .OrderByDescending(element => element.Id)
+                .Select(element => element.Id)
+                .First();
+
+            return this.characterRepository.Find(characterId);
+        }
+
+        private static void ProceedToNextGameState()
+        {
+            if (Game.Instance.IsCampaign)
+            {
+                Game.Instance.ToIntro();
+            }
+            else
+            {
+                Game.Instance.ToVisionTalents();
+            }
         }
     }
 }

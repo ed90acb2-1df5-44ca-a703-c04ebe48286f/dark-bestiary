@@ -16,6 +16,7 @@ namespace DarkBestiary.Properties
         public int Index { get; }
         public bool IsUnscalable { get; }
         public I18NString Name { get; }
+        public I18NString Description { get; }
         public PropertyType Type { get; }
         public float Base { get; private set; }
         public List<PropertyModifier> Modifiers { get; private set; } = new List<PropertyModifier>();
@@ -32,6 +33,7 @@ namespace DarkBestiary.Properties
             Type = data.Type;
             IsUnscalable = data.IsUnscalable;
             Name = I18N.Instance.Get(data.NameKey);
+            Description = I18N.Instance.Get(data.DescriptionKey);
             this.data = data;
         }
 
@@ -75,7 +77,9 @@ namespace DarkBestiary.Properties
                 PropertyType.HealthRegeneration,
                 PropertyType.Thorns,
                 PropertyType.RangedWeaponExtraRange,
+                PropertyType.MagicExtraRange,
                 PropertyType.MaximumActionPoints,
+                PropertyType.CooldownReduction,
                 PropertyType.Alchemy
             }.Contains(type);
         }

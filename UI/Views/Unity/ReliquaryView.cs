@@ -37,12 +37,9 @@ namespace DarkBestiary.UI.Views.Unity
             }
 
             RecreateRelics(relics);
-        }
 
-        protected override void OnInitialize()
-        {
-            this.closeButton.PointerUp += Hide;
-            this.sortButton.PointerUp += OnSortButtonPointerUp;
+            this.closeButton.PointerClick += Hide;
+            this.sortButton.PointerClick += OnSortButtonPointerClick;
             this.searchInput.onValueChanged.AddListener(OnSearchInputChanged);
 
             foreach (var slotView in this.slotViews)
@@ -56,8 +53,8 @@ namespace DarkBestiary.UI.Views.Unity
         {
             this.relicViewPool.Clear();
 
-            this.closeButton.PointerUp -= Hide;
-            this.sortButton.PointerUp -= OnSortButtonPointerUp;
+            this.closeButton.PointerClick -= Hide;
+            this.sortButton.PointerClick -= OnSortButtonPointerClick;
             this.searchInput.onValueChanged.RemoveListener(OnSearchInputChanged);
 
             foreach (var slotView in this.slotViews)
@@ -102,14 +99,14 @@ namespace DarkBestiary.UI.Views.Unity
             relicView.Initialize(relic);
         }
 
-        private void OnSortButtonPointerUp()
+        private void OnSortButtonPointerClick()
         {
             RecreateRelics(this.relics.OrderBy(r => r.Experience.Level).ThenBy(r => r.Rarity.Type));
         }
 
         private void OnSearchInputChanged(string search)
         {
-            foreach (var relicView in this.relicViewPool.Items)
+            foreach (var relicView in this.relicViewPool.ActiveItems)
             {
                 relicView.gameObject.SetActive(relicView.Relic.Name.LikeIgnoreCase($"%{search}%"));
             }

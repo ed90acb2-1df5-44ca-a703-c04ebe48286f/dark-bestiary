@@ -117,8 +117,32 @@ namespace DarkBestiary.Components
             ModelChanged?.Invoke(this);
         }
 
-        public void CreateAttachments(object source, List<AttachmentInfo> attachments,
-            AttachmentPoint point = AttachmentPoint.None)
+        public void CreateEquipmentAttachments(EquipmentSlot slot, List<AttachmentInfo> attachments, AttachmentPoint point = AttachmentPoint.None)
+        {
+            if (slot.Type == EquipmentSlotType.Head && IsHelmVisible)
+            {
+                Model.HideHair();
+            }
+
+            CreateAttachments(slot, attachments, point);
+            CreateSharpeningAttachments(slot);
+        }
+
+        private void CreateSharpeningAttachments(EquipmentSlot slot)
+        {
+            if (slot.IsEmpty || !slot.Item.IsWeapon)
+            {
+                return;
+            }
+
+            var attachmentPoint = slot.Type == EquipmentSlotType.MainHand ? AttachmentPoint.RightHand : AttachmentPoint.LeftHand;
+            var sharpening = Instantiate(CharacterCustomizationValues.Instance.GetWeaponSharpeningParticles(slot.Item), Model.GetAttachmentPoint(attachmentPoint));
+            sharpening.Construct(slot.Item);
+
+            this.attachments[slot].Add(new Tuple<AttachmentPoint, GameObject>(attachmentPoint, sharpening.gameObject));
+        }
+
+        public void CreateAttachments(object source, List<AttachmentInfo> attachments, AttachmentPoint point = AttachmentPoint.None)
         {
             if (!this.attachments.ContainsKey(source))
             {
@@ -199,8 +223,6 @@ namespace DarkBestiary.Components
 
             this.lastPlayedAnimation = animation;
             Model.PlayAnimation(animation);
-
-            // Debug.Log($"Playing animation \"{animation}\" on {name}'s actor.");
         }
 
         public void Show()
@@ -239,7 +261,7 @@ namespace DarkBestiary.Components
         {
             var movement = GetComponent<MovementComponent>();
 
-            if (movement != null && movement.IsMoving)
+            if (movement != null && movement.IsMoving || data.Damage.IsSpiritLink())
             {
                 return;
             }
@@ -274,7 +296,7 @@ namespace DarkBestiary.Components
                 !data.Victim.IsSummoned() &&
                 !data.Victim.IsCorpseless())
             {
-                var vfx = GetDeathVisualEffect(data.Damage);
+                var vfx = GetDeathVisualEffect(data.Victim, data.Damage);
 
                 if (vfx != null)
                 {
@@ -285,14 +307,37 @@ namespace DarkBestiary.Components
             }
 
             PlayAnimation("death");
+
+            if (!gameObject.activeSelf)
+            {
+                return;
+            }
+
             StartCoroutine(Timer.Coroutine(new WaitForSeconds(4), () => Model.FadeOut(1)));
             StartCoroutine(Timer.Coroutine(new WaitForSeconds(6), () => gameObject.SetActive(false)));
         }
 
-        private static GameObject GetDeathVisualEffect(Damage damage)
+        private static GameObject GetDeathVisualEffect(GameObject target, Damage damage)
         {
+            var unit = target.GetComponent<UnitComponent>();
+
+            if (unit.IsStone)
+            {
+                return null;
+            }
+
             if (damage.IsPhysicalType() || damage.Type == DamageType.Chaos)
             {
+                if (unit.IsWooden)
+                {
+                    return Resources.Load<GameObject>("Prefabs/VFX/Death/Death_Wooden");
+                }
+
+                if (unit.IsPlant)
+                {
+                    return Resources.Load<GameObject>("Prefabs/VFX/Death/Death_Plant");
+                }
+
                 return Resources.Load<GameObject>("Prefabs/VFX/Death/Death_Blood");
             }
 

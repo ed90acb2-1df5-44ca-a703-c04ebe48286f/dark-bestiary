@@ -66,7 +66,7 @@ namespace DarkBestiary.Masteries
 
         private void OnAnyEntityDamaged(EntityDamagedEventData data)
         {
-            if (data.Attacker != Owner || !data.Damage.IsWeapon())
+            if (data.Attacker != Owner)
             {
                 return;
             }

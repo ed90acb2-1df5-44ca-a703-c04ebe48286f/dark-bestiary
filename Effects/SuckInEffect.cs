@@ -13,17 +13,15 @@ namespace DarkBestiary.Effects
     public class SuckInEffect : Effect
     {
         private readonly SuckInEffectData data;
-        private readonly List<Validator> validators;
 
-        public SuckInEffect(SuckInEffectData data, List<Validator> validators) : base(data, new List<Validator>())
+        public SuckInEffect(SuckInEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
-            this.validators = validators;
         }
 
         protected override Effect New()
         {
-            return new SuckInEffect(this.data, this.validators);
+            return new SuckInEffect(this.data, this.Validators);
         }
 
         protected override void Apply(GameObject caster, GameObject target)
@@ -39,8 +37,13 @@ namespace DarkBestiary.Effects
                 .ToList();
 
             var entities = cells.ToEntities()
-                .Where(entity => this.validators.All(validator => validator.Validate(caster, entity)))
-                .Where(entity => !entity.IsImmovable())
+                .Where(entity => this.Validators.ByPurpose(ValidatorPurpose.Other).Validate(caster, entity))
+                .Where(entity =>
+                    {
+                        var unit = entity.GetComponent<UnitComponent>();
+                        return !unit.IsImmovable && !unit.IsMovingViaScript;
+                    }
+                )
                 .ToList();
 
             if (entities.Count == 0)
@@ -79,6 +82,9 @@ namespace DarkBestiary.Effects
         private IEnumerator Move(GameObject entity, BoardCell destination, float duration)
         {
             var actor = entity.GetComponent<ActorComponent>();
+            var unit = entity.GetComponent<UnitComponent>();
+
+            unit.Flags |= UnitFlags.MovingViaScript;
 
             if (!string.IsNullOrEmpty(this.data.Animation))
             {
@@ -103,6 +109,11 @@ namespace DarkBestiary.Effects
                 yield return null;
             }
 
+            unit.Flags &= ~UnitFlags.MovingViaScript;
+
+            entity.transform.position = destination.transform.position;
+
+            destination.OnEnter(entity);
             destination.IsReserved = false;
 
             if (!string.IsNullOrEmpty(this.data.Animation))

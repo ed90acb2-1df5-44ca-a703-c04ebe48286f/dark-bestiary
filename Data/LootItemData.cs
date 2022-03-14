@@ -17,5 +17,6 @@ namespace DarkBestiary.Data
         public bool Enabled;
         public bool Unique;
         public bool Guaranteed;
+        public bool IgnoreLevel;
     }
 }

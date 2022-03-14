@@ -7,6 +7,7 @@ namespace DarkBestiary.Items
     public class ItemCategory
     {
         public static readonly ItemCategory All;
+        public static readonly ItemCategory Runes;
         public static readonly ItemCategory Gems;
         public static readonly ItemCategory Weapon;
         public static readonly ItemCategory MeleeWeapon;
@@ -32,6 +33,7 @@ namespace DarkBestiary.Items
 
             All = new ItemCategory(-1, I18N.Instance.Get("ui_all"), ItemCategoryType.All, new List<ItemType>());
             Gems = categoryRepository.FindByType(ItemCategoryType.Gems);
+            Runes = categoryRepository.FindByType(ItemCategoryType.Runes);
             Weapon = categoryRepository.FindByType(ItemCategoryType.Weapon);
             MeleeWeapon = categoryRepository.FindByType(ItemCategoryType.MeleeWeapon);
             RangedWeapon = categoryRepository.FindByType(ItemCategoryType.RangedWeapon);

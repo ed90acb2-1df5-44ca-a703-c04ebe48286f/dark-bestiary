@@ -7,6 +7,7 @@ namespace DarkBestiary.Data
     [Serializable]
     public class SkillData : Identity<int>
     {
+        public bool IsEnabled;
         public string NameKey;
         public string LoreKey;
         public string DescriptionKey;

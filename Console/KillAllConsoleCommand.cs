@@ -1,4 +1,6 @@
+using System.Linq;
 using DarkBestiary.Components;
+using DarkBestiary.Extensions;
 using DarkBestiary.Managers;
 using DarkBestiary.Scenarios.Scenes;
 using DarkBestiary.Values;
@@ -19,7 +21,7 @@ namespace DarkBestiary.Console
 
         public string Execute(string input)
         {
-            foreach (var entity in Scene.Active.Entities.AliveInTeam(2))
+            foreach (var entity in Scene.Active.Entities.All().Where(x => x.IsEnemyOfPlayer()))
             {
                 entity.GetComponent<HealthComponent>().Kill(CharacterManager.Instance.Character.Entity, new Damage());
             }

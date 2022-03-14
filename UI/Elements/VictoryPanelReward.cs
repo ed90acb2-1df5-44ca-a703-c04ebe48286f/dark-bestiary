@@ -19,7 +19,7 @@ namespace DarkBestiary.UI.Elements
         public Item Item { get; private set; }
         public bool IsChoosable { get; private set; }
 
-        public void Initialize(Item item, bool isChoosable)
+        public void Construct(Item item, bool isChoosable)
         {
             Item = item;
             IsChoosable = isChoosable;

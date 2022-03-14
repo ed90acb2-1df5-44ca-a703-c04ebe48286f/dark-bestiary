@@ -2,6 +2,7 @@
 using System.Linq;
 using DarkBestiary.Items;
 using DarkBestiary.Managers;
+using DarkBestiary.Testers;
 using UnityEditor;
 using UnityEngine;
 
@@ -45,7 +46,7 @@ namespace DarkBestiary.Editor
                 GUILayout.Label("...");
             }
 
-            foreach (var byRarity in this.items.OrderBy(item => item.Rarity.Type).GroupBy(item => item.Rarity.Id))
+            foreach (var byRarity in this.items.OrderBy(item => item.Rarity.Type).ThenBy(item => item.Name).GroupBy(item => item.Rarity.Id))
             {
                 GUILayout.Space(10);
 

@@ -21,6 +21,7 @@ namespace DarkBestiary.Managers
             try
             {
                 this.music = RuntimeManager.CreateInstance(path);
+                this.music.setParameterByName("Loop", SettingsManager.Instance.LoopMusic ? 1 : 0);
                 this.music.start();
                 this.path = path;
             }

@@ -12,7 +12,6 @@ namespace DarkBestiary.UI.Controllers
     {
         private readonly IItemRepository itemRepository;
         private readonly List<Item> toDismantle = new List<Item>();
-        private readonly Character character;
         private readonly InventoryComponent inventory;
         private readonly EquipmentComponent equipment;
 
@@ -20,7 +19,6 @@ namespace DarkBestiary.UI.Controllers
             CharacterManager characterManager) : base(view)
         {
             this.itemRepository = itemRepository;
-            this.character = characterManager.Character;
             this.inventory = characterManager.Character.Entity.GetComponent<InventoryComponent>();
             this.equipment = characterManager.Character.Entity.GetComponent<EquipmentComponent>();
         }
@@ -32,7 +30,8 @@ namespace DarkBestiary.UI.Controllers
             View.DismantleButtonClicked += OnDismantleButtonClicked;
             View.ClearButtonClicked += OnClearButtonClicked;
             View.OkayButtonClicked += OnOkayButtonClicked;
-            View.Construct(this.character);
+            View.PlaceItems += OnPlaceItems;
+            View.Construct(ViewControllerRegistry.Get<EquipmentViewController>().View.GetInventoryPanel());
         }
 
         protected override void OnTerminate()
@@ -42,6 +41,24 @@ namespace DarkBestiary.UI.Controllers
             View.DismantleButtonClicked -= OnDismantleButtonClicked;
             View.ClearButtonClicked -= OnClearButtonClicked;
             View.OkayButtonClicked -= OnOkayButtonClicked;
+            View.PlaceItems -= OnPlaceItems;
+        }
+
+        private void OnPlaceItems(RarityType rarity)
+        {
+            this.toDismantle.Clear();
+
+            foreach (var item in this.inventory.Items.Where(i => i.Rarity?.Type == rarity))
+            {
+                if (!item.IsDismantable)
+                {
+                    continue;
+                }
+
+                this.toDismantle.Add(item);
+            }
+
+            View.DisplayDismantlingItems(this.toDismantle);
         }
 
         private void OnItemPlacing(Item item)
@@ -73,7 +90,7 @@ namespace DarkBestiary.UI.Controllers
                 return;
             }
 
-            var dismantled = this.toDismantle.SelectMany(CraftUtils.GetDismantleIngredients).ToList();
+            var dismantled = this.toDismantle.SelectMany(CraftUtils.RollDismantleIngredients).ToList();
 
             this.inventory.Remove(this.toDismantle);
             this.inventory.Pickup(dismantled.Select(item => item.Clone()));

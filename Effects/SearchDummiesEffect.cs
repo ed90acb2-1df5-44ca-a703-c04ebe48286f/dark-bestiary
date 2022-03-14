@@ -12,20 +12,18 @@ namespace DarkBestiary.Effects
     public class SearchDummiesEffect : Effect
     {
         private readonly SearchDummiesEffectData data;
-        private readonly List<Validator> validators;
         private readonly IEffectRepository effectRepository;
 
-        public SearchDummiesEffect(SearchDummiesEffectData data, List<Validator> validators,
-            IEffectRepository effectRepository) : base(data, new List<Validator>())
+        public SearchDummiesEffect(SearchDummiesEffectData data, List<ValidatorWithPurpose> validators,
+            IEffectRepository effectRepository) : base(data, validators)
         {
             this.data = data;
-            this.validators = validators;
             this.effectRepository = effectRepository;
         }
 
         protected override Effect New()
         {
-            return new SearchDummiesEffect(this.data, this.validators, this.effectRepository);
+            return new SearchDummiesEffect(this.data, this.Validators, this.effectRepository);
         }
 
         protected override void Apply(GameObject caster, GameObject target)
@@ -38,7 +36,8 @@ namespace DarkBestiary.Effects
             var entities = BoardNavigator.Instance
                 .WithinCircle(target, this.data.Range)
                 .SelectMany(cell => cell.GameObjectsInside)
-                .Where(entity => entity.IsDummy() && entity.IsAlive() && this.validators.All(v => v.Validate(caster, entity)))
+                .Where(entity => entity.IsDummy() && entity.IsAlive() &&
+                                 this.Validators.ByPurpose(ValidatorPurpose.Other).Validate(caster, entity))
                 .OrderBy(entity => (entity.transform.position - caster.transform.position).sqrMagnitude)
                 .ToList();
 

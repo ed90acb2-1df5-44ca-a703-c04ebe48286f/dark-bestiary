@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using DarkBestiary.Attributes;
+using DarkBestiary.Behaviours;
 using DarkBestiary.Components;
 using DarkBestiary.Currencies;
 using DarkBestiary.Data;
@@ -30,6 +31,7 @@ namespace DarkBestiary.Items
         }
 
         public const int MaxForgeLevel = 5;
+        public const int MaxSharpeningLevel = 15;
         public const int EmptyItemId = -1;
 
         public static event Payload<Item> AnyItemStatsUpdated;
@@ -37,10 +39,14 @@ namespace DarkBestiary.Items
 
         public event Payload StackCountChanged;
         public event Payload<Item> Forged;
+        public event Payload<Item> SharpeningSuccess;
+        public event Payload<Item> SharpeningFailed;
+        public event Payload<Item> SharpeningLevelChanged;
         public event Payload<Item> CooldownStarted;
         public event Payload<Item> CooldownUpdated;
         public event Payload<Item> CooldownFinished;
         public event Payload<Item, Item> SocketInserted;
+        public event Payload<Item, Item> Enchanted;
 
         public int Id { get; }
         public ItemData Data { get; }
@@ -67,23 +73,65 @@ namespace DarkBestiary.Items
 
         public Rarity Rarity => this.rarity;
         public ItemType Type { get; private set; }
-        public List<Item> Sockets { get; private set; } = new List<Item>();
+        public List<Item> Sockets { get; set; } = new List<Item>();
+        public List<Behaviour> Affixes { get; set; } = new List<Behaviour>();
+        public List<Behaviour> Behaviours { get; set; } = new List<Behaviour>();
+        public List<Item> Runes { get; set; } = new List<Item>();
 
+        public Behaviour EnchantmentBehaviour { get; set; }
+        public ItemCategory EnchantmentItemCategory { get; set; }
         public EquipmentSlot EquipmentSlot { get; set; }
         public EquipmentComponent Equipment { get; set; }
         public InventoryComponent Inventory { get; set; }
         public int ForgeLevel { get; set; }
+        public int SharpeningLevel { get; set; }
         public ItemModifier Suffix { get; set; }
         public List<AttachmentInfo> Attachments { get; set; }
         public ItemSet Set { get; set; }
-        public Skill WeaponSkillA { get; set; }
-        public Skill WeaponSkillB { get; set; }
+
+        public Skill WeaponSkillA
+        {
+            get => this.weaponSkillA;
+            set
+            {
+                this.weaponSkillA = value;
+
+                if (this.weaponSkillA == null)
+                {
+                    return;
+                }
+
+                this.weaponSkillA.Weapon = this;
+            }
+        }
+
+        private Skill weaponSkillA;
+
+        public Skill WeaponSkillB
+        {
+            get => this.weaponSkillB;
+            set
+            {
+                this.weaponSkillB = value;
+
+                if (this.weaponSkillB == null)
+                {
+                    return;
+                }
+
+                this.weaponSkillB.Weapon = this;
+            }
+        }
+
+        private Skill weaponSkillB;
+
+        public Skill LearnSkill { get; set; }
         public Skill UnlockSkill { get; set; }
         public Recipe BlueprintRecipe { get; set; }
         public Skin Skin { get; set; }
         public Effect ConsumeEffect { get; set; }
-        public List<Behaviour> Behaviours { get; set; } = new List<Behaviour>();
         public float PriceMultiplier { get; set; } = 1;
+        public bool IsFixedPrice { get; set; }
 
         public int Level => BaseLevel + ForgeLevel;
         public int BaseLevel => this.level;
@@ -92,16 +140,27 @@ namespace DarkBestiary.Items
         public string ColoredName => Rarity == null ? Name : $"<color={Rarity.ColorCode}>{Name}</color>";
         public string ColoredBaseName => Rarity == null ? BaseName : $"<color={Rarity.ColorCode}>{BaseName}</color>";
 
+        public bool IsMarkedAsIllusory { get; set; }
         public bool IsBuyout { get; set; }
-        public bool IsPreviouslyOwned { get; set; }
         public bool IsMaximumSocketCount => Sockets.Count >= Type.MaxSocketCount;
         public bool IsGambleable => Flags.HasFlag(ItemFlags.Gambleable);
         public bool IsStackable => Flags.HasFlag(ItemFlags.Stackable);
         public bool IsDismantable => Flags.HasFlag(ItemFlags.Dismantable);
         public bool IsUniqueEquipped => Flags.HasFlag(ItemFlags.UniqueEquipped);
+        public bool IsCampaignOnly => Flags.HasFlag(ItemFlags.CampaignOnly);
+        public bool IsVisionsOnly => Flags.HasFlag(ItemFlags.VisionsOnly);
+        public bool IsIllusory => Flags.HasFlag(ItemFlags.Illusory);
+        public bool IsSharpening => Flags.HasFlag(ItemFlags.Sharpening);
 
+        public bool IsRune => Type?.Type == ItemTypeType.Rune;
+        public bool IsMinorRune => Type?.Type == ItemTypeType.MinorRune;
+        public bool IsMajorRune => Type?.Type == ItemTypeType.MajorRune;
+        public bool IsAnyRune => Type?.Type == ItemTypeType.Rune || Type?.Type == ItemTypeType.MajorRune || Type?.Type == ItemTypeType.MinorRune;
+
+        public bool IsEnchantment => Type?.Type == ItemTypeType.Enchantment;
         public bool IsConsumable => Type?.Type == ItemTypeType.Consumable;
         public bool IsRelic => Type?.Type == ItemTypeType.Relic;
+        public bool IsSkillBook => Type?.Type == ItemTypeType.SkillBook;
         public bool IsIngredient => Type?.Type == ItemTypeType.Ingredient;
         public bool IsBlueprint => Type?.Type == ItemTypeType.Blueprint;
         public bool IsStaff => Type?.Type == ItemTypeType.MagicStaff;
@@ -113,7 +172,10 @@ namespace DarkBestiary.Items
         public bool IsShield => Type?.Type == ItemTypeType.Shield;
         public bool IsBook => Type?.Type == ItemTypeType.Book;
         public bool IsPage => Type?.Type == ItemTypeType.Page;
+        public bool IsPotion => Type?.Type == ItemTypeType.Potion;
+        public bool IsJunk => Type?.Type == ItemTypeType.Junk;
 
+        public bool IsEquipment => IsArmor || IsWeapon || IsJewelry;
         public bool IsGem => ItemCategory.Gems.Contains(Type);
         public bool IsMeleeWeapon => ItemCategory.MeleeWeapon.Contains(Type);
         public bool IsRangedWeapon => ItemCategory.RangedWeapon.Contains(Type);
@@ -132,8 +194,8 @@ namespace DarkBestiary.Items
         public bool IsCrushingMeleeWeapon => ItemCategory.CrushingMeleeWeapon.Contains(Type);
         public bool IsPiercingMeleeWeapon => ItemCategory.PiercingMeleeWeapon.Contains(Type);
         public bool IsEmpty => Id == EmptyItemId;
+        public bool IsEnchantable => IsSocketable;
         public bool IsSocketable => Type?.MaxSocketCount > 0;
-        public bool IsIdentified => !Flags.HasFlag(ItemFlags.HasRandomSuffix) || Suffix != null;
         public bool HasEmptySockets => Sockets.Any(s => s.IsEmpty);
 
         private List<ItemModifier> fixedItemModifiers = new List<ItemModifier>();
@@ -156,7 +218,7 @@ namespace DarkBestiary.Items
             PassiveDescription = I18N.Instance.Get(data.PassiveDescriptionKey);
             Icon = data.Icon;
             SlotType = data.Slot;
-            StackCountMax = data.StackSize;
+            StackCountMax = Mathf.Max(1, data.StackSize);
             Flags = data.Flags;
             CurrencyType = data.CurrencyType;
             ConsumeSound = data.ConsumeSound;
@@ -183,11 +245,22 @@ namespace DarkBestiary.Items
         {
             Data = data;
             Id = id;
+            Icon = data.Icon;
             BaseName = name;
             Inventory = inventory;
         }
 
-        public static bool MatchDropByMonsterLevel(int itemLevel, int monsterLevel)
+        public static bool MatchDropByMonsterLevel(ItemData item, int monsterLevel)
+        {
+            return MatchDropByMonsterLevel(item.Level, monsterLevel);
+        }
+
+        public static bool MatchDropByMonsterLevel(Item item, int monsterLevel)
+        {
+            return MatchDropByMonsterLevel(item.Level, monsterLevel);
+        }
+
+        private static bool MatchDropByMonsterLevel(int itemLevel, int monsterLevel)
         {
             if (monsterLevel > 15)
             {
@@ -217,6 +290,7 @@ namespace DarkBestiary.Items
                 StackCountMax = StackCountMax,
                 Flags = Flags,
                 Sockets = Sockets.ToList(),
+                Runes = Runes.ToList(),
                 RequiredLevel = RequiredLevel,
                 Attachments = Attachments,
                 Behaviours = Behaviours,
@@ -227,13 +301,19 @@ namespace DarkBestiary.Items
                 Suffix = Suffix,
                 ForgeLevel = ForgeLevel,
                 ConsumeEffect = ConsumeEffect,
-                IsBuyout = IsBuyout,
-                IsPreviouslyOwned = IsPreviouslyOwned,
                 BaseAttributeModifiers = BaseAttributeModifiers,
                 BasePropertyModifiers = BasePropertyModifiers,
                 BlueprintRecipe = BlueprintRecipe,
                 Equipment = Equipment,
                 PriceMultiplier = PriceMultiplier,
+                IsBuyout = IsBuyout,
+                IsFixedPrice = IsFixedPrice,
+                IsMarkedAsIllusory = IsMarkedAsIllusory,
+                EnchantmentBehaviour = EnchantmentBehaviour,
+                EnchantmentItemCategory = EnchantmentItemCategory,
+                CooldownRemaining = CooldownRemaining,
+                Affixes = Affixes,
+                SharpeningLevel = SharpeningLevel,
 
                 WeaponSkillA = WeaponSkillA != null
                     ? Container.Instance.Resolve<ISkillRepository>().Find(WeaponSkillA.Id) : null,
@@ -243,6 +323,9 @@ namespace DarkBestiary.Items
 
                 UnlockSkill = UnlockSkill != null
                     ? Container.Instance.Resolve<ISkillRepository>().Find(UnlockSkill.Id) : null,
+
+                LearnSkill = LearnSkill != null
+                    ? Container.Instance.Resolve<ISkillRepository>().Find(LearnSkill.Id) : null,
 
                 price = this.price,
                 level = this.level,
@@ -254,6 +337,31 @@ namespace DarkBestiary.Items
             clone.ChangeOwner(this.owner);
 
             return clone;
+        }
+
+        public static ItemTypeType DetermineRuneTypeByIndex(int index, Item item)
+        {
+            if (item.IsChestArmor || item.IsTwoHandedWeapon)
+            {
+                if (index >= 4)
+                {
+                    return ItemTypeType.MajorRune;
+                }
+
+                return index >= 2 ? ItemTypeType.Rune : ItemTypeType.MinorRune;
+            }
+
+            if (item.IsOneHandedWeapon || item.SlotType == EquipmentSlotType.OffHand)
+            {
+                if (index >= 2)
+                {
+                    return ItemTypeType.MajorRune;
+                }
+
+                return index >= 1 ? ItemTypeType.Rune : ItemTypeType.MinorRune;
+            }
+
+            return index == 2 ? ItemTypeType.Rune : ItemTypeType.MinorRune;
         }
 
         private string GetName()
@@ -271,15 +379,31 @@ namespace DarkBestiary.Items
             }
             else
             {
-                name += BaseName + " " + Suffix.Text;
+                name += BaseName + " " + Suffix.SuffixText;
             }
 
-            if (ForgeLevel > 0)
+            if (SharpeningLevel > 0)
             {
-                name += $" (+{ForgeLevel})";
+                name += $" +{SharpeningLevel}";
             }
 
             return name;
+        }
+
+        public int GetPriceAmount(CurrencyType type)
+        {
+            var currency = this.price.FirstOrDefault(c => c.Type == type);
+            return (int) (currency?.Amount ?? 0 * GetPriceMultiplier());
+        }
+
+        private float GetPriceMultiplier()
+        {
+            return IsFixedPrice ? 1 : PriceMultiplier;
+        }
+
+        public void ChangePrice(List<Currency> price)
+        {
+            this.price = price;
         }
 
         public List<Currency> GetPrice()
@@ -288,7 +412,7 @@ namespace DarkBestiary.Items
 
             foreach (var currency in this.price)
             {
-                result.Add(currency.Clone().Set((int) (currency.Amount * PriceMultiplier)));
+                result.Add(currency.Clone().Set((int) (currency.Amount * GetPriceMultiplier())));
             }
 
             return result;
@@ -315,6 +439,7 @@ namespace DarkBestiary.Items
 
             CooldownRemaining = Cooldown;
             CooldownStarted?.Invoke(this);
+            AnyItemCooldownStarted?.Invoke(this);
         }
 
         public void FinishCooldown()
@@ -352,6 +477,11 @@ namespace DarkBestiary.Items
         {
             this.owner = entity;
 
+            foreach (var socket in Sockets)
+            {
+                socket.ChangeOwner(this.owner);
+            }
+
             if (WeaponSkillA != null)
             {
                 WeaponSkillA.Caster = this.owner;
@@ -367,29 +497,91 @@ namespace DarkBestiary.Items
                 UnlockSkill.Caster = this.owner;
             }
 
+            if (LearnSkill != null)
+            {
+                LearnSkill.Caster = this.owner;
+            }
+
             BlueprintRecipe?.Item.ChangeOwner(this.owner);
+        }
+
+        public void ChangeRarity(Rarity rarity)
+        {
+            this.rarity = rarity;
+            AnyItemStatsUpdated?.Invoke(this);
         }
 
         public void ChangeSuffix(ItemModifier suffix)
         {
             Suffix = suffix;
+            AnyItemStatsUpdated?.Invoke(this);
+        }
 
-            if (Level >= 2)
+        public void RollAffixes()
+        {
+            int RollAffixCount()
             {
-                Suffix.RollQuality();
+                var table = new RandomizerTable();
+
+                for (var i = 0; i < 5; i++)
+                {
+                    table.Add(new RandomizerIntValue(i + 1, 100 - 5 * i));
+                }
+
+                return Math.Max(2, (table.Evaluate().FirstOrDefault() as RandomizerIntValue)?.Value ?? 0);
             }
+
+            float RarityIdToProbability(int rarity)
+            {
+                switch (rarity)
+                {
+                    case Constants.ItemRarityIdMagic:
+                        return 100;
+                    case Constants.ItemRarityIdRare:
+                        return 90;
+                    case Constants.ItemRarityIdUnique:
+                        return 80;
+                    case Constants.ItemRarityIdLegendary:
+                        return 30;
+                    default:
+                        return 0;
+                }
+            }
+
+            List<Behaviour> RollRandomAffixes(int count)
+            {
+                var table = new RandomizerTable(count);
+                table.Add(new RandomizerIntValue(Constants.ItemRarityIdMagic, RarityIdToProbability(Constants.ItemRarityIdMagic), true, false, true));
+                table.Add(new RandomizerIntValue(Constants.ItemRarityIdRare, RarityIdToProbability(Constants.ItemRarityIdRare), true, false, true));
+                table.Add(new RandomizerIntValue(Constants.ItemRarityIdUnique, RarityIdToProbability(Constants.ItemRarityIdUnique), true, false, true));
+                table.Add(new RandomizerIntValue(Constants.ItemRarityIdLegendary, RarityIdToProbability(Constants.ItemRarityIdLegendary), true, false, true));
+
+                var itemCategoryRepository = Container.Instance.Resolve<IItemCategoryRepository>();
+
+                var affixes = Container.Instance.Resolve<IBehaviourRepository>()
+                    .Find(b => b.Flags.HasFlag(BehaviourFlags.ItemAffix) && (b.ItemCategories.Count == 0 || itemCategoryRepository.Find(b.ItemCategories).All(c => !c.Contains(Type.Id))));
+
+                var result = new List<Behaviour>();
+
+                foreach (var value in table.Evaluate())
+                {
+                    if (value is RandomizerIntValue integer)
+                    {
+                        result.Add(affixes.Where(b => b.Rarity.Id == integer.Value).Random());
+                    }
+                }
+
+                return result;
+            }
+
+            Affixes = RollRandomAffixes(RollAffixCount()).OrderBy(a => a.Rarity.Type).ToList();
 
             AnyItemStatsUpdated?.Invoke(this);
         }
 
         public void RollSuffix()
         {
-            if (IsIdentified)
-            {
-                return;
-            }
-
-            var suffix = Container.Instance.Resolve<IItemModifierRepository>().RandomSuffix();
+            var suffix = Container.Instance.Resolve<IItemModifierRepository>().RandomSuffixForItem(this);
 
             if (suffix == null)
             {
@@ -398,26 +590,19 @@ namespace DarkBestiary.Items
 
             Suffix = suffix;
 
-            if (Level >= 2)
-            {
-                Suffix.RollQuality();
-            }
-
             AnyItemStatsUpdated?.Invoke(this);
+        }
+
+        public void MakeMaxSockets()
+        {
+            for (var i = 0; i < Type.MaxSocketCount; i++)
+            {
+                AddSocket();
+            }
         }
 
         public void RollSockets()
         {
-            if (Type == null || Type.MaxSocketCount == 0)
-            {
-                return;
-            }
-
-            if (IsPreviouslyOwned || !Flags.HasFlag(ItemFlags.HasRandomSocketCount))
-            {
-                return;
-            }
-
             var table = new RandomizerTable();
             var total = Type.MaxSocketCount * 100f;
 
@@ -444,22 +629,40 @@ namespace DarkBestiary.Items
         public List<AttributeModifier> GetAttributeModifiers(bool includeFixed = true)
         {
             var modifiers = new List<AttributeModifier>()
-                .Concat(Suffix?.GetAttributeModifiers(Level, CraftUtils.GetQualityMultiplier(this)) ?? new List<AttributeModifier>())
-                .Concat(this.itemModifiers.SelectMany(m => m.GetAttributeModifiers(Level, CraftUtils.GetQualityMultiplier(this))))
+                .Concat(Suffix?.GetAttributeModifiers(BaseLevel, ForgeLevel, CraftUtils.GetRarityMultiplier(this)) ?? new List<AttributeModifier>())
+                .Concat(this.itemModifiers.SelectMany(m => m.GetAttributeModifiers(BaseLevel, ForgeLevel, CraftUtils.GetRarityMultiplier(this))))
                 .ToList();
 
             if (includeFixed)
             {
-                modifiers = modifiers.Concat(GetFixedAttributeModifiers()).ToList();
+                modifiers = modifiers
+                    .Concat(GetFixedAttributeModifiers())
+                    .ToList();
             }
 
             return modifiers.ToList();
         }
 
+        public List<AttributeModifier> GetSharpeningAttributeModifiers()
+        {
+            var sharpening = new List<AttributeModifier>();
+
+            if (SharpeningLevel < 1)
+            {
+                return sharpening;
+            }
+
+            var attributeId = IsArmor || IsShield ? Constants.AttributeIdConstitution : Constants.AttributeIdMight;
+            var attribute = Container.Instance.Resolve<IAttributeRepository>().Find(attributeId);
+            sharpening.Add(new AttributeModifier(attribute, new AttributeModifierData(attribute.Id, SharpeningLevel * 2, ModifierType.Flat)));
+
+            return sharpening;
+        }
+
         public List<AttributeModifier> GetFixedAttributeModifiers()
         {
             return this.fixedItemModifiers
-                .SelectMany(m => m.GetAttributeModifiers(BaseLevel, CraftUtils.GetQualityMultiplier(this)))
+                .SelectMany(m => m.GetAttributeModifiers(BaseLevel, 0, CraftUtils.GetRarityMultiplier(this)))
                 .Concat(BaseAttributeModifiers)
                 .ToList();
         }
@@ -467,8 +670,8 @@ namespace DarkBestiary.Items
         public List<PropertyModifier> GetPropertyModifiers(bool includeFixed = true)
         {
             var modifiers = new List<PropertyModifier>()
-                .Concat(Suffix?.GetPropertyModifiers(BaseLevel, ForgeLevel, CraftUtils.GetQualityMultiplier(this)) ?? new List<PropertyModifier>())
-                .Concat(this.itemModifiers.SelectMany(m => m.GetPropertyModifiers(BaseLevel, ForgeLevel, CraftUtils.GetQualityMultiplier(this))))
+                .Concat(Suffix?.GetPropertyModifiers(BaseLevel, ForgeLevel, CraftUtils.GetRarityMultiplier(this)) ?? new List<PropertyModifier>())
+                .Concat(this.itemModifiers.SelectMany(m => m.GetPropertyModifiers(BaseLevel, ForgeLevel, CraftUtils.GetRarityMultiplier(this))))
                 .ToList();
 
             if (includeFixed)
@@ -482,7 +685,7 @@ namespace DarkBestiary.Items
         public List<PropertyModifier> GetFixedPropertyModifiers()
         {
             return this.fixedItemModifiers
-                .SelectMany(m => m.GetPropertyModifiers(BaseLevel, 0, CraftUtils.GetQualityMultiplier(this)))
+                .SelectMany(m => m.GetPropertyModifiers(BaseLevel, 0, CraftUtils.GetRarityMultiplier(this)))
                 .Concat(BasePropertyModifiers)
                 .ToList();
         }
@@ -494,13 +697,15 @@ namespace DarkBestiary.Items
                 throw new ItemIsOnCooldownException();
             }
 
+            MaybeLearnSkill();
             MaybeUnlockRecipe();
             MaybeUnlockScenario();
             MaybeGiveLoot(entity);
             MaybeApplyEffect(entity);
             MaybeUnlockRelic(entity);
 
-            entity.GetComponent<InventoryComponent>().Remove(this, 1);
+            var inventory = Inventory ? Inventory : entity.GetComponent<InventoryComponent>();
+            inventory.Remove(this, 1);
 
             if (!string.IsNullOrEmpty(ConsumeSound))
             {
@@ -528,6 +733,23 @@ namespace DarkBestiary.Items
             }
 
             reliquary.Unlock(Data.UnlockRelicId);
+        }
+
+        private void MaybeLearnSkill()
+        {
+            if (LearnSkill == null)
+            {
+                return;
+            }
+
+            var spellbook = CharacterManager.Instance.Character.Entity.GetComponent<SpellbookComponent>();
+
+            if (spellbook.IsKnown(LearnSkill.Id))
+            {
+                throw new GameplayException(I18N.Instance.Get("exception_skill_already_known"));
+            }
+
+            spellbook.Add(LearnSkill);
         }
 
         private void MaybeUnlockRecipe()
@@ -589,9 +811,9 @@ namespace DarkBestiary.Items
             foreach (var attributeType in attributeTypes.Distinct())
             {
                 var delta = item.GetAttributeModifiers().Where(modifier => modifier.Attribute.Type == attributeType)
-                                .Select(modifier => modifier.GetAmount()).DefaultIfEmpty(0).Sum() -
+                                .Select(modifier => Mathf.Ceil(modifier.GetAmount())).DefaultIfEmpty(0).Sum() -
                             GetAttributeModifiers().Where(modifier => modifier.Attribute.Type == attributeType)
-                                .Select(modifier => modifier.GetAmount()).DefaultIfEmpty(0).Sum();
+                                .Select(modifier => Mathf.Ceil(modifier.GetAmount())).DefaultIfEmpty(0).Sum();
 
                 if (Math.Abs(delta) < Mathf.Epsilon)
                 {
@@ -640,14 +862,13 @@ namespace DarkBestiary.Items
 
         public Item RemoveStack(int amount = 1)
         {
-            StackCount = Math.Max(StackCount - amount, 0);
-            StackCountChanged?.Invoke();
+            SetStack(StackCount - amount);
             return this;
         }
 
         public Item SetStack(int amount)
         {
-            StackCount = Math.Max(1, Math.Min(amount, StackCountMax));
+            StackCount = Mathf.Clamp(amount, 1, StackCountMax);
             StackCountChanged?.Invoke();
             return this;
         }
@@ -656,7 +877,7 @@ namespace DarkBestiary.Items
         {
             if (IsMaximumSocketCount)
             {
-                throw new MaxSocketCountException();
+                return;
             }
 
             Sockets.Add(CreateEmpty());
@@ -698,13 +919,51 @@ namespace DarkBestiary.Items
             Sockets[Sockets.IndexOf(item)] = CreateEmpty();
         }
 
-        public void SwapSockets(Item socket1, Item socket2)
+        public void Enchant(Item enchant)
         {
-            var index1 = Sockets.IndexOf(socket1);
-            var index2 = Sockets.IndexOf(socket2);
+            if (enchant.IsSharpening)
+            {
+                var nextLevel = SharpeningLevel + 1;
 
-            Sockets[index1] = socket2;
-            Sockets[index2] = socket1;
+                if (!CraftUtils.SharpeningTable.ContainsKey(nextLevel))
+                {
+                    throw new GameplayException("Max sharpening level reached.");
+                }
+
+                var chance = CraftUtils.SharpeningTable[nextLevel];
+
+                if (RNG.Test(chance))
+                {
+                    SharpeningLevel = Mathf.Clamp(SharpeningLevel + 1, 0, MaxSharpeningLevel);
+                    SharpeningSuccess?.Invoke(this);
+                }
+                else
+                {
+                    SharpeningLevel = enchant.Rarity.Type == RarityType.Legendary ? Mathf.Clamp(SharpeningLevel - 1, 0, MaxSharpeningLevel) : 0;
+                    SharpeningFailed?.Invoke(this);
+                }
+
+                SharpeningLevelChanged?.Invoke(this);
+                AnyItemStatsUpdated?.Invoke(this);
+                return;
+            }
+
+            if (enchant.Id == Constants.ItemIdIllusorySubstance)
+            {
+                IsMarkedAsIllusory = true;
+                return;
+            }
+
+            if (enchant.EnchantmentItemCategory?.Contains(Type) == false)
+            {
+                throw new InvalidSkillTargetException();
+            }
+
+            EnchantmentBehaviour = Container.Instance.Resolve<IBehaviourRepository>()
+                .Find(enchant.EnchantmentBehaviour.Id);
+
+            Enchanted?.Invoke(this, enchant);
+            AnyItemStatsUpdated?.Invoke(this);
         }
     }
 }

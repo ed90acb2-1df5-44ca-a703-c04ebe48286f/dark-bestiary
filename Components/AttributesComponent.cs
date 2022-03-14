@@ -76,7 +76,7 @@ namespace DarkBestiary.Components
 
         public void ResetPoints()
         {
-            Points = GetComponent<ExperienceComponent>().Experience.Level;
+            Points = (GetComponent<ExperienceComponent>().Experience.Level - 1) * Constants.AttributePointsPerLevel;
 
             foreach (var attribute in Attributes.Values)
             {

@@ -13,25 +13,41 @@ namespace DarkBestiary.UI.Elements
 
         private Currency currency;
 
+        private void Start()
+        {
+            this.hover.PointerEnter += OnPointerEnter;
+            this.hover.PointerExit += OnPointerExit;
+        }
+
+        private void OnDestroy()
+        {
+            this.hover.PointerEnter -= OnPointerEnter;
+            this.hover.PointerExit -= OnPointerExit;
+        }
+
         public void Initialize(Currency currency)
         {
-            this.image.sprite = Resources.Load<Sprite>(currency.Icon);
+            if (this.currency != null)
+            {
+                this.currency.Changed -= OnCurrencyChanged;
+            }
 
             this.currency = currency;
             this.currency.Changed += OnCurrencyChanged;
 
-            if (this.hover != null)
-            {
-                this.hover.PointerEnter += OnPointerEnter;
-                this.hover.PointerExit += OnPointerExit;
-            }
-
+            this.image.sprite = Resources.Load<Sprite>(this.currency.Icon);
             OnCurrencyChanged(this.currency);
         }
 
         public void Terminate()
         {
+            if (this.currency == null)
+            {
+                return;
+            }
+
             this.currency.Changed -= OnCurrencyChanged;
+            this.currency = null;
         }
 
         protected override void OnDespawn()
@@ -41,6 +57,7 @@ namespace DarkBestiary.UI.Elements
 
         private void OnCurrencyChanged(Currency currency)
         {
+            gameObject.SetActive(currency.Amount > 0);
             this.text.text = currency.Amount.ToString();
         }
 

@@ -10,7 +10,6 @@ namespace DarkBestiary.UI.Elements
 {
     public class RelicSlotView : MonoBehaviour,
         IDragHandler,
-        IDropHandler,
         IPointerEnterHandler,
         IPointerExitHandler
     {
@@ -27,20 +26,32 @@ namespace DarkBestiary.UI.Elements
         [SerializeField] private Image experienceFiller;
         [SerializeField] private Image hover;
 
-        public void Initialize(RelicSlot slot)
+        public void Construct(RelicSlot slot)
         {
             Slot = slot;
+            Refresh();
+        }
+
+        public void Initialize(RelicSlot slot)
+        {
+            Construct(slot);
+
             Slot.Equipped += OnEquipped;
             Slot.Unequipped += OnUnequipped;
+            Slot.ExperienceChanged += OnExperienceChanged;
 
+            if (this.draggable == null)
+            {
+                return;
+            }
+
+            this.draggable.SomethingDroppedIn += OnSomethingDroppedIn;
             this.draggable.BeginDrag += OnDraggableBeginDrag;
             this.draggable.EndDrag += OnDraggableEndDrag;
             this.draggable.Clicked += OnDraggableClicked;
             this.draggable.SetAlpha(0);
             this.draggable.MakeOnlyDraggable();
             this.draggable.Initialize(Relic.Empty);
-
-            Refresh();
         }
 
         public void Terminate()
@@ -51,6 +62,12 @@ namespace DarkBestiary.UI.Elements
 
             Slot.Equipped -= OnEquipped;
             Slot.Unequipped -= OnUnequipped;
+            Slot.ExperienceChanged -= OnExperienceChanged;
+        }
+
+        private void OnExperienceChanged(RelicSlot relicSlot)
+        {
+            UpdateExperience();
         }
 
         private void OnDraggableBeginDrag(RelicView relicView)
@@ -76,14 +93,20 @@ namespace DarkBestiary.UI.Elements
             this.icon.gameObject.SetActive(!Slot.IsEmpty);
             this.experienceFiller.gameObject.SetActive(!Slot.IsEmpty);
             this.experienceText.gameObject.SetActive(!Slot.IsEmpty);
+            this.draggable.Initialize(Slot.Relic);
 
             if (!Slot.IsEmpty)
             {
-                this.draggable.Initialize(Slot.Relic);
                 this.icon.sprite = Resources.Load<Sprite>(Slot.Relic.Icon);
-                this.experienceFiller.fillAmount = Slot.Relic.Experience.GetObtainedFraction();
-                this.experienceText.text = $"{Slot.Relic.Experience.GetObtained()} / {Slot.Relic.Experience.GetRequired()} ({Slot.Relic.Experience.GetObtainedFraction():0%})";
+                UpdateExperience();
             }
+        }
+
+        private void UpdateExperience()
+        {
+            this.levelText.text = Slot.Relic.Experience.Level.ToString();
+            this.experienceFiller.fillAmount = Slot.Relic.Experience.GetObtainedFraction();
+            this.experienceText.text = $"{Slot.Relic.Experience.GetObtained()} / {Slot.Relic.Experience.GetRequired()} ({Slot.Relic.Experience.GetObtainedFraction():0%})";
         }
 
         private void OnEquipped(RelicSlot slot, Relic relic)
@@ -123,11 +146,11 @@ namespace DarkBestiary.UI.Elements
             RelicTooltip.Instance.Hide();
         }
 
-        public void OnDrop(PointerEventData pointer)
+        public void OnSomethingDroppedIn(GameObject something)
         {
             this.hover.color = this.hover.color.With(a: 0);
 
-            var dragging = pointer.pointerDrag.GetComponent<RelicView>();
+            var dragging = something.GetComponent<RelicView>();
 
             if (dragging == null || Slot.Relic.Equals(dragging.Relic))
             {

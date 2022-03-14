@@ -12,7 +12,6 @@ namespace DarkBestiary.UI.Views
         event Payload<SkillSlot, Skill> PlaceOnActionBar;
 
         void Construct(List<ScenarioInfo> scenarios);
-
         void AddScenario(ScenarioInfo scenario);
     }
 }

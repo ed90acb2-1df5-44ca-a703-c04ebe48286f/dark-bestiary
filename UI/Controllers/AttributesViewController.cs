@@ -60,7 +60,7 @@ namespace DarkBestiary.UI.Controllers
 
         private void OnAddMultiplePoints(Attribute attribute)
         {
-            this.attributes.AddPoint(attribute, 5);
+            this.attributes.AddPoint(attribute, 10);
         }
 
         private void OnSubtractPoint(Attribute attribute)
@@ -70,7 +70,7 @@ namespace DarkBestiary.UI.Controllers
 
         private void OnSubtractMultiplePoints(Attribute attribute)
         {
-            this.attributes.SubtractPoint(attribute, 5);
+            this.attributes.SubtractPoint(attribute, 10);
         }
 
         private void OnResetPoints()

@@ -14,8 +14,8 @@ namespace DarkBestiary.Managers
         public event Payload<GameObject> EnemySelected;
         public event Payload<GameObject> EnemyDeselected;
 
-        private GameObject selectedAlly;
-        private GameObject selectedEnemy;
+        public GameObject SelectedAlly { get; private set; }
+        public GameObject SelectedEnemy { get; private set; }
 
         [SerializeField] private SpriteRenderer allyFrame;
         [SerializeField] private SpriteRenderer enemyFrame;
@@ -52,16 +52,16 @@ namespace DarkBestiary.Managers
         {
             if (entity.IsOwnedByPlayer())
             {
-                this.selectedAlly = entity;
+                this.SelectedAlly = entity;
                 this.allyFrame.gameObject.SetActive(true);
-                this.allyFrame.transform.position = this.selectedAlly.transform.position;
+                this.allyFrame.transform.position = this.SelectedAlly.transform.position;
                 AllySelected?.Invoke(entity);
             }
             else
             {
-                this.selectedEnemy = entity;
+                this.SelectedEnemy = entity;
                 this.enemyFrame.gameObject.SetActive(true);
-                this.enemyFrame.transform.position = this.selectedEnemy.transform.position;
+                this.enemyFrame.transform.position = this.SelectedEnemy.transform.position;
                 this.enemyFrame.color = entity.IsOwnedByNeutral()
                     ? Color.yellow.With(a: 0.25f) : Color.red.With(a: 0.25f);
                 EnemySelected?.Invoke(entity);
@@ -70,18 +70,18 @@ namespace DarkBestiary.Managers
 
         public void DeselectAll()
         {
-            Deselect(this.selectedAlly);
-            Deselect(this.selectedEnemy);
+            Deselect(this.SelectedAlly);
+            Deselect(this.SelectedEnemy);
         }
 
         public void Deselect(GameObject entity)
         {
-            if (entity == this.selectedAlly)
+            if (entity == this.SelectedAlly)
             {
                 this.allyFrame.gameObject.SetActive(false);
                 AllyDeselected?.Invoke(entity);
             }
-            else if (entity == this.selectedEnemy)
+            else if (entity == this.SelectedEnemy)
             {
                 this.enemyFrame.gameObject.SetActive(false);
                 EnemyDeselected?.Invoke(entity);
@@ -90,14 +90,14 @@ namespace DarkBestiary.Managers
 
         private void Update()
         {
-            if (this.selectedAlly != null)
+            if (this.SelectedAlly != null)
             {
-                this.allyFrame.transform.position = this.selectedAlly.transform.position;
+                this.allyFrame.transform.position = this.SelectedAlly.transform.position;
             }
 
-            if (this.selectedEnemy != null)
+            if (this.SelectedEnemy != null)
             {
-                this.enemyFrame.transform.position = this.selectedEnemy.transform.position;
+                this.enemyFrame.transform.position = this.SelectedEnemy.transform.position;
             }
         }
     }

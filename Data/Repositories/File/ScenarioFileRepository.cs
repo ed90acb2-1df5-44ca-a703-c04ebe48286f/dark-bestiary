@@ -2,19 +2,18 @@
 using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
 using DarkBestiary.Scenarios;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
     public class ScenarioFileRepository : FileRepository<int, ScenarioData, Scenario>, IScenarioRepository
     {
-        public ScenarioFileRepository(IFileReader loader, ScenarioMapper mapper) : base(loader, mapper)
+        public ScenarioFileRepository(IFileReader reader, ScenarioMapper mapper) : base(reader, mapper)
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/scenarios.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/scenarios.json";
         }
 
         public Scenario Starting()

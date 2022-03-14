@@ -3,7 +3,6 @@
     public enum MoverType
     {
         Linear,
-        Directional,
         Parabolic,
         Curve,
     }

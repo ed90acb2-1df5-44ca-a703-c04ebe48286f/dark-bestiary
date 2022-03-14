@@ -8,7 +8,7 @@ namespace DarkBestiary.Managers
 {
     public class SteamAchievementUnlocker : MonoBehaviour
     {
-        private void Start()
+        private void Awake()
         {
             if (!SteamManager.Initialized)
             {

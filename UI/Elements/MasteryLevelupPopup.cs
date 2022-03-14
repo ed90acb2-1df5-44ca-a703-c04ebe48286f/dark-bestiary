@@ -22,7 +22,7 @@ namespace DarkBestiary.UI.Elements
                 star.gameObject.SetActive(false);
             }
 
-            foreach (var star in this.stars.Take(mastery.Experience.Level))
+            foreach (var star in this.stars.Take(mastery.Experience.Level - 1))
             {
                 star.gameObject.SetActive(true);
             }

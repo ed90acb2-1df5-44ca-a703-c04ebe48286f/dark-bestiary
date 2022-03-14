@@ -139,6 +139,11 @@ namespace DarkBestiary.UI.Controllers
 
         private ScenarioStatus DetermineStatus(ScenarioData scenario)
         {
+            if (scenario.IsUnlocked)
+            {
+                return ScenarioStatus.Available;
+            }
+
             if (this.characterManager.Character.CompletedScenarios.Contains(scenario.Id))
             {
                 return ScenarioStatus.Completed;
@@ -170,18 +175,23 @@ namespace DarkBestiary.UI.Controllers
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
         }
 
         private void OnStartScenario(ScenarioInfo info)
         {
-            Game.Instance.SwitchState(
-                new ScenarioGameState(
-                    Container.Instance.Instantiate<ScenarioMapper>().ToEntity(info.Data),
-                    this.characterManager.Character
-                )
-            );
+            ScreenFade.Instance.To(() =>
+            {
+                Game.Instance.SwitchState(
+                    () =>
+                    {
+                        var scenario = Container.Instance.Instantiate<ScenarioMapper>().ToEntity(info.Data);
+                        return new ScenarioGameState( scenario, this.characterManager.Character);
+                    },
+                    true
+                );
+            });
         }
     }
 }

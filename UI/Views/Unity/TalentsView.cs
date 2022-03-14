@@ -47,6 +47,10 @@ namespace DarkBestiary.UI.Views.Unity
             }
 
             OnCategoryTabClicked(this.tabContainer.GetComponentsInChildren<TalentCategoryTab>().First());
+
+            this.resetButton.PointerClick += OnResetButtonPointerClick;
+            this.closeButton.PointerClick += OnCloseButtonPointerClick;
+            this.applyButton.PointerClick += OnCloseButtonPointerClick;
         }
 
         public void UpdatePoints(int points)
@@ -54,18 +58,11 @@ namespace DarkBestiary.UI.Views.Unity
             this.pointsText.text = I18N.Instance.Get("ui_unspent_points_x").ToString(points);
         }
 
-        protected override void OnInitialize()
-        {
-            this.resetButton.PointerUp += OnResetButtonPointerUp;
-            this.closeButton.PointerUp += OnCloseButtonPointerUp;
-            this.applyButton.PointerUp += OnCloseButtonPointerUp;
-        }
-
         protected override void OnTerminate()
         {
-            this.resetButton.PointerUp -= OnResetButtonPointerUp;
-            this.closeButton.PointerUp -= OnCloseButtonPointerUp;
-            this.applyButton.PointerUp -= OnCloseButtonPointerUp;
+            this.resetButton.PointerClick -= OnResetButtonPointerClick;
+            this.closeButton.PointerClick -= OnCloseButtonPointerClick;
+            this.applyButton.PointerClick -= OnCloseButtonPointerClick;
 
             foreach (var talentTier in this.tierViews)
             {
@@ -90,12 +87,12 @@ namespace DarkBestiary.UI.Views.Unity
             }
         }
 
-        private void OnCloseButtonPointerUp()
+        private void OnCloseButtonPointerClick()
         {
             Hide();
         }
 
-        private void OnResetButtonPointerUp()
+        private void OnResetButtonPointerClick()
         {
             Reseted?.Invoke();
         }

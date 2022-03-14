@@ -11,6 +11,7 @@ namespace DarkBestiary.UI.Elements
     {
         public enum Category
         {
+            All,
             Weapon,
             Armor,
             Miscellaneous,
@@ -23,6 +24,7 @@ namespace DarkBestiary.UI.Elements
 
         private readonly List<ItemListRow> itemViews = new List<ItemListRow>();
 
+        [SerializeField] private RectTransform content;
         [SerializeField] private ItemListRow itemRowPrefab;
         [SerializeField] private Transform rowsContainer;
         [SerializeField] private VendorCategoryTab tabPrefab;
@@ -30,21 +32,20 @@ namespace DarkBestiary.UI.Elements
 
         private VendorCategoryTab activeTab;
 
-        public void Construct()
+        public void Construct(List<Category> categories)
         {
-            var categories = new List<Category>
-            {
-                Category.Armor,
-                Category.Weapon,
-                Category.Miscellaneous,
-                Category.Buyout
-            };
-
             foreach (var category in categories)
             {
                 var tab = Instantiate(this.tabPrefab, this.tabContainer);
                 tab.Clicked += OnTabClicked;
                 tab.Construct(category);
+            }
+
+            if (categories.Count < 2)
+            {
+                this.tabContainer.parent.gameObject.SetActive(false);
+                this.content.offsetMax = Vector2.zero;
+                this.content.offsetMin = new Vector2(0, 50);
             }
 
             OnTabClicked(this.tabContainer.GetComponentsInChildren<VendorCategoryTab>().First());
@@ -115,7 +116,7 @@ namespace DarkBestiary.UI.Elements
             FilterStuff(this.activeTab.Category);
         }
 
-        private void FilterStuff(Category category)
+        private void FilterStuff(Category? category)
         {
             foreach (var itemView in this.itemViews)
             {
@@ -125,6 +126,9 @@ namespace DarkBestiary.UI.Elements
 
                 switch (category)
                 {
+                    case Category.All:
+                        itemView.gameObject.SetActive(true);
+                        break;
                     case Category.Weapon:
                         itemView.gameObject.SetActive(isWeapon);
                         break;

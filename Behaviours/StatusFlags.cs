@@ -30,5 +30,6 @@ namespace DarkBestiary.Behaviours
         Freecasting = 1 << 20,
         Undead = 1 << 21,
         MindControl = 1 << 22,
+        CausticPoison = 1 << 23,
     }
 }

@@ -8,7 +8,7 @@ namespace DarkBestiary.Behaviours
 {
     public class ChangeOwnerBehaviour : Behaviour
     {
-        public ChangeOwnerBehaviour(EmptyBehaviourData data, List<Validator> validators) : base(data, validators)
+        public ChangeOwnerBehaviour(EmptyBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
         }
 

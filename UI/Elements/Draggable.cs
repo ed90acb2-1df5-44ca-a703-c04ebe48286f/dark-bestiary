@@ -14,18 +14,16 @@ namespace DarkBestiary.UI.Elements
         private void Start()
         {
             this.parent = this.parent == null ? Managers.UIManager.Instance.ViewCanvas.GetComponent<RectTransform>() : this.parent;
-            this.target.ChangePivot(new Vector2(0, 0));
-            this.target.ChangeAnchors(Vector2.zero, Vector2.zero);
         }
 
         public void OnBeginDrag(PointerEventData pointer)
         {
-            this.offset = Input.mousePosition - this.target.position;
+            this.offset = Input.mousePosition - this.target.localPosition;
         }
 
         public void OnDrag(PointerEventData pointer)
         {
-            this.target.position = pointer.position - this.offset;
+            this.target.localPosition = pointer.position - this.offset;
             this.target.ClampPositionToParent(this.parent);
         }
     }

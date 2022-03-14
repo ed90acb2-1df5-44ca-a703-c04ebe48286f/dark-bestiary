@@ -6,8 +6,7 @@ namespace DarkBestiary.UI.Views
 {
     public interface ICraftView : IView, IHideOnEscape
     {
-        void Construct(List<Recipe> recipes, InventoryComponent inventory);
-
-        void RefreshRecipes(List<Recipe> recipes);
+        void Construct(List<Recipe> recipes, InventoryComponent characterInventory, InventoryComponent ingredientInventory);
+        void Refresh(List<Recipe> recipes);
     }
 }

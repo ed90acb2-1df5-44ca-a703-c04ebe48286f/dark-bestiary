@@ -11,7 +11,6 @@ namespace DarkBestiary.UI.Views
         event Payload<Relic, RelicSlot> EquipIntoSlot;
 
         void Construct(List<RelicSlot> slots, List<Relic> relics);
-
         void AddRelic(Relic relic);
     }
 }

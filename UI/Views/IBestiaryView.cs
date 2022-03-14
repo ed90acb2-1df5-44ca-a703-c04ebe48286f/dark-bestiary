@@ -10,10 +10,8 @@ namespace DarkBestiary.UI.Views
         event Payload<UnitData> Selected;
         event Payload<int> LevelChanged;
 
-        void Construct(List<UnitData> units);
-
+        void Construct(List<UnitData> units, int level);
         void Display(UnitComponent unit);
-
         void RefreshProperties(UnitComponent unit);
     }
 }

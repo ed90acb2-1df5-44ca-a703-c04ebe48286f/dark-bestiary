@@ -145,6 +145,7 @@ namespace DarkBestiary.UI.Elements
 
             Instantiate(this.separatorPrefab, this.attributesContainer);
 
+            CreatePropertyRow(properties.Get(PropertyType.IncomingDamageReduction));
             CreatePropertyRow(properties.Get(PropertyType.IncomingPhysicalDamageReduction));
             CreatePropertyRow(properties.Get(PropertyType.CrushingResistance));
             CreatePropertyRow(properties.Get(PropertyType.SlashingResistance));
@@ -257,6 +258,7 @@ namespace DarkBestiary.UI.Elements
         private void RefreshPropertyRow(Property property, CharacterInfoRow row)
         {
             row.SetLabel(property.Name);
+            row.SetTooltip(property.Description.IsNullOrEmpty() ? property.Name : property.Description);
             row.SetValue(property.ValueString());
 
             if (property.HasNegativeModifiers())

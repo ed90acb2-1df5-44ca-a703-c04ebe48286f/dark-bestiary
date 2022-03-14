@@ -18,7 +18,10 @@ namespace DarkBestiary.Data
         public int MaxMonsterLevel;
         public int MinMonsterLevel;
         public ScenarioType Type;
+        public bool IsUnlocked;
         public bool IsDisposable;
+        public bool IsAscension;
+        public bool IsDepths;
         public bool IsHidden;
         public bool IsStart;
         public bool IsEnd;
@@ -42,6 +45,7 @@ namespace DarkBestiary.Data
         public EncounterUnitSourceType UnitSourceType;
         public int UnitGroupChallengeRating;
         public int UnitGroupEnvironmentId;
+        public int UnitGroupBonusLevel;
         public int StartPhraseId;
         public int CompletePhraseId;
         public UnitTableData UnitTable = new UnitTableData();

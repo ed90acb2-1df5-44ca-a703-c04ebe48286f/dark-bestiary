@@ -21,14 +21,18 @@ namespace DarkBestiary.Modifiers
             Attribute = attribute;
         }
 
-        public override string ToString()
+        public string GetDescriptionText()
         {
-            return $"+{GetAmount()} {Attribute.Name}";
+            return I18N.Instance.Get("ui_increases_x_by_x").ToString(new object[]
+            {
+                Attribute.Name.ToString().ToLower(),
+                Mathf.Ceil(GetAmount())
+            });
         }
 
-        public override float GetAmount()
+        public override string ToString()
         {
-            return Type == ModifierType.Flat ? Mathf.Floor(base.GetAmount()) : base.GetAmount();
+            return $"+{Mathf.Ceil(GetAmount())} {Attribute.Name}";
         }
 
         public override float Modify(float value)

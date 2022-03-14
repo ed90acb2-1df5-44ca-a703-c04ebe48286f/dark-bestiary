@@ -4,6 +4,7 @@ namespace DarkBestiary.Skills
     {
         None,
         Unit,
+        OtherUnit,
         EnemyUnit,
         GroundEnemyUnit,
         AllyUnit,

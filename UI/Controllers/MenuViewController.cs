@@ -14,18 +14,20 @@ namespace DarkBestiary.UI.Controllers
 
         protected override void OnInitialize()
         {
-            this.settingsController = Container.Instance.Instantiate<SettingsViewController>();
-            this.settingsController.Initialize();
-            this.settingsController.View.Hide();
-
-            this.feedbackController = Container.Instance.Instantiate<FeedbackViewController>();
-            this.feedbackController.Initialize();
-            this.feedbackController.View.Hide();
+            this.settingsController = ViewControllerRegistry.Initialize<SettingsViewController>();
+            this.feedbackController = ViewControllerRegistry.Initialize<FeedbackViewController>();
 
             View.EnterSettings += ViewOnEnterSettings;
             View.EnterFeedback += ViewOnEnterFeedback;
             View.EnterMainMenu += ViewOnEnterMainMenu;
+            View.EnterTown += ViewOnEnterTown;
             View.ExitGame += ViewOnExitGame;
+        }
+
+        protected override void OnViewHidden()
+        {
+            this.settingsController.View.Hide();
+            this.feedbackController.View.Hide();
         }
 
         protected override void OnTerminate()
@@ -36,6 +38,7 @@ namespace DarkBestiary.UI.Controllers
             View.EnterSettings -= ViewOnEnterSettings;
             View.EnterFeedback -= ViewOnEnterFeedback;
             View.EnterMainMenu -= ViewOnEnterMainMenu;
+            View.EnterTown -= ViewOnEnterTown;
             View.ExitGame -= ViewOnExitGame;
         }
 
@@ -47,6 +50,11 @@ namespace DarkBestiary.UI.Controllers
         private void ViewOnEnterSettings()
         {
             this.settingsController.View.Show();
+        }
+
+        private void ViewOnEnterTown()
+        {
+            Game.Instance.ToHub();
         }
 
         private void ViewOnEnterMainMenu()

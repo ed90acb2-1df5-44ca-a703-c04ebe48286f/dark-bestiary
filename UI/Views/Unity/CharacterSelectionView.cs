@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
 using DarkBestiary.UI.Elements;
 using UnityEngine;
@@ -11,11 +12,13 @@ namespace DarkBestiary.UI.Views.Unity
         public event Payload Cancel;
         public event Payload Create;
         public event Payload Start;
+        public event Payload<Character, string> RenameCharacter;
         public event Payload<Character> SelectCharacter;
         public event Payload<Character> DeleteCharacter;
 
         [SerializeField] private CharacterRow characterPrefab;
         [SerializeField] private Transform characterContainer;
+        [SerializeField] private RenameCharacterPopup renamePopup;
         [SerializeField] private Interactable createButton;
         [SerializeField] private Interactable cancelButton;
         [SerializeField] private Interactable startButton;
@@ -23,22 +26,27 @@ namespace DarkBestiary.UI.Views.Unity
 
         private readonly List<CharacterRow> characterRows = new List<CharacterRow>();
 
+        private List<Character> characters;
         private CharacterRow selected;
         private CharacterRow deleting;
         private GameObject backgroundImage;
 
-        public void RedrawCharacters(List<Character> characters)
+        public void Refresh(List<Character> characters)
         {
+            this.characters = characters;
+
             foreach (var characterRow in this.characterRows)
             {
                 characterRow.Clicked -= OnCharacterClicked;
                 characterRow.DoubleClicked -= OnCharacterDoubleClicked;
+                characterRow.Delete -= OnCharacterDelete;
+                characterRow.Edit -= OnCharacterEdit;
                 Destroy(characterRow.gameObject);
             }
 
             this.characterRows.Clear();
 
-            foreach (var character in characters)
+            foreach (var character in this.characters)
             {
                 var characterRow = Instantiate(this.characterPrefab, this.characterContainer);
                 characterRow.Initialize(character);
@@ -46,6 +54,7 @@ namespace DarkBestiary.UI.Views.Unity
                 characterRow.Clicked += OnCharacterClicked;
                 characterRow.DoubleClicked += OnCharacterDoubleClicked;
                 characterRow.Delete += OnCharacterDelete;
+                characterRow.Edit += OnCharacterEdit;
 
                 this.characterRows.Add(characterRow);
             }
@@ -59,19 +68,22 @@ namespace DarkBestiary.UI.Views.Unity
         protected override void OnInitialize()
         {
             this.backgroundImage = Instantiate(this.backgroundImagePrefab);
+            // this.backgroundImage.transform.localScale = UIManager.Instance.ViewCanvas.localScale;
 
-            this.cancelButton.PointerUp += OnCancelButtonPointerUp;
-            this.createButton.PointerUp += OnCreateButtonPointerUp;
-            this.startButton.PointerUp += OnStartButtonPointerUp;
+            this.cancelButton.PointerClick += OnCancelButtonPointerClick;
+            this.createButton.PointerClick += OnCreateButtonPointerClick;
+            this.startButton.PointerClick += OnStartButtonPointerClick;
+
+            this.renamePopup.Confirmed += OnRenameConfirmed;
         }
 
         protected override void OnTerminate()
         {
             Destroy(this.backgroundImage);
 
-            this.cancelButton.PointerUp -= OnCancelButtonPointerUp;
-            this.createButton.PointerUp -= OnCreateButtonPointerUp;
-            this.startButton.PointerUp -= OnStartButtonPointerUp;
+            this.cancelButton.PointerClick -= OnCancelButtonPointerClick;
+            this.createButton.PointerClick -= OnCreateButtonPointerClick;
+            this.startButton.PointerClick -= OnStartButtonPointerClick;
         }
 
         private void OnCharacterClicked(CharacterRow characterRow)
@@ -89,17 +101,27 @@ namespace DarkBestiary.UI.Views.Unity
 
         private void OnCharacterDoubleClicked(CharacterRow characterRow)
         {
-            OnStartButtonPointerUp();
+            OnStartButtonPointerClick();
         }
 
-        private void OnCreateButtonPointerUp()
+        private void OnCreateButtonPointerClick()
         {
             Create?.Invoke();
         }
 
-        private void OnCancelButtonPointerUp()
+        private void OnCancelButtonPointerClick()
         {
             Cancel?.Invoke();
+        }
+
+        private void OnRenameConfirmed(string name)
+        {
+            RenameCharacter?.Invoke(this.selected.Character, name);
+        }
+
+        private void OnCharacterEdit(CharacterRow characterRow)
+        {
+            this.renamePopup.Show();
         }
 
         private void OnCharacterDelete(CharacterRow characterRow)
@@ -131,7 +153,7 @@ namespace DarkBestiary.UI.Views.Unity
             ConfirmationWindow.Instance.Confirmed -= OnDeleteConfirmed;
         }
 
-        private void OnStartButtonPointerUp()
+        private void OnStartButtonPointerClick()
         {
             if (this.selected == null)
             {

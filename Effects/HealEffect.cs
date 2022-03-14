@@ -13,7 +13,7 @@ namespace DarkBestiary.Effects
     {
         private readonly HealEffectData data;
 
-        public HealEffect(HealEffectData data, List<Validator> validators) : base(data, validators)
+        public HealEffect(HealEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }
@@ -27,13 +27,13 @@ namespace DarkBestiary.Effects
         {
             var amount = GetAmount(caster, target);
 
-            if (target.GetComponent<BehavioursComponent>().IsUndead)
+            if (target.GetComponent<BehavioursComponent>().IsUndead && !this.data.Flags.HasFlag(HealFlags.HealUndead))
             {
-                target.GetComponent<HealthComponent>().Damage(caster, new Damage(amount, DamageType.Health));
+                target.GetComponent<HealthComponent>().Damage(caster, new Damage(amount, DamageType.Health, WeaponSound.None, DamageFlags.None, DamageInfoFlags.None, Skill));
             }
             else
             {
-                target.GetComponent<HealthComponent>().Heal(caster, new Healing(amount));
+                target.GetComponent<HealthComponent>().Heal(caster, new Healing(amount, this.data.Flags, Skill));
             }
 
             TriggerFinished();

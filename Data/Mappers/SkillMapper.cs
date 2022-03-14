@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using DarkBestiary.Currencies;
 using DarkBestiary.Data.Repositories;
+using DarkBestiary.Items;
 using DarkBestiary.Skills;
 using UnityEngine;
 

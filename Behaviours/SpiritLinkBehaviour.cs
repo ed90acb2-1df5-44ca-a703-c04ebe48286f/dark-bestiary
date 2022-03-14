@@ -13,7 +13,7 @@ namespace DarkBestiary.Behaviours
     {
         private readonly SpiritLinkBehaviourData data;
 
-        public SpiritLinkBehaviour(SpiritLinkBehaviourData data, List<Validator> validators) : base(data, validators)
+        public SpiritLinkBehaviour(SpiritLinkBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }
@@ -43,6 +43,7 @@ namespace DarkBestiary.Behaviours
             toDistribute.Type = DamageType.Health;
             toDistribute.InfoFlags = DamageInfoFlags.None;
             toDistribute.InfoFlags |= DamageInfoFlags.SpiritLink;
+            toDistribute.InfoFlags |= DamageInfoFlags.Reflected;
             toDistribute.Flags = DamageFlags.None;
             toDistribute.Flags |= DamageFlags.CantBeBlocked;
             toDistribute.Flags |= DamageFlags.CantBeDodged;

@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using DarkBestiary.Components;
 using DarkBestiary.Data;
-using DarkBestiary.Modifiers;
 using DarkBestiary.Validators;
 using DarkBestiary.Values;
 using UnityEngine;
@@ -12,24 +11,22 @@ namespace DarkBestiary.Behaviours
     {
         private readonly BackstabDamageBehaviourData data;
 
-        public BackstabDamageBehaviour(BackstabDamageBehaviourData data, List<Validator> validators) : base(data, validators)
+        public BackstabDamageBehaviour(BackstabDamageBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }
 
-        protected override Damage OnModify(GameObject victim, GameObject attacker, Damage damage)
+        protected override float OnGetDamageMultiplier(GameObject victim, GameObject attacker, ref Damage damage)
         {
             if (victim.GetComponent<ActorComponent>().Model.IsFacingLeft !=
                 attacker.GetComponent<ActorComponent>().Model.IsFacingLeft)
             {
-                return damage;
+                return 0;
             }
 
-            var backstab = new Damage(new FloatModifier(this.data.Amount, ModifierType)
-                .Modify(damage.Amount), damage.Type, damage.WeaponSound, damage.Flags, damage.InfoFlags);
+            damage.InfoFlags |= DamageInfoFlags.Backstab;
 
-            backstab.InfoFlags |= DamageInfoFlags.Backstab;
-            return backstab;
+            return this.data.Amount;
         }
     }
 }

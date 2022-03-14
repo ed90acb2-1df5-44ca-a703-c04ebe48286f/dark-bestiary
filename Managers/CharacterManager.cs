@@ -36,11 +36,16 @@ namespace DarkBestiary.Managers
             GameState.AnyGameStateEnter += OnAnyGameStateEnter;
             GameState.AnyGameStateExit += OnAnyGameStateExit;
             Scenario.AnyScenarioCompleted += OnAnyScenarioCompleted;
-            Application.quitting += Save;
+            Application.quitting += MaybeSave;
         }
 
         private void OnAnyEntityDied(EntityDiedEventData data)
         {
+            if (Game.Instance.IsVisions)
+            {
+                return;
+            }
+
             if (!data.Killer.IsAllyOfPlayer() ||
                 data.Victim.IsDummy() ||
                 data.Victim.IsSummoned() ||
@@ -84,19 +89,30 @@ namespace DarkBestiary.Managers
         private void OnLevelUp(Experience experience)
         {
             Character.Data.Rerolls++;
+
+            if (experience.Level % 2 == 0 || experience.Level > 20)
+            {
+                return;
+            }
+
+            Character.Data.FreeSkills++;
         }
 
         private void OnAnyGameStateEnter(GameState gameState)
         {
             if (gameState.IsMainMenu)
             {
-                Character?.Entity.Terminate();
+                // Note: Wait for vision map saving.
+                Timer.Instance.WaitForFixedUpdate(() =>
+                {
+                    Character?.Entity.Terminate();
+                });
             }
         }
 
         private void OnAnyGameStateExit(GameState gameState)
         {
-            Save();
+            MaybeSave();
         }
 
         private void OnAnyScenarioCompleted(Scenario scenario)
@@ -116,9 +132,9 @@ namespace DarkBestiary.Managers
                 scenario.Children.Where(scenarioId => !Character.CompletedScenarios.Contains(scenarioId)));
         }
 
-        private void Save()
+        private void MaybeSave()
         {
-            if (Character == null)
+            if (Character == null || Game.Instance.IsVisions)
             {
                 return;
             }

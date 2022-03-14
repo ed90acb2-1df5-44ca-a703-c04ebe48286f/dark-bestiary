@@ -33,7 +33,7 @@ namespace DarkBestiary.UI.Controllers
             View.EquipIntoSlot -= OnEquipIntoSlot;
         }
 
-        private void OnRelicUnlocked(ReliquaryComponent reliquary, Relic relic)
+        private void OnRelicUnlocked(Relic relic)
         {
             View.AddRelic(relic);
         }

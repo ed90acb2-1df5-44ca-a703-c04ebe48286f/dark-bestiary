@@ -19,6 +19,7 @@ namespace DarkBestiary.UI.Elements
         [SerializeField] private Interactable okayButton;
         [SerializeField] private Interactable refreshButton;
         [SerializeField] private SkillTooltip tooltip;
+        [SerializeField] private TextMeshProUGUI continueButtonText;
         [SerializeField] private TextMeshProUGUI refreshButtonText;
 
         private readonly List<SpellbookSkill> playerSkillViews = new List<SpellbookSkill>();
@@ -29,8 +30,8 @@ namespace DarkBestiary.UI.Elements
         private void Start()
         {
             Instance.Hide();
-            this.refreshButton.PointerUp += OnRefreshButtonPointerUp;
-            this.okayButton.PointerUp += OnOkayButtonPointerUp;
+            this.refreshButton.PointerClick += OnRefreshButtonPointerClick;
+            this.okayButton.PointerClick += OnOkayButtonPointerClick;
         }
 
         public void Hide()
@@ -38,7 +39,7 @@ namespace DarkBestiary.UI.Elements
             gameObject.SetActive(false);
         }
 
-        public void Show(List<Skill> playerSkills, List<Skill> skills, int rerolls)
+        public void Show(List<Skill> playerSkills, List<Skill> skills, int rerolls, int remaining)
         {
             foreach (var playerSkillView in this.playerSkillViews)
             {
@@ -58,10 +59,10 @@ namespace DarkBestiary.UI.Elements
 
             this.tooltip.Initialize();
 
-            Refresh(skills, rerolls);
+            Refresh(skills, rerolls, remaining);
         }
 
-        public void Refresh(List<Skill> skills, int rerolls)
+        public void Refresh(List<Skill> skills, int rerolls, int remaining)
         {
             this.refreshButton.Active = rerolls > 0;
 
@@ -81,6 +82,7 @@ namespace DarkBestiary.UI.Elements
                 this.skillViews.Add(skillView);
             }
 
+            this.continueButtonText.text = I18N.Instance.Get("ui_confirm") + (remaining > 1 ? $" ({remaining})" : "");
             this.refreshButtonText.text = I18N.Instance.Get("ui_refresh") + $" ({rerolls})";
 
             OnSkillClicked(this.skillViews.First());
@@ -99,13 +101,13 @@ namespace DarkBestiary.UI.Elements
             this.tooltip.Show(this.selected.Skill);
         }
 
-        private void OnRefreshButtonPointerUp()
+        private void OnRefreshButtonPointerClick()
         {
             this.refreshButton.Active = false;
             Refreshed?.Invoke();
         }
 
-        private void OnOkayButtonPointerUp()
+        private void OnOkayButtonPointerClick()
         {
             Selected?.Invoke(this.selected.Skill);
             Hide();

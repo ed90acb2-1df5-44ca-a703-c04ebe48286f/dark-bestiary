@@ -13,13 +13,9 @@ namespace DarkBestiary.UI.Views
         event Payload Reset;
 
         void Construct(List<Attribute> attributes);
-
         void SetUnspentPoints(int amount);
-
         void EnableSpendButtons();
-
         void DisableSpendButtons();
-
         void Refresh();
     }
 }

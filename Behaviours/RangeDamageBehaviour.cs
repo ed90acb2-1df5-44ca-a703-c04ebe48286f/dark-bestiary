@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using DarkBestiary.Data;
-using DarkBestiary.Modifiers;
+using DarkBestiary.GameBoard;
 using DarkBestiary.Pathfinding;
 using DarkBestiary.Validators;
 using DarkBestiary.Values;
@@ -15,7 +15,7 @@ namespace DarkBestiary.Behaviours
         private readonly float range;
         private readonly float amount;
 
-        public RangeDamageBehaviour(RangeDamageBehaviourData data, List<Validator> validators) : base(data, validators)
+        public RangeDamageBehaviour(RangeDamageBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.pathfinder = Container.Instance.Resolve<IPathfinder>();
             this.comparator = data.Comparator;
@@ -23,16 +23,19 @@ namespace DarkBestiary.Behaviours
             this.amount = data.Amount;
         }
 
-        protected override Damage OnModify(GameObject victim, GameObject attacker, Damage damage)
+        protected override float OnGetDamageMultiplier(GameObject victim, GameObject attacker, ref Damage damage)
         {
-            if (!Comparator.Compare(this.pathfinder.FindPath(victim, attacker.transform.position, false).Count, this.range,
-                this.comparator))
+            var distance = BoardNavigator.Instance.DistanceInCells(
+                attacker.transform.position,
+                victim.transform.position
+            );
+
+            if (!Comparator.Compare(distance, this.range, this.comparator))
             {
-                return damage;
+                return 0;
             }
 
-            return new Damage(new FloatModifier(this.amount, ModifierType).Modify(damage.Amount),
-                damage.Type, damage.WeaponSound, damage.Flags, damage.InfoFlags);
+            return this.amount * StackCount;
         }
     }
 }

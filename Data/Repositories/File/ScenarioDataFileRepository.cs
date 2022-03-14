@@ -2,7 +2,6 @@
 using System.Linq;
 using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
@@ -10,13 +9,13 @@ namespace DarkBestiary.Data.Repositories.File
 
     public class ScenarioDataFileRepository : FileRepository<int, ScenarioData, ScenarioData>, IScenarioDataRepository
     {
-        public ScenarioDataFileRepository(IFileReader loader) : base(loader, new ScenarioDataMapper())
+        public ScenarioDataFileRepository(IFileReader reader) : base(reader, new ScenarioDataMapper())
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/scenarios.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/scenarios.json";
         }
 
         public List<ScenarioData> FindInitial()

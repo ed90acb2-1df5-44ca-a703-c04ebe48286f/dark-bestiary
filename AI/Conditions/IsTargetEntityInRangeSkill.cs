@@ -19,12 +19,13 @@ namespace DarkBestiary.AI.Conditions
         {
             var entity = context.Entity;
             var target = context.RequireTargetEntity();
+            var skill = entity.GetComponent<SpellbookComponent>().FindOnActionBar(this.skillId);
 
             var entitiesInSkillRange = this.boardNavigator
                 .EntitiesInSkillRange(
                     entity.transform.position,
                     target.transform.position,
-                    entity.GetComponent<SpellbookComponent>().FindOnActionBar(this.skillId)
+                    skill
                 );
 
             return entitiesInSkillRange.Contains(target) ? BehaviourTreeStatus.Success : BehaviourTreeStatus.Failure;

@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using DarkBestiary.Components;
 using DarkBestiary.Items;
 using DarkBestiary.Messaging;
 using DarkBestiary.UI.Elements;
@@ -14,50 +13,83 @@ namespace DarkBestiary.UI.Views.Unity
         public event Payload OkayButtonClicked;
         public event Payload DismantleButtonClicked;
         public event Payload ClearButtonClicked;
+        public event Payload<RarityType> PlaceItems;
         public event Payload<Item> ItemPlacing;
         public event Payload<Item> ItemRemoving;
 
-        [SerializeField] private InventoryPanel inventoryPanel;
-        [SerializeField] private EquipmentPanel equipmentPanel;
-        [SerializeField] private CharacterPanel characterPanel;
         [SerializeField] private Button okayButton;
         [SerializeField] private Button dismantleButton;
         [SerializeField] private Button clearButton;
         [SerializeField] private Button closeButton;
+        [SerializeField] private Button dismantleMagicButton;
+        [SerializeField] private Button dismantleRareButton;
+        [SerializeField] private Button dismantleUniqueButton;
         [SerializeField] private ItemListRow itemRowPrefab;
         [SerializeField] private Transform itemRowContainer;
         [SerializeField] private ItemDropArea itemDropArea;
 
-        private Character character;
-        private InventoryComponent inventory;
-        private EquipmentComponent equipment;
+        private MonoBehaviourPool<ItemListRow> itemRowPool;
+        private InventoryPanel inventoryPanel;
 
-        public void Construct(Character character)
+        public void Construct(InventoryPanel inventoryPanel)
         {
-            this.character = character;
-            this.inventory = character.Entity.GetComponent<InventoryComponent>();
-            this.equipment = character.Entity.GetComponent<EquipmentComponent>();
-        }
-
-        protected override void OnInitialize()
-        {
-            this.characterPanel.Initialize(this.character);
-            this.equipmentPanel.Initialize(this.equipment);
-            this.inventoryPanel.Initialize(this.inventory);
-            this.inventoryPanel.ItemRightClicked += OnInventoryItemRightClicked;
+            this.inventoryPanel = inventoryPanel;
+            this.itemRowPool = MonoBehaviourPool<ItemListRow>.Factory(this.itemRowPrefab, this.itemRowContainer);
 
             this.itemDropArea.ItemDroppedIn += OnItemDroppedIn;
             this.okayButton.onClick.AddListener(() => OkayButtonClicked?.Invoke());
             this.dismantleButton.onClick.AddListener(() => DismantleButtonClicked?.Invoke());
             this.clearButton.onClick.AddListener(() => ClearButtonClicked?.Invoke());
             this.closeButton.onClick.AddListener(Hide);
+
+            this.dismantleMagicButton.onClick.AddListener(OnDismantleMagicButtonClicked);
+            this.dismantleRareButton.onClick.AddListener(OnDismantleRareButtonClicked);
+            this.dismantleUniqueButton.onClick.AddListener(OnDismantleUniqueButtonClicked);
+        }
+
+        private void OnEnable()
+        {
+            if (this.inventoryPanel == null)
+            {
+                return;
+            }
+
+            this.inventoryPanel.ItemControlClicked += OnInventoryItemControlClicked;
+        }
+
+        private void OnDisable()
+        {
+            if (this.inventoryPanel == null)
+            {
+                return;
+            }
+
+            this.inventoryPanel.ItemControlClicked -= OnInventoryItemControlClicked;
+        }
+
+        private void OnDismantleMagicButtonClicked()
+        {
+            PlaceItems?.Invoke(RarityType.Magic);
+        }
+
+        private void OnDismantleRareButtonClicked()
+        {
+            PlaceItems?.Invoke(RarityType.Rare);
+        }
+
+        private void OnDismantleUniqueButtonClicked()
+        {
+            PlaceItems?.Invoke(RarityType.Unique);
         }
 
         protected override void OnTerminate()
         {
-            this.characterPanel.Terminate();
-            this.equipmentPanel.Terminate();
-            this.inventoryPanel.Terminate();
+            this.itemRowPool.Clear();
+        }
+
+        protected override void OnHidden()
+        {
+            ClearButtonClicked?.Invoke();
         }
 
         public void DisplayDismantlingItems(IEnumerable<Item> items)
@@ -68,11 +100,6 @@ namespace DarkBestiary.UI.Views.Unity
 
             ClearItems();
             CreateDismantlingItems(items);
-        }
-
-        protected override void OnHidden()
-        {
-            ClearButtonClicked?.Invoke();
         }
 
         public void DisplayDismantlingResult(IEnumerable<Item> items)
@@ -89,7 +116,7 @@ namespace DarkBestiary.UI.Views.Unity
         {
             foreach (var group in items.GroupBy(item => item.Id))
             {
-                var row = Instantiate(this.itemRowPrefab, this.itemRowContainer);
+                var row = this.itemRowPool.Spawn();
                 row.Construct(group.First());
                 row.OverwriteStackCount(group.Sum(item => item.StackCount));
                 row.HidePrice();
@@ -100,7 +127,7 @@ namespace DarkBestiary.UI.Views.Unity
         {
             foreach (var item in items)
             {
-                var row = Instantiate(this.itemRowPrefab, this.itemRowContainer);
+                var row = this.itemRowPool.Spawn();
                 row.Clicked += OnRowClicked;
                 row.Construct(item);
                 row.HidePrice();
@@ -115,23 +142,22 @@ namespace DarkBestiary.UI.Views.Unity
 
         private void ClearItems()
         {
-            foreach (var row in this.itemRowContainer.GetComponentsInChildren<ItemListRow>())
+            foreach (var slot in this.inventoryPanel.Slots)
             {
-                foreach (var slot in this.inventoryPanel.Slots)
-                {
-                    slot.InventoryItem.Unblock();
-                }
+                slot.InventoryItem.Unblock();
+            }
 
+            foreach (var row in this.itemRowPool.ActiveItems.ToList())
+            {
                 row.Clicked -= OnRowClicked;
-                Destroy(row.gameObject);
+                row.Despawn();
             }
         }
 
-        private void OnInventoryItemRightClicked(InventoryItem inventoryItem)
+        private void OnInventoryItemControlClicked(InventoryItem inventoryItem)
         {
             ItemPlacing?.Invoke(inventoryItem.Item);
         }
-
 
         private void OnItemDroppedIn(Item item)
         {

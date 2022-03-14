@@ -16,7 +16,7 @@ namespace DarkBestiary.Effects
         private readonly IUnitRepository unitRepository;
         private readonly IBehaviourRepository behaviourRepository;
 
-        public MirrorImageEffect(MirrorImageEffectData data, List<Validator> validators,
+        public MirrorImageEffect(MirrorImageEffectData data, List<ValidatorWithPurpose> validators,
             IUnitRepository unitRepository, IBehaviourRepository behaviourRepository) : base(data, validators)
         {
             this.data = data;
@@ -68,7 +68,7 @@ namespace DarkBestiary.Effects
 
                 var behaviours = entity.GetComponent<BehavioursComponent>();
                 behaviours.SyncWith(caster.GetComponent<BehavioursComponent>());
-                behaviours.Apply(behaviour, caster);
+                behaviours.ApplyAllStacks(behaviour, caster);
 
                 entity.GetComponent<HealthComponent>().SyncHealthFraction(caster.GetComponent<HealthComponent>());
                 entity.GetComponent<SpellbookComponent>().SyncCooldowns(caster.GetComponent<SpellbookComponent>());
@@ -88,7 +88,7 @@ namespace DarkBestiary.Effects
 
             foreach (var entity in entities)
             {
-                entity.transform.position = queue.Dequeue();
+                entity.transform.position = queue.Dequeue().Snapped();
                 entity.GetComponent<ActorComponent>().Show();
 
                 var prefab = Resources.Load<GameObject>(this.data.Prefab);

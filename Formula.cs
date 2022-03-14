@@ -4,8 +4,8 @@ using DarkBestiary.Attributes;
 using DarkBestiary.Components;
 using DarkBestiary.Properties;
 using DarkBestiary.Skills;
+using ThirdParty;
 using UnityEngine;
-using Utils;
 
 namespace DarkBestiary
 {
@@ -108,6 +108,14 @@ namespace DarkBestiary
                         .GetCost(ResourceType.ActionPoint)
                 },
                 {
+                    "ACTION_POINTS",
+                    (caster, target, skill) => (int) caster.GetComponent<ResourcesComponent>().Get(ResourceType.ActionPoint).Amount
+                },
+                {
+                    "ACTION_POINTS_MAX",
+                    (caster, target, skill) => (int) caster.GetComponent<ResourcesComponent>().Get(ResourceType.ActionPoint).MaxAmount
+                },
+                {
                     "LEVEL",
                     (caster, target, skill) => caster.GetComponent<ExperienceComponent>().Experience.Level
                 },
@@ -152,8 +160,16 @@ namespace DarkBestiary
                     (caster, target, skill) => caster.GetComponent<AttributesComponent>().GetAverageAttribute()
                 },
                 {
+                    "REGENERATION",
+                    (caster, target, skill) => caster.GetComponent<PropertiesComponent>().Get(PropertyType.HealthRegeneration).Value()
+                },
+                {
                     "HEALING_INCREASE",
                     (caster, target, skill) => caster.GetComponent<PropertiesComponent>().Get(PropertyType.HealingIncrease).Value()
+                },
+                {
+                    "INCOMING_HEALING_INCREASE",
+                    (caster, target, skill) => caster.GetComponent<PropertiesComponent>().Get(PropertyType.IncomingHealingIncrease).Value()
                 },
                 {
                     "ALCHEMY",

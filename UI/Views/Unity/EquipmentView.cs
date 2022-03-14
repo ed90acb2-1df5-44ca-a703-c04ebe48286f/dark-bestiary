@@ -1,5 +1,4 @@
 ﻿using DarkBestiary.Components;
-using DarkBestiary.Exceptions;
 using DarkBestiary.Items;
 using DarkBestiary.Managers;
 using DarkBestiary.UI.Elements;
@@ -25,10 +24,7 @@ namespace DarkBestiary.UI.Views.Unity
             this.character = character;
             this.equipment = this.character.Entity.GetComponent<EquipmentComponent>();
             this.inventory = this.character.Entity.GetComponent<InventoryComponent>();
-        }
 
-        protected override void OnInitialize()
-        {
             this.characterPanel.Initialize(this.character);
             this.equipmentPanel.Initialize(this.equipment);
             this.inventoryPanel.Initialize(this.inventory);
@@ -47,6 +43,16 @@ namespace DarkBestiary.UI.Views.Unity
             this.inventoryPanel.ItemDoubleClicked -= OnInventoryItemRightClicked;
 
             this.closeButton.onClick.RemoveListener(OnCloseButtonClicked);
+        }
+
+        public EquipmentPanel GetEquipmentPanel()
+        {
+            return this.equipmentPanel;
+        }
+
+        public InventoryPanel GetInventoryPanel()
+        {
+            return this.inventoryPanel;
         }
 
         private void OnInventoryItemRightClicked(InventoryItem inventoryItem)

@@ -16,7 +16,7 @@ namespace DarkBestiary.Behaviours
         private readonly CleaveBehaviourData data;
         private readonly BoardNavigator boardNavigator;
 
-        public CleaveBehaviour(CleaveBehaviourData data, BoardNavigator boardNavigator, List<Validator> validators) : base(data, validators)
+        public CleaveBehaviour(CleaveBehaviourData data, BoardNavigator boardNavigator, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
             this.boardNavigator = boardNavigator;
@@ -51,7 +51,12 @@ namespace DarkBestiary.Behaviours
             cleaveDamage.Flags |= DamageFlags.CantBeDodged;
             cleaveDamage.InfoFlags |= DamageInfoFlags.Cleave;
 
-            foreach (var cell in this.boardNavigator.WithinCleave(Target.transform.position, data.Victim.transform.position))
+            if (!string.IsNullOrEmpty(this.data.Prefab))
+            {
+                Object.Instantiate(Resources.Load<GameObject>(this.data.Prefab), Target.transform.position, Quaternion.identity).DestroyAsVisualEffect();
+            }
+
+            foreach (var cell in this.boardNavigator.WithinCircle(Target.transform.position, 2))
             {
                 if (!cell.IsOccupied)
                 {

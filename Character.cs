@@ -14,7 +14,7 @@ namespace DarkBestiary
         public static event Payload<Recipe> RecipeUnlocked;
 
         public int Id { get; }
-        public string Name { get; }
+        public string Name { get; set; }
         public GameObject Entity { get; set; }
         public bool IsStartScenarioCompleted { get; set; }
         public List<int> AvailableScenarios { get; }

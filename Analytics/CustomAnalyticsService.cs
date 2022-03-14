@@ -1,9 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using Newtonsoft.Json;
-using Steamworks;
 using UnityEngine;
 using UnityEngine.Networking;
+
+#if !DISABLESTEAMWORKS
+using Steamworks;
+#endif
 
 namespace DarkBestiary.Analytics
 {
@@ -25,14 +28,12 @@ namespace DarkBestiary.Analytics
                 {"Data", JsonConvert.SerializeObject(payload)},
             };
 
-#if !DISABLESTEAMWORKS
-
+            #if !DISABLESTEAMWORKS
             if (SteamManager.Initialized)
             {
                 data.Add("SteamUserId", SteamUser.GetSteamID().ToString());
             }
-
-#endif
+            #endif
 
             Timer.Instance.StartCoroutine(Send(data));
         }

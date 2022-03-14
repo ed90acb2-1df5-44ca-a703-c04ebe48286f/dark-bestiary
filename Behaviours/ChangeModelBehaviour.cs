@@ -10,7 +10,7 @@ namespace DarkBestiary.Behaviours
     {
         private readonly ChangeModelBehaviourData data;
 
-        public ChangeModelBehaviour(ChangeModelBehaviourData data, List<Validator> validators) : base(data, validators)
+        public ChangeModelBehaviour(ChangeModelBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }

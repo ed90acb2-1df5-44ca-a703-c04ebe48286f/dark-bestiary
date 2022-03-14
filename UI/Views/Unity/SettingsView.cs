@@ -16,6 +16,9 @@ namespace DarkBestiary.UI.Views.Unity
         public event Payload<int> ResolutionChanging;
         public event Payload<int> DisplayModeChanging;
         public event Payload<int> LanguageChanging;
+        public event Payload<bool> ToggleHideActingUnitHealth;
+        public event Payload<bool> ToggleLoopMusic;
+        public event Payload<bool> ToggleDisableUiSounds;
         public event Payload<bool> ToggleVerticalSync;
         public event Payload<bool> ToggleRunInBackground;
         public event Payload<bool> ToggleAlwaysShowEnemyHealth;
@@ -28,6 +31,7 @@ namespace DarkBestiary.UI.Views.Unity
         public event Payload<bool> ToggleHideHealth;
         public event Payload<bool> ToggleHideBuffs;
         public event Payload<bool> ToggleHideSkills;
+        public event Payload<bool> ToggleHighContrastMode;
         public event Payload<bool> ToggleSummonedUnitsControlledByAi;
         public event Payload<float> MasterVolumeChanging;
         public event Payload<float> MusicVolumeChanging;
@@ -37,6 +41,9 @@ namespace DarkBestiary.UI.Views.Unity
         [SerializeField] private TMP_Dropdown resolutionDropdown;
         [SerializeField] private TMP_Dropdown fullscreenModeDropdown;
         [SerializeField] private TMP_Dropdown languageDropdown;
+        [SerializeField] private Toggle loopMusicToggle;
+        [SerializeField] private Toggle hideActingUnitHealthToggle;
+        [SerializeField] private Toggle disableUiSoundsToggle;
         [SerializeField] private Toggle verticalSyncToggle;
         [SerializeField] private Toggle runInBackgroundToggle;
         [SerializeField] private Toggle alwaysShowEnemyHealthToggle;
@@ -50,6 +57,7 @@ namespace DarkBestiary.UI.Views.Unity
         [SerializeField] private Toggle hideHealthToggle;
         [SerializeField] private Toggle hideBuffsToggle;
         [SerializeField] private Toggle hideSkillsToggle;
+        [SerializeField] private Toggle highContrastModeToggle;
         [SerializeField] private Slider masterVolumeSlider;
         [SerializeField] private Slider musicVolumeSlider;
         [SerializeField] private Slider soundVolumeSlider;
@@ -58,6 +66,36 @@ namespace DarkBestiary.UI.Views.Unity
         [SerializeField] private Interactable closeButton;
         [SerializeField] private Transform fullscreenModeDropdownContainer;
         [SerializeField] private Transform resolutionDropdownContainer;
+
+        public void Construct(SettingsManager settings)
+        {
+            this.masterVolumeSlider.onValueChanged.AddListener(OnMasterVolumeChanged);
+            this.musicVolumeSlider.onValueChanged.AddListener(OnMusicVolumeChanged);
+            this.soundVolumeSlider.onValueChanged.AddListener(OnSoundVolumeChanged);
+            this.loopMusicToggle.onValueChanged.AddListener(OnLoopMusicChanged);
+            this.hideActingUnitHealthToggle.onValueChanged.AddListener(OnHideActingUnitHealthChanged);
+            this.disableUiSoundsToggle.onValueChanged.AddListener(OnUiSoundsChanged);
+            this.verticalSyncToggle.onValueChanged.AddListener(OnVerticalSyncChanged);
+            this.runInBackgroundToggle.onValueChanged.AddListener(OnRunInBackgroundChanged);
+            this.alwaysShowEnemyHealthToggle.onValueChanged.AddListener(OnAlwaysShowEnemyHealthChanged);
+            this.alwaysShowEnemySkillsToggle.onValueChanged.AddListener(OnAlwaysShowEnemySkillsChanged);
+            this.displayFormulasInTooltipsToggle.onValueChanged.AddListener(OnDisplayFormulasInTooltipsChanged);
+            this.disableErrorMessagesToggle.onValueChanged.AddListener(OnDisableErrorMessagesChanged);
+            this.disableCameraShakeToggle.onValueChanged.AddListener(OnDisableCameraShakeChanged);
+            this.disableCombatTextToggle.onValueChanged.AddListener(OnDisableCombatTextChanged);
+            this.hideBuffsToggle.onValueChanged.AddListener(OnHideBuffsChanged);
+            this.hideSkillsToggle.onValueChanged.AddListener(OnHideSkillsChanged);
+            this.highContrastModeToggle.onValueChanged.AddListener(OnHighContrastModeChanged);
+            this.hideHealthToggle.onValueChanged.AddListener(OnHideHealthChanged);
+            this.hideHealthTextToggle.onValueChanged.AddListener(OnHideHealthTextChanged);
+            this.summonedUnitsControlledByAiToggle.onValueChanged.AddListener(OnSummonedUnitsControlledByAiChanged);
+
+            this.resetButton.PointerClick += OnResetButtonPointerClick;
+            this.closeButton.PointerClick += OnCloseButtonPointerClick;
+            this.okayButton.PointerClick += OnCloseButtonPointerClick;
+
+            Refresh(settings);
+        }
 
         public void Refresh(SettingsManager settings)
         {
@@ -75,59 +113,24 @@ namespace DarkBestiary.UI.Views.Unity
             InitializeLanguagesDropdown(I18N.Instance.Dictionaries, settings.Locale);
 
             this.masterVolumeSlider.value = settings.MasterVolume;
-            this.masterVolumeSlider.onValueChanged.AddListener(OnMasterVolumeChanged);
-
             this.musicVolumeSlider.value = settings.MusicVolume;
-            this.musicVolumeSlider.onValueChanged.AddListener(OnMusicVolumeChanged);
-
             this.soundVolumeSlider.value = settings.SoundVolume;
-            this.soundVolumeSlider.onValueChanged.AddListener(OnSoundVolumeChanged);
-
             this.verticalSyncToggle.isOn = settings.VerticalSync > 0;
-            this.verticalSyncToggle.onValueChanged.AddListener(OnVerticalSyncChanged);
-
+            this.loopMusicToggle.isOn = settings.LoopMusic;
+            this.disableUiSoundsToggle.isOn = settings.DisableUiSounds;
             this.runInBackgroundToggle.isOn = settings.RunInBackground;
-            this.runInBackgroundToggle.onValueChanged.AddListener(OnRunInBackgroundChanged);
-
             this.alwaysShowEnemyHealthToggle.isOn = settings.AlwaysShowHealth;
-            this.alwaysShowEnemyHealthToggle.onValueChanged.AddListener(OnAlwaysShowEnemyHealthChanged);
-
             this.alwaysShowEnemySkillsToggle.isOn = settings.AlwaysShowSkills;
-            this.alwaysShowEnemySkillsToggle.onValueChanged.AddListener(OnAlwaysShowEnemySkillsChanged);
-
             this.displayFormulasInTooltipsToggle.isOn = settings.DisplayFormulasInTooltips;
-            this.displayFormulasInTooltipsToggle.onValueChanged.AddListener(OnDisplayFormulasInTooltipsChanged);
-
             this.disableErrorMessagesToggle.isOn = settings.DisableErrorMessages;
-            this.disableErrorMessagesToggle.onValueChanged.AddListener(OnDisableErrorMessagesChanged);
-
             this.disableCameraShakeToggle.isOn = settings.DisableCameraShake;
-            this.disableCameraShakeToggle.onValueChanged.AddListener(OnDisableCameraShakeChanged);
-
             this.disableCombatTextToggle.isOn = settings.DisableCombatText;
-            this.disableCombatTextToggle.onValueChanged.AddListener(OnDisableCombatTextChanged);
-
             this.hideBuffsToggle.isOn = settings.HideBuffs;
-            this.hideBuffsToggle.onValueChanged.AddListener(OnHideBuffsChanged);
-
             this.hideSkillsToggle.isOn = settings.HideSkills;
-            this.hideSkillsToggle.onValueChanged.AddListener(OnHideSkillsChanged);
-
+            this.highContrastModeToggle.isOn = settings.HighContrastMode;
             this.hideHealthToggle.isOn = settings.HideHealth;
-            this.hideHealthToggle.onValueChanged.AddListener(OnHideHealthChanged);
-
             this.hideHealthTextToggle.isOn = settings.HideHealthText;
-            this.hideHealthTextToggle.onValueChanged.AddListener(OnHideHealthTextChanged);
-
             this.summonedUnitsControlledByAiToggle.isOn = settings.SummonedUnitsControlledByAi;
-            this.summonedUnitsControlledByAiToggle.onValueChanged.AddListener(OnSummonedUnitsControlledByAiChanged);
-        }
-
-        protected override void OnInitialize()
-        {
-            this.resetButton.PointerUp += OnResetButtonPointerUp;
-            this.closeButton.PointerUp += OnCloseButtonPointerUp;
-            this.okayButton.PointerUp += OnCloseButtonPointerUp;
         }
 
         private void InitializeFullscreenModeDropdown(IEnumerable<FullScreenMode> modes, int value)
@@ -181,6 +184,11 @@ namespace DarkBestiary.UI.Views.Unity
             ToggleHideSkills?.Invoke(value);
         }
 
+        private void OnHighContrastModeChanged(bool value)
+        {
+            ToggleHighContrastMode?.Invoke(value);
+        }
+
         private void OnHideBuffsChanged(bool value)
         {
             ToggleHideBuffs?.Invoke(value);
@@ -221,6 +229,21 @@ namespace DarkBestiary.UI.Views.Unity
             ToggleAlwaysShowEnemyHealth?.Invoke(value);
         }
 
+        private void OnHideActingUnitHealthChanged(bool value)
+        {
+            ToggleHideActingUnitHealth?.Invoke(value);
+        }
+
+        private void OnUiSoundsChanged(bool value)
+        {
+            ToggleDisableUiSounds?.Invoke(value);
+        }
+
+        private void OnLoopMusicChanged(bool value)
+        {
+            ToggleLoopMusic?.Invoke(value);
+        }
+
         private void OnVerticalSyncChanged(bool value)
         {
             ToggleVerticalSync?.Invoke(value);
@@ -231,12 +254,12 @@ namespace DarkBestiary.UI.Views.Unity
             ToggleRunInBackground?.Invoke(value);
         }
 
-        private void OnResetButtonPointerUp()
+        private void OnResetButtonPointerClick()
         {
             Resetting?.Invoke();
         }
 
-        private void OnCloseButtonPointerUp()
+        private void OnCloseButtonPointerClick()
         {
             Hide();
         }

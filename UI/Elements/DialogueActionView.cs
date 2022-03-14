@@ -1,4 +1,5 @@
 using DarkBestiary.Dialogues;
+using DarkBestiary.Utility;
 using TMPro;
 using UnityEngine;
 
@@ -20,13 +21,14 @@ namespace DarkBestiary.UI.Elements
             this.action = action;
             this.hotkey = hotkey;
 
-            this.text.text = $"{KeyCodes.GetLabel(this.hotkey)}. {this.action.Text}";
+            this.text.text = $"{EnumTranslator.Translate(this.hotkey)}. {this.action.Text}";
         }
 
         private void Start()
         {
-            this.interactable.PointerUp += OnPointerUp;
+            this.interactable.PointerClick += OnPointerClick;
             this.interactable.PointerDown += OnPointerDown;
+            this.interactable.PointerUp += OnPointerUp;
             this.interactable.PointerEnter += OnPointerEnter;
             this.interactable.PointerExit += OnPointerExit;
         }
@@ -41,15 +43,19 @@ namespace DarkBestiary.UI.Elements
             this.text.color = this.defaultColor;
         }
 
-        public void OnPointerUp()
+        public void OnPointerClick()
         {
-            this.text.color = this.interactable.IsHovered ? this.hoveredColor : this.defaultColor;
             this.action.Execute();
         }
 
         public void OnPointerDown()
         {
             this.text.color = this.pressedColor;
+        }
+
+        public void OnPointerUp()
+        {
+            this.text.color = this.interactable.IsHovered ? this.hoveredColor : this.defaultColor;
         }
 
         private void Update()
@@ -61,7 +67,7 @@ namespace DarkBestiary.UI.Elements
 
             if (Input.GetKeyUp(this.hotkey))
             {
-                OnPointerUp();
+                OnPointerClick();
             }
         }
     }

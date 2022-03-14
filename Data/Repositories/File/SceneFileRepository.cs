@@ -4,19 +4,18 @@ using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
 using DarkBestiary.Extensions;
 using DarkBestiary.Scenarios.Scenes;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
     public class SceneFileRepository : FileRepository<int, SceneData, Scene>, ISceneRepository
     {
-        public SceneFileRepository(IFileReader loader, SceneMapper mapper) : base(loader, mapper)
+        public SceneFileRepository(IFileReader reader, SceneMapper mapper) : base(reader, mapper)
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/scenes.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/scenes.json";
         }
 
         public Scene Random(Func<SceneData, bool> predicate)

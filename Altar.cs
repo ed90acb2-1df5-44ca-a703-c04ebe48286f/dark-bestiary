@@ -49,12 +49,12 @@ namespace DarkBestiary
 
         protected override void OnPointerEnter()
         {
+            this.graphics.sprite = this.hover;
+
             if (this.interactor.State is CastState || this.interactor.State is MoveState)
             {
                 return;
             }
-
-            this.graphics.sprite = this.hover;
 
             BoardNavigator.Instance.HighlightRadius(transform.position, 2, Color.white.With(a: 0.15f));
             CursorManager.Instance.ChangeState(CursorManager.CursorState.Interact);
@@ -62,12 +62,12 @@ namespace DarkBestiary
 
         protected override void OnPointerExit()
         {
+            this.graphics.sprite = this.normal;
+
             if (this.interactor.State is CastState || this.interactor.State is MoveState)
             {
                 return;
             }
-
-            this.graphics.sprite = this.normal;
 
             BoardNavigator.Instance.Board.Clear();
             CursorManager.Instance.ChangeState(CursorManager.CursorState.Normal);
@@ -75,11 +75,6 @@ namespace DarkBestiary
 
         protected override void OnPointerUp()
         {
-            if (this.interactor.State is CastState)
-            {
-                return;
-            }
-
             var acting = this.characterManager.Character.Entity;
 
             if (CombatEncounter.Active?.Acting.IsOwnedByPlayer() == true)
@@ -89,13 +84,13 @@ namespace DarkBestiary
 
             if ((acting.transform.position - transform.position).magnitude >= 2.5f)
             {
-                UiErrorFrame.Instance.Push(I18N.Instance.Get("exception_target_is_too_far"));
+                UiErrorFrame.Instance.ShowMessage(I18N.Instance.Get("exception_target_is_too_far"));
                 return;
             }
 
             if (CombatEncounter.Active != null && !CombatEncounter.Active.IsEntityTurn(acting))
             {
-                UiErrorFrame.Instance.Push(I18N.Instance.Get("exception_wait_your_turn"));
+                UiErrorFrame.Instance.ShowMessage(I18N.Instance.Get("exception_wait_your_turn"));
                 return;
             }
 

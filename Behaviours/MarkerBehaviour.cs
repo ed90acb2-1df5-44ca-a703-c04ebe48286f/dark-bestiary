@@ -6,7 +6,7 @@ namespace DarkBestiary.Behaviours
 {
     public class MarkerBehaviour : Behaviour
     {
-        public MarkerBehaviour(BehaviourData data, List<Validator> validators) : base(data, validators)
+        public MarkerBehaviour(BehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
         }
     }

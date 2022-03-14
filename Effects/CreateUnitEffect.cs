@@ -18,8 +18,11 @@ namespace DarkBestiary.Effects
         private readonly CreateUnitEffectData data;
         private readonly BoardNavigator boardNavigator;
 
-        public CreateUnitEffect(CreateUnitEffectData data, List<Validator> validators, BoardNavigator boardNavigator,
-            IUnitRepository unitRepository) : base(data, validators)
+        public CreateUnitEffect
+        (
+            CreateUnitEffectData data, List<ValidatorWithPurpose> validators, BoardNavigator boardNavigator,
+            IUnitRepository unitRepository
+        ) : base(data, validators)
         {
             this.data = data;
             this.boardNavigator = boardNavigator;
@@ -49,16 +52,25 @@ namespace DarkBestiary.Effects
             createdUnit.Owner = DetermineOwner(casterUnit);
             createdUnit.Level = casterUnit.Level;
 
-            IncreaseSummonedStats(caster, entity);
+            if (!createdUnit.IsDummy)
+            {
+                IncreaseSummonedStats(caster, entity);
+            }
 
             entity.AddComponent<SummonedComponent>().Construct(
-                caster, this.data.Duration, this.data.KillOnCasterDeath, this.data.KillOnEpisodeComplete).Initialize();
+                caster, this.data.Duration, this.data.KillOnCasterDeath, this.data.KillOnEpisodeComplete
+            ).Initialize();
+
+            var health = entity.GetComponent<HealthComponent>();
+            health.Health = health.HealthMax * this.data.HealthFraction;
+            health.IsInvulnerable = true;
 
             Timer.Instance.WaitForFixedUpdate(() =>
-            {
-                var health = entity.GetComponent<HealthComponent>();
-                health.Health = health.HealthMax * this.data.HealthFraction;
-            });
+                {
+                    health.Health = health.HealthMax * this.data.HealthFraction;
+                    health.IsInvulnerable = false;
+                }
+            );
 
             TriggerFinished();
         }

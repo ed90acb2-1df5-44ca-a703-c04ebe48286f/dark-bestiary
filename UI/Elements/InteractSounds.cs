@@ -1,4 +1,5 @@
 ﻿using DarkBestiary.Managers;
+using FMODUnity;
 using UnityEngine;
 
 namespace DarkBestiary.UI.Elements
@@ -6,37 +7,34 @@ namespace DarkBestiary.UI.Elements
     [RequireComponent(typeof(Interactable))]
     public class InteractSounds : MonoBehaviour
     {
-        [FMODUnity.EventRef]
-        [SerializeField] private string mouseClickEvent = "event:/SFX/UI/interactable_Mouse_Click";
-
-        [FMODUnity.EventRef]
-        [SerializeField] private string mouseEnterEvent = "event:/SFX/UI/interactable_Mouse_Enter";
+        [SerializeField] private EventReference mouseClickEventReference;
+        [SerializeField] private EventReference mouseEnterEventReference;
 
         private void Start()
         {
             var interactable = GetComponent<Interactable>();
-            interactable.PointerDown += OnPointerDown;
+            interactable.PointerClick += OnPointerClick;
             interactable.PointerEnter += OnPointerEnter;
         }
 
-        private void OnPointerDown()
+        private void OnPointerClick()
         {
-            if (string.IsNullOrEmpty(this.mouseClickEvent))
+            if (this.mouseClickEventReference.IsNull || SettingsManager.Instance.DisableUiSounds)
             {
                 return;
             }
 
-            AudioManager.Instance.PlayOneShot(this.mouseClickEvent);
+            AudioManager.Instance.PlayOneShot(this.mouseClickEventReference.Path);
         }
 
         private void OnPointerEnter()
         {
-            if (string.IsNullOrEmpty(this.mouseEnterEvent))
+            if (this.mouseEnterEventReference.IsNull || SettingsManager.Instance.DisableUiSounds)
             {
                 return;
             }
 
-            AudioManager.Instance.PlayOneShot(this.mouseEnterEvent);
+            AudioManager.Instance.PlayOneShot(this.mouseEnterEventReference.Path);
         }
     }
 }

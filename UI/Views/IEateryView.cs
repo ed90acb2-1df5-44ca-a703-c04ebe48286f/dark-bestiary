@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DarkBestiary.Currencies;
 using DarkBestiary.Messaging;
 
 namespace DarkBestiary.UI.Views
@@ -9,10 +10,8 @@ namespace DarkBestiary.UI.Views
         event Payload<FoodType> FoodRemoved;
         event Payload BuyButtonClicked;
 
-        void Construct(IReadOnlyDictionary<FoodType, Food> foodSlots, List<Food> assortment);
-
+        void Construct(CurrenciesComponent currencies, IReadOnlyDictionary<FoodType, Food> foodSlots, List<Food> assortment);
         void UpdateSlots(IReadOnlyDictionary<FoodType, Food> foodSlots);
-
         void UpdatePrice(int price, bool isTooExpensive);
     }
 }

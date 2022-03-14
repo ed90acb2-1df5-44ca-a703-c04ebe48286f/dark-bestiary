@@ -1,6 +1,7 @@
 ﻿using DarkBestiary.Data.Repositories;
 using DarkBestiary.GameStates;
 using DarkBestiary.UI.Views;
+using DarkBestiary.Visions;
 
 namespace DarkBestiary.UI.Controllers
 {
@@ -9,6 +10,7 @@ namespace DarkBestiary.UI.Controllers
         private readonly ICharacterDataRepository characterDataRepository;
 
         private SettingsViewController settingsController;
+        private KeyBindingsViewController keyBindingsController;
 
         public MainMenuViewController(IMainMenuView view, ICharacterDataRepository characterDataRepository) : base(view)
         {
@@ -17,22 +19,14 @@ namespace DarkBestiary.UI.Controllers
 
         protected override void OnInitialize()
         {
-            this.settingsController = Container.Instance.Instantiate<SettingsViewController>();
-            this.settingsController.Initialize();
-            this.settingsController.View.Hide();
+            this.settingsController = ViewControllerRegistry.Initialize<SettingsViewController>();
+            this.keyBindingsController = ViewControllerRegistry.Initialize<KeyBindingsViewController>();
 
-            if (this.characterDataRepository.FindAll().Count == 0)
-            {
-                View.HidePlayButton();
-            }
-            else
-            {
-                View.ShowPlayButton();
-            }
-
-            View.PlayButtonClicked += OnPlayButtonClicked;
-            View.CreateCharacterButtonClicked += OnCreateCharacterButtonClicked;
+            View.CampaignButtonClicked += OnCampaignButtonClicked;
+            View.VisionsButtonClicked += OnVisionsButtonClicked;
             View.SettingsButtonClicked += OnSettingsButtonClicked;
+            View.KeyBindingsButtonClicked += OnKeyBindingsButtonClicked;
+            View.CreditsButtonClicked += OnCreditsButtonClicked;
             View.QuitButtonClicked += OnQuitButtonClicked;
         }
 
@@ -40,24 +34,57 @@ namespace DarkBestiary.UI.Controllers
         {
             this.settingsController.Terminate();
 
-            View.PlayButtonClicked -= OnPlayButtonClicked;
+            View.CampaignButtonClicked -= OnCampaignButtonClicked;
+            View.VisionsButtonClicked -= OnVisionsButtonClicked;
             View.SettingsButtonClicked -= OnSettingsButtonClicked;
+            View.KeyBindingsButtonClicked -= OnKeyBindingsButtonClicked;
+            View.CreditsButtonClicked -= OnCreditsButtonClicked;
             View.QuitButtonClicked -= OnQuitButtonClicked;
         }
 
-        private void OnPlayButtonClicked()
+        private void OnCampaignButtonClicked()
         {
-            Game.Instance.SwitchState(new CharacterSelectionGameState());
+            Game.Instance.SwitchState(() =>
+            {
+                Game.Instance.Mode = GameMode.Campaign;
+
+                if (this.characterDataRepository.FindAll().Count == 0)
+                {
+                    return new CharacterCreationGameState();
+                }
+
+                return new CharacterSelectionGameState();
+            }, true);
         }
 
-        private void OnCreateCharacterButtonClicked()
+        private void OnVisionsButtonClicked()
         {
-            Game.Instance.SwitchState(new CharacterCreationGameState());
+            Game.Instance.Mode = GameMode.Visions;
+            VisionManager.IsNewGame = true;
+
+            if (VisionManager.IsSaveExists())
+            {
+                Game.Instance.ToVisionMenu();
+            }
+            else
+            {
+                Game.Instance.SwitchState(() => new CharacterCreationGameState(), true);
+            }
         }
 
         private void OnSettingsButtonClicked()
         {
             this.settingsController.View.Show();
+        }
+
+        private void OnKeyBindingsButtonClicked()
+        {
+            this.keyBindingsController.View.Show();
+        }
+
+        private void OnCreditsButtonClicked()
+        {
+            Game.Instance.SwitchState(() => new CreditsGameState(), true);
         }
 
         private void OnQuitButtonClicked()

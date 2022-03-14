@@ -40,7 +40,7 @@ namespace DarkBestiary.Data.Readers
                 Debug.LogError($"Unable to load file: {path} message: {exception.Message}");
             }
 
-            return default(T);
+            return default;
         }
     }
 }

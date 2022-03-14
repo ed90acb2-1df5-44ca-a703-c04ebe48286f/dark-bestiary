@@ -78,21 +78,20 @@ namespace DarkBestiary.Extensions
 
         public static void MoveTooltip(this RectTransform transform, RectTransform target, RectTransform parent)
         {
+            var signX = target.position.x > Screen.width / 2f ? 1 : -1;
+            var signY = target.position.y > Screen.height / 2f ? 1 : -1;
+
             transform.pivot = new Vector2(
-                target.position.x > (float) Screen.width / 2 ? 1 : 0,
-                target.position.y > (float) Screen.height / 2 ? 1 : 0);
+                target.position.x > Screen.width / 2f ? 1 : 0,
+                target.position.y > Screen.height / 2f ? 1 : 0);
 
-            transform.position = target.position + new Vector3(
-                                     target.rect.width * target.pivot.x *
-                                     (Mathf.Approximately(transform.pivot.x, 0) ? 1 : -1) *
-                                     parent.localScale.x,
+            var offset = new Vector3(
+                target.rect.center.x + target.rect.width / 2f * -signX * parent.localScale.x,
+                target.rect.center.y + target.rect.height / 2f * signY * parent.localScale.y
+            );
 
-                                     target.rect.height * target.pivot.y *
-                                     (Mathf.Approximately(transform.pivot.y, 1) ? 1 : -1) *
-                                     parent.localScale.y
-                                 );
+            transform.position = target.position + offset;
         }
-
 
         public static void ClampPositionToParent(this RectTransform transform, RectTransform parent)
         {

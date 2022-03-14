@@ -1,5 +1,4 @@
 ﻿using DarkBestiary.Achievements;
-using DarkBestiary.Managers;
 using DarkBestiary.UI.Views;
 
 namespace DarkBestiary.UI.Controllers
@@ -15,7 +14,7 @@ namespace DarkBestiary.UI.Controllers
 
         protected override void OnInitialize()
         {
-            View.DrawAchievements(this.achievementManager.Achievements);
+            View.Construct(this.achievementManager.Achievements);
         }
     }
 }

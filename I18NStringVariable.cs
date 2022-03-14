@@ -97,7 +97,7 @@ namespace DarkBestiary
                     return effect;
                 case "Behaviour":
                     var behaviour = Container.Instance.Resolve<IBehaviourRepository>().FindOrFail(Data.EntityId);
-                    behaviour.StackCount = context.StackCount;
+                    behaviour.StackCount = Math.Max(1, context.StackCount);
                     return behaviour;
                 case "Mastery":
                     var mastery = CharacterManager.Instance.Character.Entity.GetComponent<MasteriesComponent>().Find(Data.EntityId);

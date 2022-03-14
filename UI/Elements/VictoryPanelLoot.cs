@@ -13,6 +13,8 @@ namespace DarkBestiary.UI.Elements
         [SerializeField] private InventoryItem itemPrefab;
         [SerializeField] private Transform itemContainer;
         [SerializeField] private GameObject legendaryParticles;
+        [SerializeField] private GameObject mythicParticles;
+        [SerializeField] private GameObject visionParticles;
 
         private MonoBehaviourPool<InventoryItem> itemPool;
 
@@ -67,13 +69,26 @@ namespace DarkBestiary.UI.Elements
             AudioManager.Instance.PlayWhoosh();
 
             var itemView = this.itemPool.Spawn();
-            itemView.Change(item);
+            itemView.Change(item, false);
             itemView.OverwriteStackCount(count);
             itemView.IsDraggable = false;
 
-            if (item.Rarity.Type == RarityType.Legendary)
+            if (item.IsIngredient)
             {
-                Instantiate(this.legendaryParticles, itemView.transform).DestroyAsVisualEffect();
+                return;
+            }
+
+            switch (item.Rarity.Type)
+            {
+                case RarityType.Legendary:
+                    Instantiate(this.legendaryParticles, itemView.transform).DestroyAsVisualEffect();
+                    break;
+                case RarityType.Mythic:
+                    Instantiate(this.mythicParticles, itemView.transform).DestroyAsVisualEffect();
+                    break;
+                case RarityType.Vision:
+                    Instantiate(this.visionParticles, itemView.transform).DestroyAsVisualEffect();
+                    break;
             }
         }
     }

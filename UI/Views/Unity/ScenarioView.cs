@@ -21,12 +21,8 @@ namespace DarkBestiary.UI.Views.Unity
         public void Construct(Scenario scenario)
         {
             this.scenario = scenario;
-        }
 
-        protected override void OnInitialize()
-        {
-            this.progress.Initialize(this.scenario);
-            this.progress.gameObject.SetActive(this.scenario.Episodes.Count > 1);
+            MaybeCreateProgressView();
 
             Scenario.AnyScenarioCompleted += OnScenarioAnyScenarioCompleted;
             Scenario.AnyScenarioFailed += OnScenarioAnyScenarioFailed;
@@ -38,6 +34,18 @@ namespace DarkBestiary.UI.Views.Unity
 
             Scenario.AnyScenarioCompleted -= OnScenarioAnyScenarioCompleted;
             Scenario.AnyScenarioFailed -= OnScenarioAnyScenarioFailed;
+        }
+
+        private void MaybeCreateProgressView()
+        {
+            var showProgress = !this.scenario.IsAscension && this.scenario.Episodes.Count > 1;
+
+            if (showProgress)
+            {
+                this.progress.Initialize(this.scenario);
+            }
+
+            this.progress.gameObject.SetActive(showProgress);
         }
 
         private void OnVictoryPanelChooseReward(VictoryPanelReward reward)

@@ -5,10 +5,10 @@ namespace DarkBestiary.UI.Elements
 {
     public class VictoryPanelSummary : MonoBehaviour
     {
-        [SerializeField] private VictoryPanelSummaryRow rowPrefab;
+        [SerializeField] private KeyValueView rowPrefab;
         [SerializeField] private Transform rowContainer;
 
-        public void Construct(ScenarioSummary summary)
+        public void Construct(Summary summary)
         {
             Instantiate(this.rowPrefab, this.rowContainer)
                 .Construct(I18N.Instance.Get("ui_summary_rounds"),
@@ -23,8 +23,8 @@ namespace DarkBestiary.UI.Elements
                     $"{summary.DamageTaken:F0} ({summary.DamageTakenPerRound:F0})");
 
             Instantiate(this.rowPrefab, this.rowContainer)
-                .Construct(I18N.Instance.Get("ui_summary_healing"),
-                    $"{summary.Healing:F0} ({summary.HealingPerRound:F0})");
+                .Construct(I18N.Instance.Get("ui_summary_healing_taken"),
+                    $"{summary.HealingTaken:F0} ({summary.HealingTakenPerRound:F0})");
         }
     }
 }

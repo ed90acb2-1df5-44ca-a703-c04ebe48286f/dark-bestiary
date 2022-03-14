@@ -15,7 +15,7 @@ namespace DarkBestiary.Behaviours
         private readonly BoardNavigator boardNavigator;
 
         public MultishotBehaviour(BehaviourData data, BoardNavigator boardNavigator,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.boardNavigator = boardNavigator;
         }
@@ -37,29 +37,35 @@ namespace DarkBestiary.Behaviours
                 return;
             }
 
-            if (!(data.Skill.Effect is LaunchMissileEffect launchMissileEffect))
+            Multishot(data.Caster, data.Target, data.Skill, 0.2f);
+        }
+
+        public void Multishot(GameObject caster, object target, Skill skill, float timeout, float damageMultiplier = 1)
+        {
+            if (!(skill.Effect is LaunchMissileEffect launchMissileEffect))
             {
                 return;
             }
 
             var enemies = this.boardNavigator
-                .WithinCircle(data.Caster.transform.position, data.Skill.GetMaxRange())
-                .Where(cell => cell.IsOccupied && cell.OccupiedBy != (GameObject) data.Target &&
-                               cell.IsOnLineOfSight(data.Caster.transform.position) &&
+                .WithinCircle(caster.transform.position, skill.GetMaxRange())
+                .Where(cell => cell.IsOccupied && cell.OccupiedBy != (GameObject) target &&
+                               cell.IsLineOfSightWalkable(caster.transform.position) &&
                                !cell.OccupiedBy.IsDummy() &&
-                               cell.OccupiedBy != data.Caster && cell.OccupiedBy.IsEnemyOf(data.Caster) &&
-                               Vector3.Dot((data.Target.GetPosition() - data.Caster.transform.position).normalized,
-                                   (cell.transform.position - data.Caster.transform.position).normalized) >= 0.5f)
-                .OrderBy(cell => (cell.transform.position - data.Caster.transform.position).sqrMagnitude)
+                               cell.OccupiedBy != caster && cell.OccupiedBy.IsEnemyOf(caster) &&
+                               Vector3.Dot((target.GetPosition() - caster.transform.position).normalized,
+                                   (cell.transform.position - caster.transform.position).normalized) >= 0.5f)
+                .OrderBy(cell => (cell.transform.position - caster.transform.position).sqrMagnitude)
                 .Take(2);
 
-            launchMissileEffect.Skill = data.Skill;
-
-            Timer.Instance.Wait(0.2f, () =>
+            Timer.Instance.Wait(timeout, () =>
             {
                 foreach (var enemy in enemies)
                 {
-                    launchMissileEffect.Clone().Apply(data.Caster, enemy.OccupiedBy);
+                    var effect = launchMissileEffect.Clone();
+                    effect.Skill = skill;
+                    effect.DamageMultiplier = damageMultiplier;
+                    effect.Apply(caster, enemy.OccupiedBy);
                 }
             });
         }

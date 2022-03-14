@@ -18,6 +18,8 @@ namespace DarkBestiary.UI.Elements
         private List<InventoryItemSlot> slots;
         private EquipmentComponent equipment;
         private InventoryComponent inventory;
+        private Item enchantSource;
+        private Item enchantTarget;
 
         public void Initialize(EquipmentComponent equipment)
         {
@@ -32,13 +34,13 @@ namespace DarkBestiary.UI.Elements
 
             for (var i = 0; i < equipment.Slots.Count; i++)
             {
-                this.slots[i].Construct(equipment.Slots[i].Item);
+                this.slots[i].ChangeItem(equipment.Slots[i].Item);
                 this.slots[i].ItemDroppedIn += OnItemDroppedIn;
                 this.slots[i].ItemDroppedOut += OnItemDroppedOut;
                 this.slots[i].InventoryItem.RightClicked += OnItemRightClicked;
             }
 
-            this.swapWeaponButton.PointerUp += OnSwapWeaponButtonPointerUp;
+            this.swapWeaponButton.PointerClick += OnSwapWeaponButtonPointerClick;
 
             InventoryItem.AnyBeginDrag += OnAnyItemBeginDrag;
             InventoryItem.AnyEndDrag += OnAnyItemEndDrag;
@@ -50,7 +52,7 @@ namespace DarkBestiary.UI.Elements
             this.equipment.ItemUnequipped -= OnItemUnequipped;
             this.equipment.ItemsSwapped -= OnItemsSwapped;
 
-            this.swapWeaponButton.PointerUp -= OnSwapWeaponButtonPointerUp;
+            this.swapWeaponButton.PointerClick -= OnSwapWeaponButtonPointerClick;
 
             foreach (var slot in this.slots)
             {
@@ -71,7 +73,7 @@ namespace DarkBestiary.UI.Elements
             }
         }
 
-        private void OnSwapWeaponButtonPointerUp()
+        private void OnSwapWeaponButtonPointerClick()
         {
             try
             {
@@ -79,7 +81,7 @@ namespace DarkBestiary.UI.Elements
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
         }
 
@@ -120,14 +122,30 @@ namespace DarkBestiary.UI.Elements
 
         private void OnItemDroppedIn(ItemDroppedEventData data)
         {
-            if (this.equipment.IsEquipped(data.InventoryItem.Item))
-            {
-                this.equipment.Swap(data.InventoryItem.Item, data.InventorySlot.InventoryItem.Item);
-                return;
-            }
-
             try
             {
+                if (this.equipment.IsEquipped(data.InventoryItem.Item))
+                {
+                    this.equipment.Swap(data.InventoryItem.Item, data.InventorySlot.InventoryItem.Item);
+                    return;
+                }
+
+                if (data.InventoryItem.Item.IsEnchantment &&
+                    data.InventorySlot.InventoryItem.Item.IsEnchantable)
+                {
+                    this.enchantSource = data.InventoryItem.Item;
+                    this.enchantTarget = data.InventorySlot.InventoryItem.Item;
+
+                    ConfirmationWindow.Instance.Cancelled += OnEnchantCancelled;
+                    ConfirmationWindow.Instance.Confirmed += OnEnchantConfirmed;
+                    ConfirmationWindow.Instance.Show(
+                        I18N.Instance.Get("ui_confirm_enchant_x").ToString(data.InventorySlot.InventoryItem.Item.ColoredName),
+                        I18N.Instance.Get("ui_confirm")
+                    );
+
+                    return;
+                }
+
                 if (data.InventoryItem.Item.IsGem &&
                     data.InventorySlot.InventoryItem.Item.IsSocketable &&
                     data.InventorySlot.InventoryItem.Item.HasEmptySockets)
@@ -136,13 +154,39 @@ namespace DarkBestiary.UI.Elements
                     return;
                 }
 
-                this.equipment.EquipIntoSlot(
-                    data.InventoryItem.Item, this.equipment.Slots[this.slots.IndexOf(data.InventorySlot)]);
+                this.equipment.EquipIntoSlot(data.InventoryItem.Item, this.equipment.Slots[this.slots.IndexOf(data.InventorySlot)]);
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
+        }
+
+        private void OnEnchantConfirmed()
+        {
+            try
+            {
+                this.enchantTarget.Enchant(this.enchantSource);
+                (this.enchantSource.Inventory ? this.enchantSource.Inventory : this.inventory)
+                    .Remove(this.enchantSource, 1);
+            }
+            catch (GameplayException exception)
+            {
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
+            }
+            finally
+            {
+                OnEnchantCancelled();
+            }
+        }
+
+        private void OnEnchantCancelled()
+        {
+            ConfirmationWindow.Instance.Cancelled -= OnEnchantCancelled;
+            ConfirmationWindow.Instance.Confirmed -= OnEnchantConfirmed;
+
+            this.enchantSource = null;
+            this.enchantTarget = null;
         }
 
         private void OnItemDroppedOut(ItemDroppedEventData data)
@@ -152,14 +196,17 @@ namespace DarkBestiary.UI.Elements
                 return;
             }
 
-            try
+            Timer.Instance.WaitForEndOfFrame(() =>
             {
-                this.equipment.Unequip(data.InventoryItem.Item, data.InventorySlot.InventoryItem.Item);
-            }
-            catch (GameplayException exception)
-            {
-                UiErrorFrame.Instance.Push(exception.Message);
-            }
+                try
+                {
+                    this.equipment.Unequip(data.InventoryItem.Item, data.InventorySlot.InventoryItem.Item);
+                }
+                catch (GameplayException exception)
+                {
+                    UiErrorFrame.Instance.ShowMessage(exception.Message);
+                }
+            });
         }
 
         private void OnItemRightClicked(InventoryItem inventoryItem)
@@ -170,7 +217,7 @@ namespace DarkBestiary.UI.Elements
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
         }
     }

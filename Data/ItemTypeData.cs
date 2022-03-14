@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using DarkBestiary.Items;
 
 namespace DarkBestiary.Data
@@ -9,7 +10,9 @@ namespace DarkBestiary.Data
         public string NameKey;
         public ItemTypeType Type;
         public int MaxSocketCount;
+        public int MaxRuneCount;
         public int MasteryId;
         public EquipmentStrategyType EquipmentStrategyType;
+        public List<int> Categories = new List<int>();
     }
 }

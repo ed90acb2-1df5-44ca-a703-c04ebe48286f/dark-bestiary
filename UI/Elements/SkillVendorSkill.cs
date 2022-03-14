@@ -39,7 +39,7 @@ namespace DarkBestiary.UI.Elements
             foreach (var set in skill.Sets)
             {
                 Instantiate(this.circleIconPrefab, this.circleIconContainer)
-                    .Construct(Resources.Load<Sprite>(set.Icon));
+                    .Construct(Resources.Load<Sprite>(set.Icon), set.Name);
             }
 
             this.defaultPriceColor = this.priceText.color;

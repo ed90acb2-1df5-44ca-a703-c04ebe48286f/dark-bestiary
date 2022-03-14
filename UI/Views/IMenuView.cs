@@ -7,6 +7,7 @@ namespace DarkBestiary.UI.Views
         event Payload EnterSettings;
         event Payload EnterMainMenu;
         event Payload EnterFeedback;
+        event Payload EnterTown;
         event Payload ExitGame;
     }
 }

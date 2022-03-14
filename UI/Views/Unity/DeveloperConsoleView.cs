@@ -23,6 +23,14 @@ namespace DarkBestiary.UI.Views.Unity
             this.input.onEndEdit.AddListener(OnInputChanged);
         }
 
+        public override void Show()
+        {
+        }
+
+        public override void Hide()
+        {
+        }
+
         private void OnInputChanged(string value)
         {
             if (Input.GetKey(KeyCode.Return))

@@ -12,7 +12,7 @@ namespace DarkBestiary.Behaviours
 
         private Line line;
 
-        public CreateLineBehaviour(CreateLineBehaviourData data, List<Validator> validators) : base(data, validators)
+        public CreateLineBehaviour(CreateLineBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }

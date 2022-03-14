@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using DarkBestiary.Components;
+using DarkBestiary.Currencies;
 using DarkBestiary.Items;
 using DarkBestiary.Messaging;
 using DarkBestiary.UI.Elements;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace DarkBestiary.UI.Views.Unity
 {
@@ -15,9 +17,8 @@ namespace DarkBestiary.UI.Views.Unity
         public event Payload UpgradeButtonClicked;
 
         [SerializeField] private TextMeshProUGUI title;
-        [SerializeField] private InventoryPanel inventoryPanel;
-        [SerializeField] private EquipmentPanel equipmentPanel;
-        [SerializeField] private CharacterPanel characterPanel;
+        [SerializeField] private TextMeshProUGUI buttonText;
+        [SerializeField] private Image buttonIcon;
         [SerializeField] private TextMeshProUGUI itemName;
         [SerializeField] private InventoryItemSlot itemSlot;
         [SerializeField] private CraftViewIngredient ingredientPrefab;
@@ -29,41 +30,35 @@ namespace DarkBestiary.UI.Views.Unity
 
         private bool requiresUpdate;
         private Item item;
-        private Character character;
-        private EquipmentComponent equipment;
-        private InventoryComponent inventory;
+        private InventoryPanel inventoryPanel;
+        private InventoryComponent characterInventory;
+        private InventoryComponent ingredientInventory;
         private List<RecipeIngredient> ingredients;
 
-        public void Construct(Character character)
+        public void Construct(InventoryPanel inventoryPanel, InventoryComponent characterInventory, InventoryComponent ingredientInventory)
         {
-            this.character = character;
-            this.equipment = character.Entity.GetComponent<EquipmentComponent>();
-            this.inventory = character.Entity.GetComponent<InventoryComponent>();
+            this.inventoryPanel = inventoryPanel;
+            this.characterInventory = characterInventory;
+            this.ingredientInventory = ingredientInventory;
 
-            this.itemSlot.Construct(this.inventory.CreateEmptyItem());
-        }
+            this.itemSlot.ChangeItem(this.characterInventory.CreateEmptyItem());
 
-        protected override void OnInitialize()
-        {
-            this.characterPanel.Initialize(this.character);
-            this.equipmentPanel.Initialize(this.equipment);
-            this.inventoryPanel.Initialize(this.inventory);
-            this.inventoryPanel.ItemRightClicked += OnInventoryItemRightClicked;
+            this.inventoryPanel.ItemControlClicked += OnInventoryItemControlClicked;
 
             this.itemSlot.ItemDroppedIn += OnItemDroppedIn;
             this.itemSlot.ItemDroppedOut += OnItemDroppedOut;
             this.itemSlot.InventoryItem.RightClicked += OnItemRightClicked;
 
-            this.upgradeButton.PointerUp += OnUpgradeButtonClicked;
-            this.closeButton.PointerUp += Hide;
+            this.upgradeButton.PointerClick += OnUpgradeButtonClicked;
+            this.closeButton.PointerClick += Hide;
+
+            this.buttonIcon.gameObject.SetActive(false);
+            this.buttonText.text = I18N.Instance.Translate("ui_apply");
         }
 
         protected override void OnTerminate()
         {
-            this.characterPanel.Terminate();
-            this.equipmentPanel.Terminate();
-            this.inventoryPanel.Terminate();
-            this.inventoryPanel.ItemRightClicked -= OnInventoryItemRightClicked;
+            this.inventoryPanel.ItemControlClicked -= OnInventoryItemControlClicked;
         }
 
         protected override void OnHidden()
@@ -71,7 +66,27 @@ namespace DarkBestiary.UI.Views.Unity
             OnItemRightClicked(this.itemSlot.InventoryItem);
         }
 
-        public void ChanceTitle(string title)
+        private void OnEnable()
+        {
+            if (this.inventoryPanel == null)
+            {
+                return;
+            }
+
+            this.inventoryPanel.ItemControlClicked += OnInventoryItemControlClicked;
+        }
+
+        private void OnDisable()
+        {
+            if (this.inventoryPanel == null)
+            {
+                return;
+            }
+
+            this.inventoryPanel.ItemControlClicked -= OnInventoryItemControlClicked;
+        }
+
+        public void ChangeTitle(string title)
         {
             this.title.text = title;
         }
@@ -83,10 +98,27 @@ namespace DarkBestiary.UI.Views.Unity
             this.requiresUpdate = true;
         }
 
+        public void RefreshCost(Currency cost)
+        {
+            if (cost == null)
+            {
+                this.buttonIcon.gameObject.SetActive(false);
+                this.buttonText.text = I18N.Instance.Translate("ui_apply");
+                this.buttonText.margin = Vector4.zero;
+            }
+            else
+            {
+                this.buttonIcon.gameObject.SetActive(true);
+                this.buttonIcon.sprite = Resources.Load<Sprite>(cost.Icon);
+                this.buttonText.text = cost.Amount.ToString();
+                this.buttonText.margin = new Vector4(42, 0, 0, 0);
+            }
+        }
+
         public void Cleanup()
         {
             this.itemName.text = "";
-            this.itemSlot.InventoryItem.Change(this.inventory.CreateEmptyItem());
+            this.itemSlot.InventoryItem.Change(this.characterInventory.CreateEmptyItem());
 
             foreach (var element in this.ingredientContainer.GetComponentsInChildren<InventoryItem>())
             {
@@ -106,14 +138,14 @@ namespace DarkBestiary.UI.Views.Unity
             foreach (var ingredient in ingredients)
             {
                 var ingredientView = Instantiate(this.ingredientPrefab, this.ingredientContainer);
-                ingredientView.Construct(ingredient, this.inventory);
+                ingredientView.Construct(ingredient, this.ingredientInventory);
                 this.ingredientViews.Add(ingredientView);
             }
         }
 
-        private void OnInventoryItemRightClicked(InventoryItem item)
+        private void OnInventoryItemControlClicked(InventoryItem inventoryItem)
         {
-            ItemPlaced?.Invoke(item.Item);
+            ItemPlaced?.Invoke(inventoryItem.Item);
         }
 
         private void OnItemRightClicked(InventoryItem item)

@@ -16,9 +16,7 @@ namespace DarkBestiary.Managers
     {
         public static Mailbox Instance { get; private set; }
 
-        public event Payload<Item> MailSent;
-        public event Payload<Item> MailTaken;
-        public event Payload<Item> MailRemoved;
+        public event Payload Updated;
 
         public IReadOnlyCollection<Item> Items => this.items;
 
@@ -65,13 +63,21 @@ namespace DarkBestiary.Managers
         public void SendMail(Item item)
         {
             this.items.Add(item);
-            MailSent?.Invoke(item);
+            Updated?.Invoke();
+        }
+
+        public void SendMail(IEnumerable<Item> items)
+        {
+            foreach (var item in items)
+            {
+                SendMail(item);
+            }
         }
 
         public void RemoveMail(Item item)
         {
             this.items.Remove(item);
-            MailRemoved?.Invoke(item);
+            Updated?.Invoke();
         }
 
         public void TakeMail(Item item, GameObject entity)
@@ -80,12 +86,30 @@ namespace DarkBestiary.Managers
 
             entity.GetComponent<InventoryComponent>().Pickup(item);
 
-            MailTaken?.Invoke(item);
+            Updated?.Invoke();
+        }
+
+        public void TakeAll(GameObject entity)
+        {
+            var inventory = entity.GetComponent<InventoryComponent>();
+
+            while (true)
+            {
+                if (this.items.Count == 0 || inventory.GetFreeSlotCount() == 0)
+                {
+                    break;
+                }
+
+                inventory.Pickup(this.items[0]);
+                this.items.Remove(this.items[0]);
+            }
+
+            Updated?.Invoke();
         }
 
         private string GetDataPath()
         {
-            return Application.persistentDataPath + $"/{this.storageId}/mailbox.save";
+            return Environment.PersistentDataPath + $"/{this.storageId}/mailbox.save";
         }
     }
 }

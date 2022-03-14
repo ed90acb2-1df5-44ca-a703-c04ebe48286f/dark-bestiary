@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using DarkBestiary.Messaging;
 using DarkBestiary.UI.Controllers;
 using DarkBestiary.UI.Elements;
@@ -21,13 +22,22 @@ namespace DarkBestiary.UI.Views.Unity
 
         private void Start()
         {
-            this.closeButton.PointerUp += OnCloseButtonPointerUp;
+            this.closeButton.PointerClick += OnCloseButtonPointerClick;
         }
 
-        public void AddRow(string text)
+        private void OnEnable()
+        {
+            Timer.Instance.Wait(0.01f, () =>
+            {
+                this.scrollRect.normalizedPosition = new Vector2(0, 0);
+            });
+        }
+
+        public void Add(string text)
         {
             var row = Instantiate(this.rowPrefab, this.rowContainer);
             row.text = text;
+            row.transform.SetAsLastSibling();
             this.rows.AddLast(row);
 
             if (this.rows.Count > CombatLogViewController.BufferSize)
@@ -35,14 +45,9 @@ namespace DarkBestiary.UI.Views.Unity
                 Destroy(this.rows.First.Value.gameObject);
                 this.rows.RemoveFirst();
             }
-
-            Timer.Instance.WaitForFixedUpdate(() =>
-            {
-                this.scrollRect.normalizedPosition = new Vector2(0, 0);
-            });
         }
 
-        private void OnCloseButtonPointerUp()
+        private void OnCloseButtonPointerClick()
         {
             CloseButtonClicked?.Invoke();
         }

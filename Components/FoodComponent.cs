@@ -4,6 +4,7 @@ using DarkBestiary.Scenarios;
 
 namespace DarkBestiary.Components
 {
+    // TODO: Remove this crap
     public class FoodComponent : Component
     {
         public IReadOnlyDictionary<FoodType, Food> Foods => this.foods;
@@ -39,7 +40,12 @@ namespace DarkBestiary.Components
         {
             foreach (var slot in this.foods.ToList())
             {
-                this.foods[slot.Key]?.Remove(this.behaviours);
+                if (this.foods[slot.Key] == null || this.foods[slot.Key].Behaviour.IsApplied)
+                {
+                    continue;
+                }
+
+                this.foods[slot.Key].Remove(this.behaviours);
                 this.foods[slot.Key] = null;
             }
         }

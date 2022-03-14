@@ -26,26 +26,20 @@ namespace DarkBestiary.UI.Controllers
 
         protected override void OnInitialize()
         {
-            this.mailbox.MailSent += OnMailboxUpdated;
-            this.mailbox.MailTaken += OnMailboxUpdated;
-            this.mailbox.MailRemoved += OnMailboxUpdated;
+            this.mailbox.Updated += OnMailboxUpdated;
 
             View.Pick += OnPick;
             View.Remove += OnRemove;
+            View.TakeAll += OnTakeAll;
             View.NextPage += OnNextPage;
             View.PreviousPage += OnPreviousPage;
-        }
 
-        protected override void OnViewInitialized()
-        {
             Refresh();
         }
 
         protected override void OnTerminate()
         {
-            this.mailbox.MailSent -= OnMailboxUpdated;
-            this.mailbox.MailTaken -= OnMailboxUpdated;
-            this.mailbox.MailRemoved -= OnMailboxUpdated;
+            this.mailbox.Updated -= OnMailboxUpdated;
 
             View.Pick -= OnPick;
             View.Remove -= OnRemove;
@@ -53,7 +47,7 @@ namespace DarkBestiary.UI.Controllers
             View.PreviousPage -= OnPreviousPage;
         }
 
-        private void OnMailboxUpdated(Item item)
+        private void OnMailboxUpdated()
         {
             if (this.isRefreshing)
             {
@@ -62,18 +56,20 @@ namespace DarkBestiary.UI.Controllers
 
             this.isRefreshing = true;
 
-            Timer.Instance.Wait(1, Refresh);
+            Timer.Instance.Wait(1, () =>
+            {
+                // Note: View could be destroyed at this moment.
+                if (View == null)
+                {
+                    return;
+                }
+
+                Refresh();
+            });
         }
 
         private void Refresh()
         {
-            if (IsTerminated)
-            {
-                return;
-            }
-
-            this.isRefreshing = false;
-
             this.totalPages = this.mailbox.Items.Count / PerPage;
             this.currentPage = Math.Min(this.currentPage, this.totalPages);
 
@@ -87,13 +83,20 @@ namespace DarkBestiary.UI.Controllers
                 })
                 .ToList();
 
-            View.Display(items, this.currentPage, this.totalPages);
+            View.Refresh(items, this.currentPage, this.totalPages);
+
+            this.isRefreshing = false;
         }
 
         private void OnPreviousPage()
         {
             this.currentPage = Math.Max(this.currentPage - 1, 0);
             Refresh();
+        }
+
+        private void OnTakeAll()
+        {
+            this.mailbox.TakeAll(this.character.Entity);
         }
 
         private void OnNextPage()

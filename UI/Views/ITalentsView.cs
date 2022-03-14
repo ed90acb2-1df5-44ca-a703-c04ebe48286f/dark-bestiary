@@ -10,7 +10,6 @@ namespace DarkBestiary.UI.Views
         event Payload Reseted;
 
         void Construct(List<TalentTier> tiers);
-
         void UpdatePoints(int points);
     }
 }

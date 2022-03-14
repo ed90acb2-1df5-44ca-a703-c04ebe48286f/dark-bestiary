@@ -3,18 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
     public abstract class FileRepository<TKey, TData, TEntity> : IRepository<TKey, TEntity> where TData : Identity<TKey>
     {
-        protected readonly IFileReader Loader;
+        protected readonly IFileReader Reader;
         protected readonly IMapper<TData, TEntity> Mapper;
 
-        protected FileRepository(IFileReader loader, IMapper<TData, TEntity> mapper)
+        protected FileRepository(IFileReader reader, IMapper<TData, TEntity> mapper)
         {
-            this.Loader = loader;
+            this.Reader = reader;
             this.Mapper = mapper;
         }
 
@@ -44,7 +43,11 @@ namespace DarkBestiary.Data.Repositories.File
 
         public List<TEntity> Find(List<TKey> keys)
         {
-            return LoadData().Where(d => keys.Contains(d.Id)).Select(this.Mapper.ToEntity).ToList();
+            return LoadData()
+                .Where(d => keys.Contains(d.Id))
+                .OrderBy(e => keys.IndexOf(e.Id))
+                .Select(this.Mapper.ToEntity)
+                .ToList();
         }
 
         public virtual TEntity FindOrFail(TKey key)
@@ -66,16 +69,7 @@ namespace DarkBestiary.Data.Repositories.File
 
         protected virtual List<TData> LoadData()
         {
-            try
-            {
-                return this.Loader.Read<List<TData>>(GetFilename()) ?? new List<TData>();
-            }
-            catch (Exception exception)
-            {
-                Debug.LogError($"Error parsing: {GetFilename()}" + exception.Message);
-            }
-
-            return new List<TData>();
+            return this.Reader.Read<List<TData>>(GetFilename()) ?? new List<TData>();
         }
     }
 }

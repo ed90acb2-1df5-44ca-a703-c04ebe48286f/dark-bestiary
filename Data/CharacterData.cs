@@ -10,10 +10,9 @@ namespace DarkBestiary.Data
         public string Name;
         public int Level;
         public int Rerolls;
+        public int FreeSkills;
         public int Experience;
-        public bool IsDead;
-        public bool IsHardcore;
-        public bool IsRandomSkills;
+        public int SkillPoints;
         public bool IsStartScenarioCompleted;
         public bool IsHelmHidden;
         public int HairstyleIndex;
@@ -23,6 +22,7 @@ namespace DarkBestiary.Data
         public int BeardColorIndex;
         public long Timestamp;
         public CharacterRelicData Relics = new CharacterRelicData();
+        public List<SpecializationSaveData> Specializations = new List<SpecializationSaveData>();
         public List<int> AvailableScenarios = new List<int>();
         public List<int> CompletedScenarios = new List<int>();
         public List<int> UnlockedSkills = new List<int>();

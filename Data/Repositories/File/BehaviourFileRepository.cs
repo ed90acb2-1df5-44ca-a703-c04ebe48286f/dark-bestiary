@@ -4,20 +4,19 @@ using System.Linq;
 using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
 using DarkBestiary.Extensions;
-using UnityEngine;
 using Behaviour = DarkBestiary.Behaviours.Behaviour;
 
 namespace DarkBestiary.Data.Repositories.File
 {
     public class BehaviourFileRepository : FileRepository<int, BehaviourData, Behaviours.Behaviour>, IBehaviourRepository
     {
-        public BehaviourFileRepository(IFileReader loader, BehaviourMapper mapper) : base(loader, mapper)
+        public BehaviourFileRepository(IFileReader reader, BehaviourMapper mapper) : base(reader, mapper)
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/behaviours.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/behaviours.json";
         }
 
         public List<Behaviour> Find(Func<BehaviourData, bool> predicate)

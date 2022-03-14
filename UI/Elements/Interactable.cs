@@ -8,15 +8,17 @@ namespace DarkBestiary.UI.Elements
     public class Interactable : MonoBehaviour,
         IPointerDownHandler,
         IPointerUpHandler,
+        IPointerClickHandler,
         IPointerEnterHandler,
         IPointerExitHandler,
-        IDragHandler
+        IDropHandler
     {
-        public event Payload PointerUp;
+        public event Payload<GameObject> Dropped;
+        public event Payload PointerClick;
         public event Payload PointerDown;
+        public event Payload PointerUp;
         public event Payload PointerEnter;
         public event Payload PointerExit;
-        public event Payload DoubleClicked;
 
         public bool Active
         {
@@ -46,7 +48,6 @@ namespace DarkBestiary.UI.Elements
         private const float DoubleClickTimeout = 0.25f;
 
         private bool active = true;
-        private float lastClickTime;
 
         private void Start()
         {
@@ -56,6 +57,17 @@ namespace DarkBestiary.UI.Elements
             }
         }
 
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (!Active || !IsHovered)
+            {
+                return;
+            }
+
+            PointerClick?.Invoke();
+            OnPointerClick();
+        }
+
         public void OnPointerDown(PointerEventData pointer)
         {
             if (!Active)
@@ -63,27 +75,19 @@ namespace DarkBestiary.UI.Elements
                 return;
             }
 
-            OnPointerDown();
             PointerDown?.Invoke();
+            OnPointerDown();
         }
 
         public void OnPointerUp(PointerEventData pointer)
         {
-            if (!Active || !this.IsHovered)
+            if (!Active || !IsHovered)
             {
                 return;
             }
 
-            OnPointerUp();
             PointerUp?.Invoke();
-
-            if (Time.time - this.lastClickTime < DoubleClickTimeout)
-            {
-                DoubleClicked?.Invoke();
-                return;
-            }
-
-            this.lastClickTime = Time.time;
+            OnPointerUp();
         }
 
         public void OnPointerEnter(PointerEventData pointer)
@@ -93,7 +97,7 @@ namespace DarkBestiary.UI.Elements
                 return;
             }
 
-            this.IsHovered = true;
+            IsHovered = true;
             OnPointerEnter();
             PointerEnter?.Invoke();
         }
@@ -105,13 +109,14 @@ namespace DarkBestiary.UI.Elements
                 return;
             }
 
-            this.IsHovered = false;
+            IsHovered = false;
             OnPointerExit();
             PointerExit?.Invoke();
         }
 
-        public void OnDrag(PointerEventData pointer)
+        public void OnDrop(PointerEventData pointer)
         {
+            Dropped?.Invoke(pointer.pointerDrag);
         }
 
         private void Activate()
@@ -142,6 +147,18 @@ namespace DarkBestiary.UI.Elements
         {
         }
 
+        protected virtual void OnPointerClick()
+        {
+        }
+
+        protected virtual void OnPointerUp()
+        {
+        }
+
+        protected virtual void OnPointerDown()
+        {
+        }
+
         protected virtual void OnPointerEnter()
         {
         }
@@ -150,17 +167,9 @@ namespace DarkBestiary.UI.Elements
         {
         }
 
-        protected virtual void OnPointerDown()
-        {
-        }
-
-        protected virtual void OnPointerUp()
-        {
-        }
-
         protected void TriggerMouseUp()
         {
-            PointerUp?.Invoke();
+            PointerClick?.Invoke();
         }
     }
 }

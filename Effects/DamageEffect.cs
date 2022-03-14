@@ -4,6 +4,7 @@ using System.Linq;
 using DarkBestiary.Components;
 using DarkBestiary.Data;
 using DarkBestiary.Data.Repositories;
+using DarkBestiary.Extensions;
 using DarkBestiary.Items;
 using DarkBestiary.Managers;
 using DarkBestiary.Properties;
@@ -18,8 +19,11 @@ namespace DarkBestiary.Effects
         protected readonly DamageEffectData Data;
         protected readonly IEffectRepository EffectRepository;
 
-        public DamageEffect(DamageEffectData data, List<Validator> validators,
-            IEffectRepository effectRepository) : base(data, validators)
+        public DamageEffect
+        (
+            DamageEffectData data, List<ValidatorWithPurpose> validators,
+            IEffectRepository effectRepository
+        ) : base(data, validators)
         {
             this.Data = data;
             this.EffectRepository = effectRepository;
@@ -32,13 +36,13 @@ namespace DarkBestiary.Effects
 
         protected override void Apply(GameObject caster, GameObject target)
         {
-            var amount = Modify(GetAmountVariance(caster, target), caster, target) * StackCount;
+            var amount = GetAmount(caster, target) * StackCount * DamageMultiplier;
 
             if (this.Data.Effects.Count > 0)
             {
                 amount += this.EffectRepository.Find(this.Data.Effects)
                     .OfType<DamageEffect>()
-                    .Aggregate(0f, (current, effect) => current + effect.GetAmountVariance(caster, target));
+                    .Aggregate(0f, (current, effect) => current + effect.GetAmount(caster, target));
             }
 
             var damageType = GetDamageType();
@@ -49,11 +53,10 @@ namespace DarkBestiary.Effects
                 return;
             }
 
-            var damage = target.GetComponent<HealthComponent>().Damage(caster,
-                new Damage(amount, damageType, GetWeaponSound(), this.Data.DamageFlags, this.Data.DamageInfoFlags)
-            );
+            var damage = new Damage(amount, damageType, GetWeaponSound(), this.Data.DamageFlags, this.Data.DamageInfoFlags, Skill);
+            damage = target.GetComponent<HealthComponent>().Damage(caster, damage);
 
-            if (damage.IsDodged() || damage.IsInvulnerable())
+            if (target.IsEnemyOf(caster) && (damage.IsDodged() || damage.IsInvulnerable()))
             {
                 IsFailed = true;
                 TriggerFinished();
@@ -68,9 +71,14 @@ namespace DarkBestiary.Effects
 
         private bool MaybeHealInstead(GameObject caster, GameObject target, float amount, DamageType damageType)
         {
+            if (caster.GetComponent<BehavioursComponent>().IsCausticPoison)
+            {
+                return false;
+            }
+
             if (target.GetComponent<BehavioursComponent>().IsUndead && damageType == DamageType.Poison)
             {
-                target.GetComponent<HealthComponent>().Heal(caster, new Healing(amount));
+                target.GetComponent<HealthComponent>().Heal(caster, new Healing(amount, HealFlags.None, Skill));
                 return true;
             }
 
@@ -84,7 +92,7 @@ namespace DarkBestiary.Effects
                 return;
             }
 
-            var healing = new Healing(damage * this.Data.Vampirism, HealingFlags.Vampirism);
+            var healing = new Healing(damage * this.Data.Vampirism, HealFlags.Vampirism, Skill);
 
             caster.GetComponent<HealthComponent>().Heal(caster, healing);
         }
@@ -162,9 +170,9 @@ namespace DarkBestiary.Effects
             return WeaponSound.None;
         }
 
-        public float GetAmountVariance(GameObject caster, GameObject target)
+        public float GetAmount(GameObject caster, GameObject target)
         {
-            var damage = GetAmount(caster, target);
+            var damage = Modify(GetAmountBase(caster, target), caster, target);
 
             if (this.Data.Variance > 0)
             {
@@ -177,12 +185,7 @@ namespace DarkBestiary.Effects
             return damage;
         }
 
-        protected virtual float Modify(float amount, GameObject caster, GameObject target)
-        {
-            return amount;
-        }
-
-        private float GetAmount(GameObject caster, GameObject target)
+        private float GetAmountBase(GameObject caster, GameObject target)
         {
             var damage = this.Data.Base + EvaluateFormula(caster, target);
 
@@ -191,7 +194,39 @@ namespace DarkBestiary.Effects
                 damage *= 0.5f + caster.GetComponent<PropertiesComponent>().Get(PropertyType.OffhandDamageIncrease).Value();
             }
 
+            if (Skill?.Weapon != null && Skill.Weapon.IsWeapon)
+            {
+                var rarityIndex = (int) Skill.Weapon.Rarity.Type;
+                damage *= 1 + Mathf.Max(rarityIndex - 1, 0) * 0.1f;
+            }
+
             return damage;
+        }
+
+        protected virtual float Modify(float amount, GameObject caster, GameObject target)
+        {
+            return amount;
+        }
+
+        public string GetAmountString(GameObject entity)
+        {
+            var amount = GetAmountBase(entity, null);
+
+            var multiplier = entity.GetComponent<OffenseComponent>().GetDamageMultiplier(
+                new Damage(amount, GetDamageType(), WeaponSound.None, this.Data.DamageFlags, DamageInfoFlags.None, null)
+            );
+
+            amount *= multiplier;
+
+            if (this.Data.Variance <= 0 || amount < 1)
+            {
+                return Wrap(((int) amount).ToString());
+            }
+
+            var min = (int) (Math.Max(1, amount * (1.0f - this.Data.Variance / 2)));
+            var max = (int) (amount * (1.0f + this.Data.Variance / 2));
+
+            return Wrap($"{min.ToString()}-{max.ToString()}");
         }
 
         private string Wrap(string value)
@@ -206,60 +241,40 @@ namespace DarkBestiary.Effects
                     wrapped = $"<color=#C79C6E>{value}</color>";
                     break;
                 case DamageType.Fire:
-                    wrapped =  $"<color=#FF7D0A>{value}</color>";
+                    wrapped = $"<color=#FF7D0A>{value}</color>";
                     break;
                 case DamageType.Cold:
-                    wrapped =  $"<color=#A5F2F3>{value}</color>";
+                    wrapped = $"<color=#A5F2F3>{value}</color>";
                     break;
                 case DamageType.Holy:
-                    wrapped =  $"<color=#FFFF00>{value}</color>";
+                    wrapped = $"<color=#FFFF00>{value}</color>";
                     break;
                 case DamageType.Shadow:
-                    wrapped =  $"<color=#8270CA>{value}</color>";
+                    wrapped = $"<color=#8270CA>{value}</color>";
                     break;
                 case DamageType.Arcane:
-                    wrapped =  $"<color=#B251D1>{value}</color>";
+                    wrapped = $"<color=#B251D1>{value}</color>";
                     break;
                 case DamageType.Lightning:
-                    wrapped =  $"<color=#0892D0>{value}</color>";
+                    wrapped = $"<color=#0892D0>{value}</color>";
                     break;
                 case DamageType.Poison:
-                    wrapped =  $"<color=#ABD473>{value}</color>";
+                    wrapped = $"<color=#ABD473>{value}</color>";
                     break;
                 case DamageType.Chaos:
-                    wrapped =  $"<color=#C41F3B>{value}</color>";
+                    wrapped = $"<color=#C41F3B>{value}</color>";
                     break;
                 case DamageType.Health:
-                    wrapped =  $"<color=#FF0000>{value}</color>";
+                    wrapped = $"<color=#FF0000>{value}</color>";
                     break;
             }
 
             if (SettingsManager.Instance.DisplayFormulasInTooltips)
             {
-                wrapped += $" <color=#888888>({this.Data.Formula})</color>";
+                wrapped = $"{wrapped} <color=#888888>({this.Data.Formula})</color>";
             }
 
             return wrapped;
-        }
-
-        public string GetAmountString(GameObject entity)
-        {
-            var amount = GetAmount(entity, null);
-
-            var multiplier = entity.GetComponent<OffenseComponent>().GetDamageIncreaseMultiplier(
-                new Damage(amount, GetDamageType(), this.Data.DamageFlags, DamageInfoFlags.None));
-
-            amount *= multiplier;
-
-            if (this.Data.Variance <= 0)
-            {
-                return Wrap(((int) amount).ToString());
-            }
-
-            var min = (int) (Math.Max(1, amount * (1.0f - this.Data.Variance / 2)));
-            var max = (int) (amount * (1.0f + this.Data.Variance / 2));
-
-            return Wrap($"{min}-{max}");
         }
     }
 }

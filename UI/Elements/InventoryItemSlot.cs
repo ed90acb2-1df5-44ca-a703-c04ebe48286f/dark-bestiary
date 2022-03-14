@@ -7,37 +7,42 @@ using UnityEngine.UI;
 
 namespace DarkBestiary.UI.Elements
 {
-    public class InventoryItemSlot : MonoBehaviour, IDropHandler, IDragHandler, IPointerUpHandler
+    public class InventoryItemSlot : PoolableMonoBehaviour, IDropHandler, IDragHandler, IPointerUpHandler
     {
         public event Payload<ItemDroppedEventData> ItemDroppedIn;
         public event Payload<ItemDroppedEventData> ItemDroppedOut;
 
         private static InventoryItemSlot hovered;
 
-        [SerializeField] private InventoryItem inventoryItemPrefab;
+        public InventoryItem InventoryItem => this.inventoryItem;
+
+        [SerializeField] private InventoryItem inventoryItem;
         [SerializeField] private Button button;
-        [SerializeField] private Transform container;
         [SerializeField] private Image border;
         [SerializeField] private Image highlight;
 
-        public InventoryItem InventoryItem { get; private set; }
-
-        public void Construct(Item item)
+        private void Start()
         {
-            if (this.container == null)
-            {
-                this.container = transform;
-            }
-
-            InventoryItem = Instantiate(this.inventoryItemPrefab, this.container);
-
-            ChangeItem(item);
+            InventoryItem.AnyBeginDrag += OnAnyItemBeginDrag;
+            InventoryItem.AnyEndDrag += OnAnyItemEndDrag;
 
             InventoryItem.Blocked += OnItemBlocked;
             InventoryItem.Unblocked += OnItemUnblocked;
             InventoryItem.Dropped += OnItemDropped;
             InventoryItem.BeginDrag += OnItemBeginDrag;
             InventoryItem.EndDrag += OnItemEndDrag;
+        }
+
+        private void OnDestroy()
+        {
+            InventoryItem.AnyBeginDrag -= OnAnyItemBeginDrag;
+            InventoryItem.AnyEndDrag -= OnAnyItemEndDrag;
+
+            InventoryItem.Blocked -= OnItemBlocked;
+            InventoryItem.Unblocked -= OnItemUnblocked;
+            InventoryItem.Dropped -= OnItemDropped;
+            InventoryItem.BeginDrag -= OnItemBeginDrag;
+            InventoryItem.EndDrag -= OnItemEndDrag;
         }
 
         public void ChangeItem(Item item)
@@ -60,11 +65,6 @@ namespace DarkBestiary.UI.Elements
 
         private void UpdateBorderColor(Item item)
         {
-            if (this.border == null)
-            {
-                return;
-            }
-
             if (item.IsEmpty)
             {
                 this.border.color = this.border.color.With(a: 0);
@@ -76,17 +76,25 @@ namespace DarkBestiary.UI.Elements
 
         private void ResetBorderColor()
         {
-            if (this.border == null)
-            {
-                return;
-            }
-
             this.border.color = this.border.color.With(a: 0);
         }
 
         private void OnItemUnblocked(InventoryItem inventoryItem)
         {
             UpdateBorderColor(inventoryItem.Item);
+        }
+
+        private void OnAnyItemBeginDrag(InventoryItem item)
+        {
+            if (item.Item.IsGem && InventoryItem.Item.HasEmptySockets)
+            {
+                Highlight();
+            }
+        }
+
+        private void OnAnyItemEndDrag(InventoryItem item)
+        {
+            Unhighlight();
         }
 
         private void OnItemBlocked(InventoryItem inventoryItem)
@@ -101,14 +109,14 @@ namespace DarkBestiary.UI.Elements
         public void OnPointerUp(PointerEventData pointer)
         {
             // TODO: Slot blocks item UI click events
-            InventoryItem.OnPointerUp(pointer);
+            InventoryItem.OnPointerClick(pointer);
         }
 
         public void OnDrop(PointerEventData pointer)
         {
             var dragging = pointer.pointerDrag.GetComponent<InventoryItem>();
 
-            if (dragging == null || InventoryItem.Item.Equals(dragging.Item))
+            if (dragging == null || InventoryItem.Item.Equals(dragging.Item) || dragging.Item.IsEmpty)
             {
                 return;
             }

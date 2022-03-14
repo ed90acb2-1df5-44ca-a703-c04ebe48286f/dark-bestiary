@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using System.Linq;
 using DarkBestiary.Data;
 using DarkBestiary.Data.Repositories;
+using DarkBestiary.Extensions;
 using DarkBestiary.Validators;
 using UnityEngine;
 
@@ -10,20 +10,18 @@ namespace DarkBestiary.Effects
     public class IfElseEffect : Effect
     {
         private readonly IfElseEffectData data;
-        private readonly List<Validator> validators;
         private readonly IEffectRepository effectRepository;
 
-        public IfElseEffect(IfElseEffectData data, List<Validator> validators,
-            IEffectRepository effectRepository) : base(data, new List<Validator>())
+        public IfElseEffect(IfElseEffectData data, List<ValidatorWithPurpose> validators,
+            IEffectRepository effectRepository) : base(data, validators)
         {
             this.data = data;
-            this.validators = validators;
             this.effectRepository = effectRepository;
         }
 
         protected override Effect New()
         {
-            return new IfElseEffect(this.data, this.validators, this.effectRepository);
+            return new IfElseEffect(this.data, this.Validators, this.effectRepository);
         }
 
         protected override void Apply(GameObject caster, GameObject target)
@@ -38,9 +36,11 @@ namespace DarkBestiary.Effects
 
         private void ApplyIfElse(GameObject caster, object target)
         {
-            var effect = this.effectRepository.Find(this.validators.All(v => v.Validate(caster, target))
+            var effectId = this.Validators.ByPurpose(ValidatorPurpose.Other).Validate(caster, target)
                 ? this.data.IfEffectId
-                : this.data.ElseEffectId);
+                : this.data.ElseEffectId;
+
+            var effect = this.effectRepository.Find(effectId);
 
             if (effect == null)
             {

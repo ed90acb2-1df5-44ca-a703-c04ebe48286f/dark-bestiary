@@ -40,9 +40,9 @@ namespace DarkBestiary
             return this.container.Instantiate(type, args);
         }
 
-        public T Instantiate<T>(IEnumerable<object> extra)
+        public T Instantiate<T>(IEnumerable<object> args)
         {
-            return this.container.Instantiate<T>(extra);
+            return this.container.Instantiate<T>(args);
         }
     }
 }

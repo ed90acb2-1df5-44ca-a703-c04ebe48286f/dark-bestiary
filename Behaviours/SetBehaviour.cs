@@ -12,7 +12,7 @@ namespace DarkBestiary.Behaviours
         private readonly List<Behaviour> behaviours;
 
         public SetBehaviour(SetBehaviourData data, IBehaviourRepository behaviourRepository,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.behaviours = behaviourRepository.Find(data.Behaviours);
         }
@@ -23,7 +23,7 @@ namespace DarkBestiary.Behaviours
 
             foreach (var behaviour in this.behaviours)
             {
-                behavioursComponent.Apply(behaviour, caster);
+                behavioursComponent.ApplyAllStacks(behaviour, caster);
             }
         }
 
@@ -33,15 +33,15 @@ namespace DarkBestiary.Behaviours
 
             foreach (var behaviour in this.behaviours)
             {
-                behavioursComponent.RemoveAllStacks(behaviour.Id);
+                behavioursComponent.RemoveStack(behaviour.Id, StackCount);
             }
         }
 
-        protected override void OnStackCountChanged(Behaviour changed)
+        protected override void OnStackCountChanged(Behaviour _, int delta)
         {
             foreach (var behaviour in this.behaviours)
             {
-                behaviour.StackCount = changed.StackCount;
+                behaviour.StackCount += delta;
             }
         }
     }

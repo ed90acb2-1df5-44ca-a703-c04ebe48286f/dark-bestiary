@@ -4,13 +4,11 @@ namespace DarkBestiary.UI.Views
 {
     public interface IMainMenuView : IView
     {
-        event Payload PlayButtonClicked;
-        event Payload CreateCharacterButtonClicked;
+        event Payload VisionsButtonClicked;
+        event Payload CampaignButtonClicked;
         event Payload SettingsButtonClicked;
+        event Payload KeyBindingsButtonClicked;
+        event Payload CreditsButtonClicked;
         event Payload QuitButtonClicked;
-
-        void ShowPlayButton();
-
-        void HidePlayButton();
     }
 }

@@ -12,7 +12,7 @@ namespace DarkBestiary.Effects
     {
         private readonly DispelEffectData data;
 
-        public DispelEffect(DispelEffectData data, List<Validator> validators) : base(data, validators)
+        public DispelEffect(DispelEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }
@@ -28,7 +28,7 @@ namespace DarkBestiary.Effects
 
             foreach (var behaviour in behaviours.Behaviours.ToList())
             {
-                if ((this.data.BehaviourFlags == BehaviourFlags.None || (behaviour.Flags & this.data.BehaviourFlags) > 0) &&
+                if ((this.data.BehaviourFlags == BehaviourFlags.None || (behaviour.Flags & this.data.BehaviourFlags) == this.data.BehaviourFlags) &&
                     (this.data.BehaviourStatusFlags == StatusFlags.None || (behaviour.StatusFlags & this.data.BehaviourStatusFlags) > 0))
                 {
                     behaviours.RemoveAllStacks(behaviour.Id);

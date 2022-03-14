@@ -1,58 +1,61 @@
 ﻿using DarkBestiary.Messaging;
 using DarkBestiary.UI.Elements;
-using TMPro;
 using UnityEngine;
 
 namespace DarkBestiary.UI.Views.Unity
 {
     public class MainMenuView : View, IMainMenuView
     {
-        public event Payload PlayButtonClicked;
-        public event Payload CreateCharacterButtonClicked;
+        public event Payload VisionsButtonClicked;
+        public event Payload CampaignButtonClicked;
         public event Payload SettingsButtonClicked;
+        public event Payload KeyBindingsButtonClicked;
+        public event Payload CreditsButtonClicked;
         public event Payload QuitButtonClicked;
 
-        [SerializeField] private Interactable playButton;
-        [SerializeField] private Interactable createCharacterButton;
+        [SerializeField] private Interactable campaignButton;
+        [SerializeField] private Interactable visionsButton;
         [SerializeField] private Interactable settingsButton;
+        [SerializeField] private Interactable keyBindingsButton;
+        [SerializeField] private Interactable creditsButton;
         [SerializeField] private Interactable quitButton;
-        [SerializeField] private TextMeshProUGUI versionText;
 
         protected override void OnInitialize()
         {
-            this.playButton.PointerUp += OnPlayButtonPointerUp;
-            this.createCharacterButton.PointerUp += OnCreateCharacterButtonPointerUp;
-            this.settingsButton.PointerUp += OnSettingsButtonPointerUp;
-            this.quitButton.PointerUp += OnQuitButtonPointerUp;
-            this.versionText.text = Game.Instance.Version;
+            this.campaignButton.PointerClick += OnCampaignButtonClicked;
+            this.visionsButton.PointerClick += OnVisionsButtonClicked;
+            this.settingsButton.PointerClick += OnSettingsButtonPointerClick;
+            this.keyBindingsButton.PointerClick += OnKeyBindingsButtonPointerClick;
+            this.creditsButton.PointerClick += OnCreditsButtonPointerClick;
+            this.quitButton.PointerClick += OnQuitButtonPointerClick;
         }
 
-        public void ShowPlayButton()
+        private void OnVisionsButtonClicked()
         {
-            this.playButton.gameObject.SetActive(true);
+            VisionsButtonClicked?.Invoke();
         }
 
-        public void HidePlayButton()
+        private void OnCampaignButtonClicked()
         {
-            this.playButton.gameObject.SetActive(false);
+            CampaignButtonClicked?.Invoke();
         }
 
-        private void OnCreateCharacterButtonPointerUp()
+        private void OnKeyBindingsButtonPointerClick()
         {
-            CreateCharacterButtonClicked?.Invoke();
+            KeyBindingsButtonClicked?.Invoke();
         }
 
-        private void OnPlayButtonPointerUp()
-        {
-            PlayButtonClicked?.Invoke();
-        }
-
-        private void OnSettingsButtonPointerUp()
+        private void OnSettingsButtonPointerClick()
         {
             SettingsButtonClicked?.Invoke();
         }
 
-        private void OnQuitButtonPointerUp()
+        private void OnCreditsButtonPointerClick()
+        {
+            CreditsButtonClicked?.Invoke();
+        }
+
+        private void OnQuitButtonPointerClick()
         {
             QuitButtonClicked?.Invoke();
         }

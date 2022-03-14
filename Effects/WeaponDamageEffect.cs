@@ -8,7 +8,7 @@ namespace DarkBestiary.Effects
 {
     public class WeaponDamageEffect : DamageEffect
     {
-        public WeaponDamageEffect(DamageEffectData data, List<Validator> validators,
+        public WeaponDamageEffect(DamageEffectData data, List<ValidatorWithPurpose> validators,
             IEffectRepository effectRepository) : base(data, validators, effectRepository)
         {
         }
@@ -20,7 +20,7 @@ namespace DarkBestiary.Effects
 
         protected override DamageType GetDamageType()
         {
-            var weapon = Skill.Caster.GetComponent<EquipmentComponent>().GetPrimaryOrSecondaryWeapon();
+            var weapon = Skill.Caster.GetComponent<EquipmentComponent>()?.GetPrimaryOrSecondaryWeapon();
 
             if (weapon == null || weapon.IsEmpty)
             {
@@ -32,7 +32,9 @@ namespace DarkBestiary.Effects
                 return DamageType.Slashing;
             }
 
-            return weapon.IsPiercingMeleeWeapon ? DamageType.Piercing : DamageType.Crushing;
+            return weapon.IsPiercingMeleeWeapon || weapon.IsRangedWeapon
+                ? DamageType.Piercing
+                : DamageType.Crushing;
         }
     }
 }

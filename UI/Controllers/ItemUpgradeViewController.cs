@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using DarkBestiary.Components;
+using DarkBestiary.Currencies;
 using DarkBestiary.Exceptions;
 using DarkBestiary.Items;
 using DarkBestiary.Managers;
@@ -13,45 +14,55 @@ namespace DarkBestiary.UI.Controllers
     {
         private readonly string title;
         private readonly Character character;
-        private readonly InventoryComponent inventory;
+        private readonly InventoryComponent ingredientInventory;
+        private readonly CurrenciesComponent currencies;
 
         private Item item;
         private List<RecipeIngredient> ingredients;
+        private Currency cost;
 
         protected ItemUpgradeViewController(string title, IItemUpgradeView view, CharacterManager characterManager) : base(view)
         {
             this.title = title;
             this.character = characterManager.Character;
-            this.inventory = characterManager.Character.Entity.GetComponent<InventoryComponent>();
+            this.ingredientInventory = Stash.Instance.GetIngredientsInventory();
+            this.currencies = characterManager.Character.Entity.GetComponent<CurrenciesComponent>();
         }
 
         protected abstract List<RecipeIngredient> GetIngredients();
+        protected abstract Currency GetCost();
         protected abstract void Check(Item item);
         protected abstract void Upgrade(Item item);
 
         protected override void OnInitialize()
         {
-            this.inventory.ItemPicked += OnItemPicked;
-            this.inventory.ItemRemoved += OnItemRemoved;
-            this.inventory.ItemStackCountChanged += OnItemStackCountChanged;
+            this.ingredientInventory.ItemPicked += OnItemPicked;
+            this.ingredientInventory.ItemRemoved += OnItemRemoved;
+            this.ingredientInventory.ItemStackCountChanged += OnItemStackCountChanged;
 
-            View.ChanceTitle(this.title);
+            View.ChangeTitle(this.title);
             View.ItemPlaced += OnUpgradeItemPlaced;
             View.ItemRemoved += OnUpgradeItemRemoved;
             View.UpgradeButtonClicked += OnUpgradeButtonClicked;
 
             this.ingredients = GetIngredients();
-            this.item = this.inventory.CreateEmptyItem();
+            this.cost = GetCost();
+            this.item = this.ingredientInventory.CreateEmptyItem();
 
-            View.Construct(this.character);
+            View.Construct(
+                ViewControllerRegistry.Get<EquipmentViewController>().View.GetInventoryPanel(),
+                this.character.Entity.GetComponent<InventoryComponent>(),
+                this.ingredientInventory
+            );
+
             Refresh();
         }
 
         protected override void OnTerminate()
         {
-            this.inventory.ItemPicked -= OnItemPicked;
-            this.inventory.ItemRemoved -= OnItemRemoved;
-            this.inventory.ItemStackCountChanged -= OnItemStackCountChanged;
+            this.ingredientInventory.ItemPicked -= OnItemPicked;
+            this.ingredientInventory.ItemRemoved -= OnItemRemoved;
+            this.ingredientInventory.ItemStackCountChanged -= OnItemStackCountChanged;
 
             View.ItemPlaced += OnUpgradeItemPlaced;
             View.ItemRemoved += OnUpgradeItemRemoved;
@@ -61,6 +72,7 @@ namespace DarkBestiary.UI.Controllers
         private void Refresh()
         {
             View.Refresh(this.item, this.ingredients);
+            View.RefreshCost(this.cost);
         }
 
         private void OnItemStackCountChanged(ItemStackCountChangedEventData data)
@@ -91,7 +103,7 @@ namespace DarkBestiary.UI.Controllers
 
         private void OnUpgradeItemRemoved(Item item)
         {
-            this.item = this.inventory.CreateEmptyItem();
+            this.item = this.ingredientInventory.CreateEmptyItem();
             Refresh();
         }
 
@@ -105,12 +117,23 @@ namespace DarkBestiary.UI.Controllers
             try
             {
                 Check(this.item);
-                this.inventory.WithdrawIngredients(this.ingredients);
+
+                if (this.cost != null)
+                {
+                    this.currencies.Withdraw(this.cost);
+                    this.cost = GetCost();
+                }
+
+                if (this.ingredients != null)
+                {
+                    this.ingredientInventory.WithdrawIngredients(this.ingredients);
+                }
+
                 Upgrade(this.item);
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
         }
     }

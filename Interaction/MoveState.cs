@@ -111,7 +111,7 @@ namespace DarkBestiary.Interaction
             this.movement.Move(cell.transform.position);
             this.interactor.EnterWaitState(() =>
             {
-                if (Input.GetKeyDown(KeyCode.S))
+                if (Input.GetKeyDown(KeyBindings.Get(KeyType.Stop)))
                 {
                     this.movement.Stop();
                 }

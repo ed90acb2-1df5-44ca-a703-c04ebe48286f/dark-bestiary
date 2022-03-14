@@ -19,7 +19,7 @@ namespace DarkBestiary.UI.Elements
 
         private Experience experience;
         private int level;
-        private float gain;
+        private int gain;
         private float start;
         private float current;
         private float obtained;
@@ -28,7 +28,7 @@ namespace DarkBestiary.UI.Elements
 
         private bool simulate;
 
-        public void Construct(Experience experience)
+        public void Construct(Experience experience, int skillPoints = 0)
         {
             this.experience = experience;
             this.level = experience.Level;
@@ -39,7 +39,12 @@ namespace DarkBestiary.UI.Elements
             this.current = experience.Current;
             this.start = experience.Current;
 
-            this.experienceGainText.text = this.gain > 0 ? $"+{this.gain}" : " ";
+            this.experienceGainText.text = $"{I18N.Instance.Translate("ui_experience")}: +{this.gain.ToString()}";
+
+            if (skillPoints > 0)
+            {
+                this.experienceGainText.text = $"{I18N.Instance.Translate("ui_skill_points")}: +{skillPoints.ToString()}\n{this.experienceGainText.text}";
+            }
 
             UpdateBar();
         }

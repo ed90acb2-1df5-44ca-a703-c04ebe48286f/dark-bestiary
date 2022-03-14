@@ -1,8 +1,6 @@
-using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using Zenject;
 using Attribute = DarkBestiary.Attributes.Attribute;
 
 namespace DarkBestiary.UI.Elements
@@ -15,15 +13,20 @@ namespace DarkBestiary.UI.Elements
 
         private Attribute attribute;
 
-        public void Initialize(Attribute attribute)
+        public void Change(Attribute attribute)
         {
             this.icon.sprite = Resources.Load<Sprite>(attribute.Icon);
             this.nameText.text = attribute.Name;
 
             this.attribute = attribute;
-            this.attribute.Changed += OnAttributeChanged;
 
             OnAttributeChanged(attribute);
+        }
+
+        public void Initialize(Attribute attribute)
+        {
+            Change(attribute);
+            this.attribute.Changed += OnAttributeChanged;
         }
 
         public void Terminate()

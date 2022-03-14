@@ -15,15 +15,17 @@ namespace DarkBestiary.UI.Controllers
     public class VendorViewController : ViewController<IVendorView>
     {
         private readonly IItemRepository itemRepository;
+        private readonly List<VendorPanel.Category> categories;
         private readonly InventoryComponent inventory;
         private readonly EquipmentComponent equipment;
         private readonly CurrenciesComponent currencies;
         private readonly Character character;
-        private readonly List<Item> assortment;
-        private readonly List<Item> buyout = new List<Item>();
+        private readonly List<Item> buyback = new List<Item>();
+
+        private List<Item> assortment;
 
         public VendorViewController(IVendorView view, IItemRepository itemRepository,
-            CharacterManager characterManager) : base(view)
+            CharacterManager characterManager, List<VendorPanel.Category> categories) : base(view)
         {
             this.itemRepository = itemRepository;
 
@@ -32,6 +34,7 @@ namespace DarkBestiary.UI.Controllers
             this.equipment = characterManager.Character.Entity.GetComponent<EquipmentComponent>();
             this.currencies = characterManager.Character.Entity.GetComponent<CurrenciesComponent>();
             this.assortment = RandomizeVendorAssortment();
+            this.categories = categories;
         }
 
         protected override void OnInitialize()
@@ -44,7 +47,7 @@ namespace DarkBestiary.UI.Controllers
             View.SellJunk += OnSellJunk;
             View.SellingItem += OnSellingItem;
             View.BuyingItem += OnBuyingItem;
-            View.Construct(this.character);
+            View.Construct(ViewControllerRegistry.Get<EquipmentViewController>().View.GetInventoryPanel(), this.categories);
 
             UpdateView();
         }
@@ -55,6 +58,24 @@ namespace DarkBestiary.UI.Controllers
             {
                 currency.Changed -= OnCurrencyChanged;
             }
+        }
+
+        public void ClearBuyback()
+        {
+            this.buyback.Clear();
+        }
+
+        public void ChangeAssortment(List<Item> assortment)
+        {
+            this.assortment = assortment;
+
+            foreach (var item in this.assortment)
+            {
+                item.ChangeOwner(this.inventory.gameObject);
+                item.PriceMultiplier = 3;
+            }
+
+            UpdateView();
         }
 
         private void UpdateView()
@@ -80,8 +101,7 @@ namespace DarkBestiary.UI.Controllers
         private List<Item> RandomizeVendorAssortment()
         {
             var items = this.itemRepository.FindGambleable()
-                .Where(item =>
-                    Item.MatchDropByMonsterLevel(item.Level, this.character.Entity.GetComponent<ExperienceComponent>().Experience.Level))
+                .Where(item => Item.MatchDropByMonsterLevel(item, this.character.Entity.GetComponent<ExperienceComponent>().Experience.Level))
                 .Shuffle()
                 .Take(15)
                 .OrderByDescending(item => item.Type.Type)
@@ -90,7 +110,7 @@ namespace DarkBestiary.UI.Controllers
             foreach (var item in items)
             {
                 item.ChangeOwner(this.inventory.gameObject);
-                item.PriceMultiplier = 2;
+                item.PriceMultiplier = 3;
             }
 
             return items;
@@ -98,7 +118,7 @@ namespace DarkBestiary.UI.Controllers
 
         private void RefreshAssortment()
         {
-            View.RefreshAssortment(this.assortment.Concat(this.buyout).ToList());
+            View.RefreshAssortment(this.assortment.Concat(this.buyback).ToList());
         }
 
         private void OnBuyingItem(Item item)
@@ -114,14 +134,14 @@ namespace DarkBestiary.UI.Controllers
                 }
                 else
                 {
-                    this.buyout.Remove(item);
+                    this.buyback.Remove(item);
                 }
 
                 UpdateView();
             }
             catch (InsufficientCurrencyException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
         }
 
@@ -130,7 +150,6 @@ namespace DarkBestiary.UI.Controllers
             foreach (var junk in this.inventory.Items.Where(item => item.Type?.Type == ItemTypeType.Junk).ToList())
             {
                 this.inventory.Sell(junk);
-                this.buyout.Add(junk);
             }
 
             UpdateView();
@@ -139,7 +158,11 @@ namespace DarkBestiary.UI.Controllers
         private void OnSellingItem(Item item)
         {
             this.inventory.Sell(item);
-            this.buyout.Add(item);
+
+            if (!item.IsJunk)
+            {
+                this.buyback.Add(item);
+            }
 
             UpdateView();
         }

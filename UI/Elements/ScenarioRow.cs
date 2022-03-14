@@ -1,5 +1,6 @@
-using System;
+using DarkBestiary.Components;
 using DarkBestiary.Extensions;
+using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
 using DarkBestiary.Scenarios;
 using DarkBestiary.UI.Controllers;
@@ -17,6 +18,7 @@ namespace DarkBestiary.UI.Elements
 
         [SerializeField] private Image icon;
         [SerializeField] private TextMeshProUGUI nameText;
+        [SerializeField] private TextMeshProUGUI levelText;
         [SerializeField] private Image outline;
         [SerializeField] private Image fade;
 
@@ -33,10 +35,33 @@ namespace DarkBestiary.UI.Elements
             Active = info.Status != ScenarioStatus.Unavailable;
 
             this.icon.sprite = GetIconSprite(info);
+            this.levelText.text = GetLevelText(info);
             this.nameText.text = I18N.Instance.Get(info.Data.NameKey);
             this.fade.color = this.fade.color.With(a: Active ? 0 : 0.75f);
 
             Deselect();
+        }
+
+        private static string GetLevelText(ScenarioInfo scenario)
+        {
+            var characterLevel = CharacterManager.Instance.Character.Entity.GetComponent<ExperienceComponent>().Experience.Level;
+
+            if (scenario.Data.MinMonsterLevel == 0 && scenario.Data.MaxMonsterLevel == 0)
+            {
+                return characterLevel.ToString();
+            }
+
+            if (scenario.Data.MinMonsterLevel == scenario.Data.MaxMonsterLevel)
+            {
+                return scenario.Data.MinMonsterLevel.ToString();
+            }
+
+            if (scenario.Data.MaxMonsterLevel > 0)
+            {
+                return $"{Mathf.Max(1, scenario.Data.MinMonsterLevel)}-{scenario.Data.MaxMonsterLevel}";
+            }
+
+            return $"{Mathf.Max(1, scenario.Data.MinMonsterLevel)}-{characterLevel}";
         }
 
         private Sprite GetIconSprite(ScenarioInfo info)
@@ -68,7 +93,7 @@ namespace DarkBestiary.UI.Elements
             this.fade.color = this.fade.color.With(a: 0.75f);
         }
 
-        protected override void OnPointerUp()
+        protected override void OnPointerClick()
         {
             Clicked?.Invoke(this);
         }

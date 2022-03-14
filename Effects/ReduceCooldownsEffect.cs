@@ -10,7 +10,7 @@ namespace DarkBestiary.Effects
     {
         private readonly ReduceCooldownsEffectData data;
 
-        public ReduceCooldownsEffect(ReduceCooldownsEffectData data, List<Validator> validators) : base(data, validators)
+        public ReduceCooldownsEffect(ReduceCooldownsEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }
@@ -24,7 +24,7 @@ namespace DarkBestiary.Effects
         {
             foreach (var slot in target.GetComponent<SpellbookComponent>().Slots)
             {
-                slot.Skill.ReduceCooldown(this.data.Amount);;
+                slot.Skill.ReduceCooldown(this.data.Amount);
             }
 
             TriggerFinished();

@@ -12,7 +12,6 @@ namespace DarkBestiary.UI.Views
         event Payload<Skill> RemoveFromActionBar;
 
         void Construct(List<SkillSet> sets, List<SkillSlot> slots, List<SkillCategory> categories);
-
-        void RefreshAvailableSkills(List<Skill> skills);
+        void Refresh(List<Skill> skills);
     }
 }

@@ -4,5 +4,7 @@
     {
         None,
         Gold,
+        VisionFragment,
+        SkillPoint,
     }
 }

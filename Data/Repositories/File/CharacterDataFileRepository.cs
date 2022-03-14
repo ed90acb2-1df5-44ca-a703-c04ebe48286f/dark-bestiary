@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
@@ -11,15 +8,15 @@ namespace DarkBestiary.Data.Repositories.File
     {
         private readonly StorageId storageId;
 
-        public CharacterDataFileRepository(IFileReader loader,
-            StorageId storageId) : base(loader, new FakeMapper<CharacterData>())
+        public CharacterDataFileRepository(IFileReader reader,
+            StorageId storageId) : base(reader, new FakeMapper<CharacterData>())
         {
             this.storageId = storageId;
         }
 
         protected override string GetFilename()
         {
-            return Application.persistentDataPath + $"/{this.storageId}/characters.save";
+            return Environment.PersistentDataPath + $"/{this.storageId}/characters.save";
         }
 
         public override void Save(CharacterData entity)
@@ -49,23 +46,7 @@ namespace DarkBestiary.Data.Repositories.File
                 allData[index] = data;
             }
 
-            this.Loader.Write(allData, GetFilename());
-        }
-
-        protected override List<CharacterData> LoadData()
-        {
-            var data = new List<CharacterData>();
-
-            try
-            {
-                data = base.LoadData();
-            }
-            catch (Exception exception)
-            {
-                Debug.LogError(exception.Message);
-            }
-
-            return data;
+            this.Reader.Write(allData, GetFilename());
         }
     }
 }

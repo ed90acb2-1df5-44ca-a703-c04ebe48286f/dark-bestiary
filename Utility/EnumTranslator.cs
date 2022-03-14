@@ -68,12 +68,14 @@ namespace DarkBestiary.Utility
         {
             switch (category)
             {
+                case VendorPanel.Category.All:
+                    return I18N.Instance.Get("item_category_all");
                 case VendorPanel.Category.Weapon:
                     return I18N.Instance.Get("item_category_weapon");
                 case VendorPanel.Category.Armor:
                     return I18N.Instance.Get("item_category_armor");
                 case VendorPanel.Category.Miscellaneous:
-                    return I18N.Instance.Get("ui_miscellaneous");
+                    return I18N.Instance.Get("ui_misc");
                 case VendorPanel.Category.Buyout:
                     return I18N.Instance.Get("ui_buyout");
                 default:
@@ -100,12 +102,35 @@ namespace DarkBestiary.Utility
             }
         }
 
+        public static string Translate(KeyCode keyCode)
+        {
+            switch (keyCode)
+            {
+                case KeyCode.Alpha0: return "0";
+                case KeyCode.Alpha1: return "1";
+                case KeyCode.Alpha2: return "2";
+                case KeyCode.Alpha3: return "3";
+                case KeyCode.Alpha4: return "4";
+                case KeyCode.Alpha5: return "5";
+                case KeyCode.Alpha6: return "6";
+                case KeyCode.Alpha7: return "7";
+                case KeyCode.Alpha8: return "8";
+                case KeyCode.Alpha9: return "9";
+                case KeyCode.Escape: return "Esc";
+                case KeyCode.Plus: return "+";
+                case KeyCode.Equals: return "=";
+                case KeyCode.Minus: return "-";
+            }
+
+            return keyCode.ToString();
+        }
+
         public static I18NString Translate(DamageType damageType)
         {
             switch (damageType)
             {
                 case DamageType.Chaos:
-                    return I18N.Instance.Get("enum_damage_type_true");
+                    return I18N.Instance.Get("enum_damage_type_chaos");
                 case DamageType.Crushing:
                     return I18N.Instance.Get("enum_damage_type_crushing");
                 case DamageType.Slashing:
@@ -161,6 +186,71 @@ namespace DarkBestiary.Utility
                     return I18N.Instance.Get("enum_status_flag_invulnerability");
                 default:
                     return new I18NString(new I18NStringData(statusFlags.ToString()));
+            }
+        }
+
+        public static string Translate(KeyType keyType)
+        {
+            switch (keyType)
+            {
+                case KeyType.Move:
+                    return I18N.Instance.Get("ui_move");
+                case KeyType.Stop:
+                    return I18N.Instance.Get("ui_stop");
+                case KeyType.Skill1:
+                    return I18N.Instance.Get("ui_skill") + " 1";
+                case KeyType.Skill2:
+                    return I18N.Instance.Get("ui_skill") + " 2";
+                case KeyType.Skill3:
+                    return I18N.Instance.Get("ui_skill") + " 3";
+                case KeyType.Skill4:
+                    return I18N.Instance.Get("ui_skill") + " 4";
+                case KeyType.Skill5:
+                    return I18N.Instance.Get("ui_skill") + " 5";
+                case KeyType.Skill6:
+                    return I18N.Instance.Get("ui_skill") + " 6";
+                case KeyType.Skill7:
+                    return I18N.Instance.Get("ui_skill") + " 7";
+                case KeyType.Skill8:
+                    return I18N.Instance.Get("ui_skill") + " 8";
+                case KeyType.Skill9:
+                    return I18N.Instance.Get("ui_skill") + " 9";
+                case KeyType.Skill10:
+                    return I18N.Instance.Get("ui_skill") + " 10";
+                case KeyType.ConsumablesBag:
+                    return I18N.Instance.Get("ui_potion_bag");
+                case KeyType.SwapWeapon:
+                    return I18N.Instance.Get("ui_swap_weapon");
+                case KeyType.EndTurn:
+                    return I18N.Instance.Get("ui_end_turn");
+                case KeyType.Equipment:
+                    return I18N.Instance.Get("ui_equipment");
+                case KeyType.Reliquary:
+                    return I18N.Instance.Get("ui_reliquary");
+                case KeyType.Masteries:
+                    return I18N.Instance.Get("ui_masteries");
+                case KeyType.Attributes:
+                    return I18N.Instance.Get("ui_attributes");
+                case KeyType.Talents:
+                    return I18N.Instance.Get("ui_talents");
+                case KeyType.Specializations:
+                    return I18N.Instance.Get("ui_specializations");
+                case KeyType.Skills:
+                    return I18N.Instance.Get("ui_skills");
+                case KeyType.Achievements:
+                    return I18N.Instance.Get("ui_achievements");
+                case KeyType.CombatLog:
+                    return I18N.Instance.Get("ui_combat_log");
+                case KeyType.Mailbox:
+                    return I18N.Instance.Get("ui_mailbox");
+                case KeyType.Menu:
+                    return I18N.Instance.Get("ui_menu");
+                case KeyType.IncreaseGameSpeed:
+                    return I18N.Instance.Get("ui_increase_game_speed");
+                case KeyType.DecreaseGameSpeed:
+                    return I18N.Instance.Get("ui_decrease_game_speed");
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(keyType), keyType, null);
             }
         }
     }

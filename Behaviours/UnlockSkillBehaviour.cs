@@ -11,7 +11,7 @@ namespace DarkBestiary.Behaviours
     {
         private readonly UnlockSkillBehaviourData data;
 
-        public UnlockSkillBehaviour(UnlockSkillBehaviourData data, List<Validator> validators) : base(data, validators)
+        public UnlockSkillBehaviour(UnlockSkillBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }

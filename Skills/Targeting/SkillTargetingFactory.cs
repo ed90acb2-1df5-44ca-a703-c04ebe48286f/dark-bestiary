@@ -12,6 +12,8 @@ namespace DarkBestiary.Skills.Targeting
                     return new NoneSkillUseStrategy();
                 case SkillTargetType.Unit:
                     return new UnitSkillUseStrategy();
+                case SkillTargetType.OtherUnit:
+                    return new OtherUnitSkillUseStrategy();
                 case SkillTargetType.AllyUnit:
                     return new AllyUnitSkillUseStrategy();
                 case SkillTargetType.EnemyUnit:

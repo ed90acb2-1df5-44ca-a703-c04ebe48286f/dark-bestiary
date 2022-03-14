@@ -5,19 +5,18 @@ using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
 using DarkBestiary.Extensions;
 using DarkBestiary.Items;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
     public class ItemFileRepository : FileRepository<int, ItemData, Item>, IItemRepository
     {
-        public ItemFileRepository(IFileReader loader, ItemMapper mapper) : base(loader, mapper)
+        public ItemFileRepository(IFileReader reader, ItemMapper mapper) : base(reader, mapper)
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/items.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/items.json";
         }
 
         public List<Item> Random(int count, Func<ItemData, bool> predicate)

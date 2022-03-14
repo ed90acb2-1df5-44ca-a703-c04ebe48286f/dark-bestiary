@@ -27,8 +27,8 @@ namespace DarkBestiary.UI.Views.Unity
 
         private void Start()
         {
-            this.close.PointerUp += Hide;
-            this.submit.PointerUp += OnSubmit;
+            this.close.PointerClick += Hide;
+            this.submit.PointerClick += OnSubmit;
             this.submit.Active = false;
 
             this.subject.ClearOptions();

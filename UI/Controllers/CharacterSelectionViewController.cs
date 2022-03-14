@@ -1,9 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using DarkBestiary.Components;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Extensions;
 using DarkBestiary.GameStates;
 using DarkBestiary.Managers;
+using DarkBestiary.UI.Elements;
 using DarkBestiary.UI.Views;
 using UnityEngine;
 
@@ -16,6 +19,7 @@ namespace DarkBestiary.UI.Controllers
 
         private List<Character> characters;
         private Character selected;
+        private int selectedCharacterId;
 
         public CharacterSelectionViewController(ICharacterSelectionView view, ICharacterRepository repository,
             CharacterManager characterManager) : base(view)
@@ -28,20 +32,34 @@ namespace DarkBestiary.UI.Controllers
         {
             View.DeleteCharacter += OnDeleteCharacter;
             View.SelectCharacter += OnSelectCharacter;
+            View.RenameCharacter += OnRenameCharacter;
             View.Cancel += OnCancel;
             View.Create += OnCreate;
             View.Start += OnStart;
 
-            CreateCharacters();
-            View.RedrawCharacters(this.characters);
+            try
+            {
+                CreateCharacters();
+            }
+            catch (Exception exception)
+            {
+                UiErrorFrame.Instance.ShowException(exception);
+                throw;
+            }
+
+            View.Refresh(this.characters);
         }
 
         protected override void OnTerminate()
         {
-            DestroyCharacters();
+            foreach (var character in this.characters)
+            {
+                character.Entity.Terminate();
+            }
 
             View.DeleteCharacter -= OnDeleteCharacter;
             View.SelectCharacter -= OnSelectCharacter;
+            View.RenameCharacter -= OnRenameCharacter;
             View.Cancel -= OnCancel;
             View.Create -= OnCreate;
             View.Start -= OnStart;
@@ -49,28 +67,13 @@ namespace DarkBestiary.UI.Controllers
 
         private void CreateCharacters()
         {
-            this.characters = this.characterRepository
-                .FindAll()
-                .OrderByDescending(character => character.Data.Timestamp)
-                .ToList();
+            InventoryComponent.IsAutoIngredientStashEnabled = false;
+            this.characters = this.characterRepository.FindAll().OrderByDescending(character => character.Data.Timestamp).ToList();
 
             foreach (var character in this.characters)
             {
                 character.Entity.transform.position = new Vector3(-100, 0, 0);
                 character.Entity.transform.localScale *= 3;
-            }
-        }
-
-        private void DestroyCharacters()
-        {
-            foreach (var character in this.characters)
-            {
-                if (this.characterManager.Character == character)
-                {
-                    continue;
-                }
-
-                character.Entity.Terminate();
             }
         }
 
@@ -86,15 +89,20 @@ namespace DarkBestiary.UI.Controllers
 
         private void OnStart()
         {
-            if (this.selected.Data.IsDead)
-            {
-                return;
-            }
+            InventoryComponent.IsAutoIngredientStashEnabled = true;
+            var character = this.characterRepository.Find(this.selectedCharacterId);
+            character.Entity.transform.position = new Vector3(-100, 0, 0);
+            character.Entity.transform.localScale = Vector3.one;
+            this.characterManager.Select(character);
 
-            this.selected.Entity.transform.position = new Vector3(-100, 0, 0);
-            this.selected.Entity.transform.localScale = Vector3.one;
-            this.characterManager.Select(this.selected);
             Game.Instance.SwitchState(new TownGameState());
+        }
+
+        private void OnRenameCharacter(Character character, string name)
+        {
+            character.Name = name;
+            this.characterRepository.Save(character);
+            View.Refresh(this.characters);
         }
 
         private void OnDeleteCharacter(Character character)
@@ -102,18 +110,22 @@ namespace DarkBestiary.UI.Controllers
             this.characterRepository.Delete(character.Id);
             this.characters.Remove(character);
             character.Entity.Terminate();
-            View.RedrawCharacters(this.characters);
+            View.Refresh(this.characters);
         }
 
         private void OnSelectCharacter(Character character)
         {
             if (this.selected != null)
             {
+                this.selected.Entity.SetActive(false);
                 this.selected.Entity.transform.position = new Vector3(-100, 0, 0);
             }
 
             this.selected = character;
             this.selected.Entity.transform.position = new Vector3(-7, -2, 0);
+            this.selected.Entity.SetActive(true);
+
+            this.selectedCharacterId = character.Id;
         }
     }
 }

@@ -21,6 +21,16 @@ namespace DarkBestiary.Managers
             this.audio.PlayOneShot(path);
         }
 
+        public void PlayDrinkPotion()
+        {
+            this.audio.PlayOneShot("event:/SFX/Animations/Drink_Potion");
+        }
+
+        public void PlayVisionsEncounterDrop()
+        {
+            this.audio.PlayOneShot("event:/SFX/UI/Vision_Encounter_Drop");
+        }
+
         public void PlayVictory()
         {
             this.audio.PlayOneShot("event:/SFX/UI/Victory");
@@ -59,6 +69,16 @@ namespace DarkBestiary.Managers
         public void PlayItemSell()
         {
             this.audio.PlayOneShot("event:/SFX/UI/Inventory_Item_Sell");
+        }
+
+        public void PlayMouseEnter()
+        {
+            this.audio.PlayOneShot("event:/SFX/UI/interactable_Mouse_Enter");
+        }
+
+        public void PlayMouseClick()
+        {
+            this.audio.PlayOneShot("event:/SFX/UI/interactable_Mouse_Click");
         }
 
         public void PlayWindowOpen()
@@ -132,6 +152,16 @@ namespace DarkBestiary.Managers
             this.audio.PlayOneShot("event:/SFX/Animations/Footsteps", position);
         }
 
+        public void PlayCraftSharpenSuccess()
+        {
+            this.audio.PlayOneShot("event:/SFX/UI/Craft_Forge");
+        }
+
+        public void PlayCraftSharpenFailed()
+        {
+            this.audio.PlayOneShot("event:/SFX/Projectiles/Spore_Impact");
+        }
+
         public void PlayDig(Vector3 position)
         {
             this.audio.PlayOneShot("event:/SFX/Animations/Dig", position);
@@ -152,9 +182,19 @@ namespace DarkBestiary.Managers
             this.audio.PlayOneShot("event:/SFX/UI/Whoosh");
         }
 
+        public void PlayEnchant()
+        {
+            this.audio.PlayOneShot("event:/SFX/UI/Enchant");
+        }
+
         public void PlayAlchemyCombine()
         {
             this.audio.PlayOneShot("event:/SFX/UI/Alchemy_Combine");
+        }
+
+        public void PlayAlchemyBrew()
+        {
+            this.audio.PlayOneShot("event:/SFX/UI/Alchemy_Brew");
         }
     }
 }

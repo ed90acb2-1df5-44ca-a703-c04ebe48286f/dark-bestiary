@@ -13,7 +13,7 @@ namespace DarkBestiary.Effects
         private readonly CreateBeamEffectData data;
         private readonly string prefab;
 
-        public CreateBeamEffect(CreateBeamEffectData data, List<Validator> validators) : base(data, validators)
+        public CreateBeamEffect(CreateBeamEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
             this.prefab = data.Path;

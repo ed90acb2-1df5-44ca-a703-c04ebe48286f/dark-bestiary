@@ -33,6 +33,7 @@ namespace DarkBestiary.UI.Views.Unity
         [SerializeField] private SkillSetButton skillSetButtonPrefab;
         [SerializeField] private Transform skillSetButtonContainer;
         [SerializeField] private SkillVendorActionPoint actionPointPrefab;
+        [SerializeField] private SkillVendorActionPoint ragePointPrefab;
         [SerializeField] private Transform actionPointContainer;
 
         private List<SkillVendorSkill> skillRows;
@@ -54,21 +55,18 @@ namespace DarkBestiary.UI.Views.Unity
             CreateActionPoints();
 
             OnCategoryTabClicked(this.categoryTabContainer.GetComponentsInChildren<SkillCategoryTab>().First());
-        }
 
-        protected override void OnInitialize()
-        {
             this.searchInput.onValueChanged.AddListener(OnInputChanged);
-            this.unlockButton.PointerUp += OnUnlockButtonPointerUp;
-            this.closeButton.PointerUp += Hide;
+            this.unlockButton.PointerClick += OnUnlockButtonPointerClick;
+            this.closeButton.PointerClick += Hide;
         }
 
         protected override void OnTerminate()
         {
             this.skillTooltip.Terminate();
 
-            this.unlockButton.PointerUp -= OnUnlockButtonPointerUp;
-            this.closeButton.PointerUp -= Hide;
+            this.unlockButton.PointerClick -= OnUnlockButtonPointerClick;
+            this.closeButton.PointerClick -= Hide;
 
             foreach (var currency in this.currencies)
             {
@@ -129,7 +127,7 @@ namespace DarkBestiary.UI.Views.Unity
 
         private void CreateSkillSetButtons(IEnumerable<SkillSet> sets)
         {
-            foreach (var set in sets.OrderBy(s => s.Name.Id))
+            foreach (var set in sets.OrderBy(s => s.Name.Key))
             {
                 var skillSetButton = Instantiate(this.skillSetButtonPrefab, this.skillSetButtonContainer);
                 skillSetButton.Clicked += OnSkillSetButtonClicked;
@@ -172,6 +170,10 @@ namespace DarkBestiary.UI.Views.Unity
                 actionPoint.Clicked += OnActionPointClicked;
                 actionPoint.Construct(i);
             }
+
+            var rage = Instantiate(this.ragePointPrefab, this.actionPointContainer);
+            rage.Clicked += OnActionPointClicked;
+            rage.Construct(100);
         }
 
         private void CreateCurrencies(List<Currency> currencies)
@@ -203,17 +205,24 @@ namespace DarkBestiary.UI.Views.Unity
                     continue;
                 }
 
-                if (this.activeActionPoint != null && (int) skill.Skill.GetCost(ResourceType.ActionPoint) != this.activeActionPoint.Cost)
+                if (this.activeActionPoint != null)
                 {
-                    skill.gameObject.SetActive(false);
-                    continue;
+                    var isCostMatch = this.activeActionPoint.Cost < 100
+                        ? (int) skill.Skill.GetCost(ResourceType.ActionPoint) == this.activeActionPoint.Cost
+                        : skill.Skill.GetCost(ResourceType.Rage) > 0;
+
+                    if (!isCostMatch)
+                    {
+                        skill.gameObject.SetActive(false);
+                        continue;
+                    }
                 }
 
                 skill.gameObject.SetActive(skill.Skill.IsMatchingSearchTerm(search, this.activeTab.Category));
             }
         }
 
-        private void OnUnlockButtonPointerUp()
+        private void OnUnlockButtonPointerClick()
         {
             SkillBuyed?.Invoke(this.selected.Skill);
         }

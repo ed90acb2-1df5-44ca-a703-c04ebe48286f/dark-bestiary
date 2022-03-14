@@ -6,6 +6,7 @@ using DarkBestiary.Data.Repositories;
 using DarkBestiary.GameStates;
 using DarkBestiary.Managers;
 using DarkBestiary.UI.Elements;
+using DarkBestiary.Visions;
 using Zenject;
 using Component = DarkBestiary.Components.Component;
 
@@ -32,24 +33,29 @@ namespace DarkBestiary.Rewards
             CharacterManager.CharacterSelected += OnCharacterSelected;
         }
 
-        private void OnGameStateEnter(GameState gameState)
+        private void OnGameStateEnter(GameState state)
         {
-            if (!(gameState is TownGameState) || this.pendingRewards.Count == 0)
+            if (!state.IsHub || this.pendingRewards.Count == 0 || this.character == null)
             {
                 return;
             }
 
-            if (this.character == null || this.character.Data.IsHardcore && this.character.Data.IsDead)
+            // Note: Wait for VisionManager to evaluate victory conditions.
+            Timer.Instance.WaitForFixedUpdate(() =>
             {
-                return;
-            }
+                if (VisionManager.Instance?.IsVictoryOrDefeat == true)
+                {
+                    this.pendingRewards.Clear();
+                    return;
+                }
 
-            LevelupPopup.Instance.Show(
-                this.character.Entity.GetComponent<ExperienceComponent>().Experience.Level,
-                this.pendingRewards
-            );
+                LevelupPopup.Instance.Show(
+                    this.character.Entity.GetComponent<ExperienceComponent>().Experience.Level,
+                    this.pendingRewards
+                );
 
-            this.pendingRewards.Clear();
+                this.pendingRewards.Clear();
+            });
         }
 
         private void OnCharacterSelected(Character character)
@@ -76,7 +82,7 @@ namespace DarkBestiary.Rewards
 
             if (rewards.Count == 0)
             {
-                var reward = new AttributePointsReward(new AttributePointsRewardData {Count = 1});
+                var reward = new AttributePointsReward(new AttributePointsRewardData {Count = Constants.AttributePointsPerLevel});
 
                 reward.Prepare(this.character.Entity);
                 reward.Claim(this.character.Entity);

@@ -1,19 +1,18 @@
 ﻿using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
 using DarkBestiary.Masteries;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
     public class MasteryFileRepository : FileRepository<int, MasteryData, Mastery>, IMasteryRepository
     {
-        public MasteryFileRepository(IFileReader loader, MasteryMapper mapper) : base(loader, mapper)
+        public MasteryFileRepository(IFileReader reader, MasteryMapper mapper) : base(reader, mapper)
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/masteries.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/masteries.json";
         }
     }
 }

@@ -8,11 +8,12 @@ namespace DarkBestiary.Components
 {
     public class SummonedComponent : Component
     {
-        public GameObject Master { get; private set; }
+        public static event Payload<SummonedComponent> AnySummonedComponentInitialized;
 
-        private int counter;
+        public GameObject Master { get; private set; }
+        public int RemainingLifetime { get; private set; }
+
         private int duration;
-        private bool isTicked;
         private bool killOnMasterDeath;
         private bool killOnEpisodeComplete;
 
@@ -20,9 +21,9 @@ namespace DarkBestiary.Components
             bool killOnMasterDeath, bool killOnEpisodeComplete)
         {
             Master = master;
+            RemainingLifetime = duration;
 
             this.duration = duration;
-            this.counter = duration;
             this.killOnMasterDeath = killOnMasterDeath;
             this.killOnEpisodeComplete = killOnEpisodeComplete;
 
@@ -45,6 +46,8 @@ namespace DarkBestiary.Components
             {
                 Episode.AnyEpisodeCompleted += OnAnyEpisodeCompleted;
             }
+
+            AnySummonedComponentInitialized?.Invoke(this);
         }
 
         protected override void OnTerminate()
@@ -67,12 +70,12 @@ namespace DarkBestiary.Components
 
         private void OnAnyEpisodeCompleted(Episode episode)
         {
-            GetComponent<HealthComponent>().Kill(Master);
+            Timer.Instance.WaitForFixedUpdate(() => GetComponent<HealthComponent>().Kill(Master));
         }
 
         private void OnMasterDied(EntityDiedEventData data)
         {
-            GetComponent<HealthComponent>().Kill(Master);
+            Timer.Instance.WaitForFixedUpdate(() => GetComponent<HealthComponent>().Kill(Master));
         }
 
         private void OnAnyCombatTeamTurnStarted(CombatEncounter combat)
@@ -82,15 +85,9 @@ namespace DarkBestiary.Components
                 return;
             }
 
-            if (!this.isTicked)
-            {
-                this.isTicked = true;
-                return;
-            }
+            RemainingLifetime -= 1;
 
-            this.counter -= 1;
-
-            if (this.counter > 0)
+            if (RemainingLifetime > 0)
             {
                 return;
             }

@@ -1,5 +1,6 @@
 ﻿using DarkBestiary.Components;
 using DarkBestiary.Managers;
+using DarkBestiary.Visions;
 
 namespace DarkBestiary.Console
 {
@@ -26,6 +27,14 @@ namespace DarkBestiary.Console
         {
             this.characterManager.Character.Entity.GetComponent<SpellbookComponent>().ResetCooldowns();
             this.characterManager.Character.Entity.GetComponent<ResourcesComponent>().Restore();
+
+            if (VisionManager.Instance != null)
+            {
+                foreach (var skillSlot in VisionManager.Instance.SkillSlots)
+                {
+                    skillSlot.Skill.ResetCooldown();
+                }
+            }
 
             return "Cooldowns are reset.";
         }

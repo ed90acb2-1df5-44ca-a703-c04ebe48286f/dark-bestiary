@@ -13,7 +13,7 @@ namespace DarkBestiary.Behaviours
     {
         private readonly Effect effect;
 
-        public OnDealHealBehaviour(EffectBehaviourData data, List<Validator> validators) : base(data, validators)
+        public OnDealHealBehaviour(EffectBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.effect = Container.Instance.Resolve<IEffectRepository>().FindOrFail(data.EffectId);
         }
@@ -35,7 +35,9 @@ namespace DarkBestiary.Behaviours
                 return;
             }
 
-            this.effect.Clone().Apply(Caster, EventSubject == BehaviourEventSubject.Me ? Target : data.Target);
+            var clone = this.effect.Clone();
+            clone.StackCount = StackCount;
+            clone.Apply(Caster, EventSubject == BehaviourEventSubject.Me ? Target : data.Target);
         }
     }
 }

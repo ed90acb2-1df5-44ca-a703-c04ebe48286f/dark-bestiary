@@ -11,7 +11,7 @@ namespace DarkBestiary.Effects
     {
         private readonly AddCurrencyEffectData data;
 
-        public AddCurrencyEffect(AddCurrencyEffectData data, List<Validator> validators) : base(data, validators)
+        public AddCurrencyEffect(AddCurrencyEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }

@@ -27,7 +27,7 @@ namespace DarkBestiary.UI.Elements
 
             this.hover.PointerEnter += OnInteractablePointerEnter;
             this.hover.PointerExit += OnInteractablePointerExit;
-            this.hover.PointerUp += OnInteractablePointerUp;
+            this.hover.PointerClick += OnInteractablePointerClick;
 
             this.icon.sprite = Resources.Load<Sprite>(Talent.Icon);
             this.text.text = talent.Name;
@@ -49,10 +49,10 @@ namespace DarkBestiary.UI.Elements
 
             this.hover.PointerEnter -= OnInteractablePointerEnter;
             this.hover.PointerExit -= OnInteractablePointerExit;
-            this.hover.PointerUp -= OnInteractablePointerUp;
+            this.hover.PointerClick -= OnInteractablePointerClick;
         }
 
-        protected void OnInteractablePointerUp()
+        protected void OnInteractablePointerClick()
         {
             Clicked?.Invoke(this);
         }
@@ -62,7 +62,7 @@ namespace DarkBestiary.UI.Elements
             Tooltip.Instance.Show(
                 Talent.Name,
                 Talent.Description.ToString(new StringVariableContext(CharacterManager.Instance.Character.Entity)),
-                this.icon.GetComponent<RectTransform>());
+                this.hover.GetComponent<RectTransform>());
         }
 
         protected void OnInteractablePointerExit()

@@ -1,6 +1,5 @@
 ﻿using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
@@ -8,13 +7,13 @@ namespace DarkBestiary.Data.Repositories.File
     {
         internal class ArchetypeDataMapper : FakeMapper<ArchetypeData> {}
 
-        public ArchetypeDataFileRepository(IFileReader loader) : base(loader, new ArchetypeDataMapper())
+        public ArchetypeDataFileRepository(IFileReader reader) : base(reader, new ArchetypeDataMapper())
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/archetypes.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/archetypes.json";
         }
     }
 }

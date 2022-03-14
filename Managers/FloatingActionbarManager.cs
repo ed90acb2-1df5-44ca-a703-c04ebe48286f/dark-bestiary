@@ -8,6 +8,8 @@ namespace DarkBestiary.Managers
 {
     public class FloatingActionbarManager : Singleton<FloatingActionbarManager>
     {
+        public bool IsEnabled { get; set; } = true;
+
         [SerializeField] private FloatingActionBar actionBarPrefab;
         [SerializeField] private Canvas canvas;
 
@@ -18,6 +20,11 @@ namespace DarkBestiary.Managers
 
         private void OnComponentInitialized(Component component)
         {
+            if (!IsEnabled)
+            {
+                return;
+            }
+
             var spellbook = component as SpellbookComponent;
 
             if (spellbook == null || spellbook.gameObject.IsDummy() || !IsAppropriateGameState())
@@ -34,7 +41,7 @@ namespace DarkBestiary.Managers
         private static bool IsAppropriateGameState()
         {
             return Game.Instance != null &&
-                   Game.Instance.State != null && (Game.Instance.State.IsScenario || Game.Instance.State.IsTown);
+                   Game.Instance.State != null && (Game.Instance.State.IsScenario || Game.Instance.State.IsHub);
         }
     }
 }

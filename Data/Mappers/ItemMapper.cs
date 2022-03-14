@@ -57,7 +57,8 @@ namespace DarkBestiary.Data.Mappers
 
         public override Item ToEntity(ItemData data)
         {
-            var item = new Item(data, this.rarityRepository.Find(data.RarityId),
+            var item = new Item(data,
+                this.rarityRepository.Find(data.RarityId),
                 this.itemTypeRepository.Find(data.TypeId),
                 data.AttributeModifiers.Select(this.attributeModifierFactory.Make).ToList(),
                 data.PropertyModifiers.Select(this.propertyModifierFactory.Make).ToList(),
@@ -71,9 +72,35 @@ namespace DarkBestiary.Data.Mappers
                 Set = this.itemSetRepository.Find(data.SetId),
                 WeaponSkillA = this.skillRepository.Find(data.WeaponSkillAId),
                 WeaponSkillB = this.skillRepository.Find(data.WeaponSkillBId),
+                LearnSkill = this.skillRepository.Find(data.LearnSkillId),
                 UnlockSkill = this.skillRepository.Find(data.UnlockSkillId),
+                Suffix = this.itemModifierRepository.Find(data.SuffixId),
                 BlueprintRecipe = Container.Instance.Resolve<IRecipeRepository>().Find(data.BlueprintRecipeId),
+                EnchantmentBehaviour = this.behaviourRepository.Find(data.EnchantmentBehaviourId),
+                EnchantmentItemCategory = Container.Instance.Resolve<IItemCategoryRepository>().Find(data.EnchantmentItemCategoryId),
             };
+
+            if (item.Flags.HasFlag(ItemFlags.HasRandomAffixes))
+            {
+                item.RollAffixes();
+            }
+
+            if (item.Flags.HasFlag(ItemFlags.HasRandomSuffix))
+            {
+                item.RollSuffix();
+            }
+
+            if (item.Type.MaxSocketCount > 0 && item.Flags.HasFlag(ItemFlags.HasRandomSocketCount))
+            {
+                if (Game.Instance?.IsVisions == true)
+                {
+                    item.MakeMaxSockets();
+                }
+                else
+                {
+                    item.RollSockets();
+                }
+            }
 
             return item;
         }

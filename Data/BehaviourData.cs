@@ -18,17 +18,24 @@ namespace DarkBestiary.Data
         public string DescriptionKey;
         public string Tint;
         public float Scale;
+        public float Transparency;
+        public int RarityId;
         public int Period;
         public int Duration;
         public int StackCountMax;
+        public int OnApplyEffectId;
+        public int OnExpireEffectId;
+        public int OnRemoveEffectId;
         public bool CasterIsBearer;
+        public bool IsAncient;
         public BehaviourFlags Flags;
         public ReApplyBehaviourFlags ReApplyFlags;
         public StatusFlags StatusFlags;
         public StatusFlags StatusImmunity;
         public BehaviourEventSubject EventSubject;
+        public List<int> ItemCategories = new List<int>();
         public List<AttachmentInfo> Attachments = new List<AttachmentInfo>();
-        public List<int> Validators = new List<int>();
+        public List<ValidatorWithPurposeData> Validators = new List<ValidatorWithPurposeData>();
     }
 
     [Serializable]
@@ -37,9 +44,21 @@ namespace DarkBestiary.Data
     }
 
     [Serializable]
+    public class MulticastBehaviourData : BehaviourData
+    {
+        public float Chance;
+    }
+
+    [Serializable]
     public class ShieldBehaviourData : BehaviourData
     {
         public string MaxAmountFormula;
+    }
+
+    [Serializable]
+    public class MaxRageBehaviourData : BehaviourData
+    {
+        public int BehaviourId;
     }
 
     [Serializable]
@@ -98,8 +117,6 @@ namespace DarkBestiary.Data
     {
         public int InitialEffectId;
         public int PeriodicEffectId;
-        public int OnExpireEffectId;
-        public int OnRemoveEffectId;
     }
 
     [Serializable]
@@ -112,6 +129,7 @@ namespace DarkBestiary.Data
     public class CleaveBehaviourData : BehaviourData
     {
         public float Fraction;
+        public string Prefab;
     }
 
     [Serializable]
@@ -188,6 +206,7 @@ namespace DarkBestiary.Data
     public class OnUseSkillBehaviourData : BehaviourData
     {
         public SkillFlags SkillFlags;
+        public int SkillRarityId;
         public int EffectId;
     }
 
@@ -196,6 +215,12 @@ namespace DarkBestiary.Data
     {
         public ModifierType ModifierType;
         public List<DamageType> DamageTypes = new List<DamageType>();
+    }
+
+    [Serializable]
+    public class SummonedDamageBehaviourData : DamageBehaviourData
+    {
+        public float Amount;
     }
 
     [Serializable]

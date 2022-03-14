@@ -5,12 +5,14 @@ namespace DarkBestiary.Scenarios
 {
     public struct ScenarioLoot
     {
-        public List<int> Experience { get; }
+        public int Experience { get; }
+        public int SkillPoints { get; }
         public List<Item> Items { get; }
 
-        public ScenarioLoot(List<int> experience, List<Item> items)
+        public ScenarioLoot(int experience, int skillPoints, List<Item> items)
         {
             Experience = experience;
+            SkillPoints = skillPoints;
             Items = items;
         }
     }

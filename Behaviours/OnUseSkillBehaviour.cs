@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using DarkBestiary.Data;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Effects;
+using DarkBestiary.Extensions;
 using DarkBestiary.Skills;
 using DarkBestiary.Validators;
 using UnityEngine;
@@ -14,7 +14,7 @@ namespace DarkBestiary.Behaviours
         private readonly OnUseSkillBehaviourData data;
         private readonly Effect effect;
 
-        public OnUseSkillBehaviour(OnUseSkillBehaviourData data, List<Validator> validators) : base(data, validators)
+        public OnUseSkillBehaviour(OnUseSkillBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
             this.effect = Container.Instance.Resolve<IEffectRepository>().FindOrFail(data.EffectId);
@@ -30,14 +30,24 @@ namespace DarkBestiary.Behaviours
             Skill.AnySkillUsed -= OnSkillUsed;
         }
 
-        private void OnSkillUsed(SkillUseEventData data)
+        protected void OnSkillUsed(SkillUseEventData data)
         {
-            if (data.Caster != Target || this.data.SkillFlags != SkillFlags.None && (data.Skill.Flags & this.data.SkillFlags) == 0)
+            if (data.Caster != Target)
             {
                 return;
             }
 
-            if (!this.Validators.All(v => v.Validate(data.Caster, data.Target)))
+            if (this.data.SkillRarityId > 0 && this.data.SkillRarityId != data.Skill.Rarity?.Id)
+            {
+                return;
+            }
+
+            if (this.data.SkillFlags != SkillFlags.None && (data.Skill.Flags & this.data.SkillFlags) == 0)
+            {
+                return;
+            }
+
+            if (!this.Validators.ByPurpose(ValidatorPurpose.Other).Validate(data.Caster, data.Target))
             {
                 return;
             }

@@ -1,19 +1,18 @@
 ﻿using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
 using DarkBestiary.Items;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
     public class RarityFileRepository : FileRepository<int, ItemRarityData, Rarity>, IRarityRepository
     {
-        public RarityFileRepository(IFileReader loader, ItemRarityMapper mapper) : base(loader, mapper)
+        public RarityFileRepository(IFileReader reader, ItemRarityMapper mapper) : base(reader, mapper)
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/item_rarities.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/item_rarities.json";
         }
     }
 }

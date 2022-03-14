@@ -14,7 +14,7 @@ namespace DarkBestiary.Effects
         protected readonly LaunchMissileEffectData Data;
         protected readonly IMissileRepository MissileRepository;
 
-        public LaunchMissileEffect(LaunchMissileEffectData data, List<Validator> validators,
+        public LaunchMissileEffect(LaunchMissileEffectData data, List<ValidatorWithPurpose> validators,
             IMissileRepository missileRepository) : base(data, validators)
         {
             this.Data = data;
@@ -28,7 +28,12 @@ namespace DarkBestiary.Effects
 
         public virtual Missile GetMissile()
         {
-            return this.MissileRepository.FindOrFail(this.Data.MissileId);
+            return this.MissileRepository.Find(this.Data.MissileId);
+        }
+
+        public Effect GetFinalEffect()
+        {
+            return Container.Instance.Resolve<IEffectRepository>().Find(this.Data.FinalEffectId);
         }
 
         protected override void Apply(GameObject caster, GameObject target)
@@ -44,7 +49,7 @@ namespace DarkBestiary.Effects
                 caster,
                 target,
                 GetAttachmentPoint(origin, this.Data.CasterAttachmentPoint) + GetCasterOffset(origin.transform.position, target.transform.position),
-                GetAttachmentPoint(target, this.Data.TargetAttachmentPoint) + GetTargetOffset()
+                GetAttachmentPoint(target, this.Data.TargetAttachmentPoint) + GetTargetOffset(origin.transform.position, target.transform.position)
             );
         }
 
@@ -61,7 +66,7 @@ namespace DarkBestiary.Effects
                 caster,
                 target,
                 GetAttachmentPoint(origin, this.Data.CasterAttachmentPoint) + GetCasterOffset(origin.transform.position, target),
-                target + GetTargetOffset()
+                target + GetTargetOffset(origin.transform.position, target)
             );
         }
 
@@ -70,12 +75,15 @@ namespace DarkBestiary.Effects
             var direction = (target - origin).normalized;
 
             return new Vector3(this.Data.CasterOffsetX, this.Data.CasterOffsetY) +
-                   new Vector3(this.Data.DirectionalOffsetX * direction.x, this.Data.DirectionalOffsetY * direction.y);
+                   new Vector3(this.Data.CasterDirectionalOffsetX * direction.x, this.Data.CasterDirectionalOffsetY * direction.y);
         }
 
-        private Vector3 GetTargetOffset()
+        private Vector3 GetTargetOffset(Vector3 origin, Vector3 target)
         {
-            return new Vector3(this.Data.TargetOffsetX, this.Data.TargetOffsetY);
+            var direction = (target - origin).normalized;
+
+            return new Vector3(this.Data.TargetOffsetX, this.Data.TargetOffsetY) +
+                   new Vector3(this.Data.TargetDirectionalOffsetX * direction.x, this.Data.TargetDirectionalOffsetY * direction.y);
         }
 
         protected void Launch(GameObject caster, object target, Vector3 origin, Vector3 destination)
@@ -91,12 +99,11 @@ namespace DarkBestiary.Effects
             }
 
             missile.FlyHeight = this.Data.MissileFlyHeight;
-            missile.StopOnEntityCollision = this.Data.StopOnEntityCollision;
-            missile.StopOnEnvironmentCollision = this.Data.StopOnEnvironmentCollision;
+            missile.IsPiercing = this.Data.IsPiercing;
             missile.gameObject.SetActive(false);
             missile.transform.position = origin;
-            missile.Launch(caster, target, destination);
             missile.gameObject.SetActive(true);
+            missile.Launch(caster, target, destination);
 
             if (this.Data.FinishImmediately)
             {

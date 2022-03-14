@@ -8,6 +8,8 @@ namespace DarkBestiary.Managers
 {
     public class FloatingHealthbarManager : Singleton<FloatingHealthbarManager>
     {
+        public bool IsEnabled { get; set; } = true;
+
         [SerializeField] private FloatingHealthBar healthBarPrefab;
         [SerializeField] private Canvas canvas;
 
@@ -18,9 +20,14 @@ namespace DarkBestiary.Managers
 
         private void OnComponentInitialized(Component component)
         {
+            if (!IsEnabled)
+            {
+                return;
+            }
+
             var health = component as HealthComponent;
 
-            if (health == null || health.gameObject.IsDummy() || CharacterManager.Instance.Character == null || health.gameObject.IsCharacter())
+            if (health == null || health.gameObject.IsDummy())
             {
                 return;
             }

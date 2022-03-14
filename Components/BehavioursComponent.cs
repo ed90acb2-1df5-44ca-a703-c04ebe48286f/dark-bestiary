@@ -24,6 +24,7 @@ namespace DarkBestiary.Components
         public List<Behaviour> Behaviours { get; private set; } = new List<Behaviour>();
 
         public bool IsUncontrollable => IsStunned || IsPolymorphed || IsConfused || IsSleeping;
+        public bool IsUncontrollableAndBreaksOnHit => (IsStunned || IsPolymorphed || IsConfused || IsSleeping) && IsBreaksOnHit;
 
         public bool IsSlowed => Behaviours.Any(behaviour => behaviour.StatusFlags.HasFlag(StatusFlags.Slow));
         public bool IsSwift => Behaviours.Any(behaviour => behaviour.StatusFlags.HasFlag(StatusFlags.Swiftness));
@@ -34,6 +35,7 @@ namespace DarkBestiary.Components
         public bool IsSilenced => Behaviours.Any(behaviour => behaviour.StatusFlags.HasFlag(StatusFlags.Silence));
         public bool IsWeakened => Behaviours.Any(behaviour => behaviour.StatusFlags.HasFlag(StatusFlags.Weakness));
         public bool IsAdrenaline => Behaviours.Any(behaviour => behaviour.StatusFlags.HasFlag(StatusFlags.Adrenaline));
+        public bool IsBleeding => Behaviours.Any(behaviour => behaviour.StatusFlags.HasFlag(StatusFlags.Bleeding));
         public bool IsInvisible => Behaviours.Any(behaviour => behaviour.StatusFlags.HasFlag(StatusFlags.Invisibility));
         public bool IsImmobilized => Behaviours.Any(behaviour => behaviour.StatusFlags.HasFlag(StatusFlags.Immobilization));
         public bool IsInvulnerable => Behaviours.Any(behaviour => behaviour.StatusFlags.HasFlag(StatusFlags.Invulnerability));
@@ -43,7 +45,11 @@ namespace DarkBestiary.Components
         public bool IsConfused => Behaviours.Any(behaviour => behaviour.StatusFlags.HasFlag(StatusFlags.Confusion));
         public bool IsSleeping => Behaviours.Any(behaviour => behaviour.StatusFlags.HasFlag(StatusFlags.Sleep));
         public bool IsMindControlled => Behaviours.Any(behaviour => behaviour.StatusFlags.HasFlag(StatusFlags.MindControl));
+        public bool IsCausticPoison => Behaviours.Any(behaviour => behaviour.StatusFlags.HasFlag(StatusFlags.CausticPoison));
+        public bool IsBreaksOnHit => Behaviours.Any(behaviour => behaviour.Flags.HasFlag(BehaviourFlags.BreaksOnTakeDamage));
         public bool IsCaged => Behaviours.Any(behaviour => behaviour is CageBehaviour);
+
+        private HealthComponent health;
 
         protected override void OnInitialize()
         {
@@ -52,9 +58,12 @@ namespace DarkBestiary.Components
             HealthComponent.AnyEntityDied += OnAnyEntityDied;
             HealthComponent.AnyEntityDamaged += OnAnyEntityDamaged;
             CombatEncounter.AnyCombatTeamTurnStarted += OnAnyCombatTeamTurnStarted;
+            CombatEncounter.AnyCombatEnded += OnAnyCombatEnded;
             Episode.AnyEpisodeCompleted += OnAnyEpisodeComplete;
+            EquipmentComponent.AnyWeaponSetSwapped += OnAnyWeaponSetSwapped;
 
-            GetComponent<HealthComponent>().Died += OnDied;
+            this.health = GetComponent<HealthComponent>();
+            this.health.Died += OnDied;
         }
 
         protected override void OnTerminate()
@@ -64,29 +73,45 @@ namespace DarkBestiary.Components
             HealthComponent.AnyEntityDied -= OnAnyEntityDied;
             HealthComponent.AnyEntityDamaged -= OnAnyEntityDamaged;
             CombatEncounter.AnyCombatTeamTurnStarted -= OnAnyCombatTeamTurnStarted;
+            CombatEncounter.AnyCombatEnded -= OnAnyCombatEnded;
             Episode.AnyEpisodeCompleted -= OnAnyEpisodeComplete;
+            EquipmentComponent.AnyWeaponSetSwapped -= OnAnyWeaponSetSwapped;
 
-            GetComponent<HealthComponent>().Died -= OnDied;
+            this.health.Died -= OnDied;
 
             RemoveBehaviours();
         }
 
         private void OnAnyCombatTeamTurnStarted(CombatEncounter combat)
         {
-            if (combat.ActingTeamId != gameObject.GetComponent<UnitComponent>().TeamId)
+            if (!this.health.IsAlive)
             {
                 return;
             }
 
-            foreach (var behaviour in Behaviours.OrderBy(b => b.IsHarmful).ToList())
-            {
-                behaviour.MaybeExpire();
+            var behaviours = Behaviours
+                .OrderBy(b => b.IsHarmful)
+                .Where(b => b.Caster.GetComponent<UnitComponent>().TeamId == combat.ActingTeamId)
+                .ToList();
 
-                if (behaviour.IsApplied)
-                {
-                    behaviour.Tick();
-                }
+            foreach (var behaviour in behaviours)
+            {
+                behaviour.Tick();
+                behaviour.MaybeExpire();
             }
+        }
+
+        private void OnAnyCombatEnded(CombatEncounter combat)
+        {
+            foreach (var behaviour in Behaviours.Where(b => b.Flags.HasFlag(BehaviourFlags.BreaksOnCombatEnd)).ToList())
+            {
+                behaviour.Remove(behaviour.StackCount);
+            }
+        }
+
+        public bool IsBehaviourApplied(Behaviour behaviour)
+        {
+            return Behaviours.Any(b => b.Id == behaviour.Id);
         }
 
         public bool IsBehaviourSetApplied(IEnumerable<Behaviour> behaviours)
@@ -94,7 +119,17 @@ namespace DarkBestiary.Components
             return behaviours.All(b => Behaviours.Any(bb => bb.Id == b.Id));
         }
 
-        public void Apply(Behaviour behaviour, GameObject caster)
+        public void ApplyStack(Behaviour behaviour, GameObject caster)
+        {
+            Apply(behaviour, caster, false);
+        }
+
+        public void ApplyAllStacks(Behaviour behaviour, GameObject caster)
+        {
+            Apply(behaviour, caster, true);
+        }
+
+        private void Apply(Behaviour behaviour, GameObject caster, bool allStacks)
         {
             if (!behaviour.IsIgnoresImmunity &&
                 Behaviours.Any(element => (element.StatusImmunity & behaviour.StatusFlags) > 0) ||
@@ -110,6 +145,7 @@ namespace DarkBestiary.Components
 
             if (applied != null)
             {
+                applied.StackCount += allStacks ? behaviour.StackCount : 1;
                 ReApply(applied, behaviour);
                 return;
             }
@@ -122,14 +158,6 @@ namespace DarkBestiary.Components
 
             AnyBehaviourApplied?.Invoke(behaviour);
             BehaviourApplied?.Invoke(behaviour);
-        }
-
-        public void RemoveAllStacks(List<Behaviour> behaviours)
-        {
-            foreach (var behaviour in behaviours)
-            {
-                RemoveAllStacks(behaviour.Id);
-            }
         }
 
         public void RemoveAllStacks(int behaviourId)
@@ -186,7 +214,8 @@ namespace DarkBestiary.Components
 
         public void RemoveStack(int behaviourId, int stack = 1)
         {
-            Behaviours.FirstOrDefault(behaviour => behaviour.Id == behaviourId)?.Remove(stack);
+            var behaviour = Behaviours.FirstOrDefault(b => b.Id == behaviourId);
+            behaviour?.Remove(stack);
         }
 
         public StatusFlags GetStatusFlags()
@@ -207,7 +236,7 @@ namespace DarkBestiary.Components
             {
                 if (GetStackCount(behaviour.Id) == 0)
                 {
-                    Apply(behaviour, behaviour.Caster);
+                    ApplyAllStacks(behaviour, behaviour.Caster);
                 }
 
                 Behaviours.First(b => b.Id == behaviour.Id).RemainingDuration = behaviour.RemainingDuration;
@@ -235,14 +264,9 @@ namespace DarkBestiary.Components
             {
                 applied.StackEffect(behaviour);
             }
-
-            if (applied.StackCountMax > 0 && applied.StackCount < applied.StackCountMax)
-            {
-                applied.StackCount = Math.Min(applied.StackCount + behaviour.StackCount, applied.StackCountMax);
-            }
         }
 
-        private void RemoveBehaviours(Func<Behaviour, bool> predicate = null)
+        public void RemoveBehaviours(Func<Behaviour, bool> predicate = null)
         {
             Behaviours
                 .Where(behaviour => predicate?.Invoke(behaviour) ?? true)
@@ -252,7 +276,10 @@ namespace DarkBestiary.Components
 
         private void RemoveTemporaryBehaviours(Func<Behaviour, bool> predicate = null)
         {
-            RemoveBehaviours(behaviour => (predicate?.Invoke(behaviour) ?? true) && behaviour.Duration >= 1 || behaviour.Flags.HasFlag(BehaviourFlags.Temporary));
+            RemoveBehaviours(behaviour =>
+                (predicate?.Invoke(behaviour) ?? true) &&
+                behaviour.Duration >= 1 ||
+                behaviour.Flags.HasFlag(BehaviourFlags.Temporary));
         }
 
         private void BeforeBehaviourApplied(Behaviour applied)
@@ -343,8 +370,12 @@ namespace DarkBestiary.Components
 
         private void OnAnySkillUsed(SkillUseEventData data)
         {
-            var behaviours = Behaviours.Where(b => b.Flags.HasFlag(BehaviourFlags.BreaksOnCast) &&
-                                                   b.Caster == data.Caster).ToList();
+            if (data.Skill.GetBaseCost(ResourceType.ActionPoint) == 0)
+            {
+                return;
+            }
+
+            var behaviours = Behaviours.Where(b => b.Flags.HasFlag(BehaviourFlags.BreaksOnCast) && b.Caster == data.Caster).ToList();
 
             foreach (var behaviour in behaviours)
             {
@@ -356,20 +387,22 @@ namespace DarkBestiary.Components
                 RemoveStack(behaviour, behaviour.StackCount);
             }
 
-            // Skills triggering "AnySkillUsed" event right after behaviour is applied.
-
+            // Note: Skills triggering "AnySkillUsed" event right after behaviour is applied.
             Timer.Instance.WaitForEndOfFrame(() =>
             {
                 foreach (var behaviour in behaviours)
                 {
-                    if (behaviour.CanBeRemovedOnCast)
-                    {
-                        continue;
-                    }
-
                     behaviour.CanBeRemovedOnCast = true;
                 }
             });
+        }
+
+        private void OnAnyWeaponSetSwapped()
+        {
+            foreach (var behaviour in Behaviours.Where(b => b.Flags.HasFlag(BehaviourFlags.BreaksOnWeaponSwap)).ToList())
+            {
+                RemoveStack(behaviour, behaviour.StackCount);
+            }
         }
 
         private void OnDied(EntityDiedEventData data)
@@ -386,7 +419,15 @@ namespace DarkBestiary.Components
 
         private void OnScenarioAnyScenarioExit(Scenario scenario)
         {
-            RemoveTemporaryBehaviours();
+            if (Game.Instance.IsVisions)
+            {
+                RemoveTemporaryBehaviours(behaviour => !behaviour.Flags.HasFlag(BehaviourFlags.DoNotRemoveOnScenarioExit) &&
+                                                       !behaviour.Flags.HasFlag(BehaviourFlags.DoNotRemoveOnVisionScenarioExit));
+            }
+            else
+            {
+                RemoveTemporaryBehaviours(behaviour => !behaviour.Flags.HasFlag(BehaviourFlags.DoNotRemoveOnScenarioExit));
+            }
         }
 
         private void OnBehaviourRemoved(Behaviour behaviour)

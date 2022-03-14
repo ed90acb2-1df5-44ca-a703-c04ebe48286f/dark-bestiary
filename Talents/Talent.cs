@@ -48,7 +48,7 @@ namespace DarkBestiary.Talents
             }
             else
             {
-                entity.GetComponent<BehavioursComponent>().Apply(Behaviour, entity);
+                entity.GetComponent<BehavioursComponent>()?.ApplyStack(Behaviour, entity);
             }
 
             IsLearned = true;
@@ -68,7 +68,7 @@ namespace DarkBestiary.Talents
             }
             else
             {
-                entity.GetComponent<BehavioursComponent>().RemoveAllStacks(Behaviour.Id);
+                entity.GetComponent<BehavioursComponent>()?.RemoveStack(Behaviour.Id);
             }
 
             IsLearned = false;

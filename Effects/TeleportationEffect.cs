@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using DarkBestiary.Data;
+using DarkBestiary.Extensions;
 using DarkBestiary.Validators;
 using UnityEngine;
 
@@ -9,7 +10,7 @@ namespace DarkBestiary.Effects
     {
         private readonly EmptyEffectData data;
 
-        public TeleportationEffect(EmptyEffectData data, List<Validator> validators) : base(data, validators)
+        public TeleportationEffect(EmptyEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }
@@ -26,7 +27,7 @@ namespace DarkBestiary.Effects
 
         protected override void Apply(GameObject caster, Vector3 target)
         {
-            caster.transform.position = target;
+            caster.transform.position = target.Snapped();
             TriggerFinished();
         }
     }

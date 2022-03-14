@@ -12,7 +12,7 @@ namespace DarkBestiary.Effects
         private readonly RandomEffectData data;
         private readonly IEffectRepository effectRepository;
 
-        public RandomEffect(RandomEffectData data, List<Validator> validators,
+        public RandomEffect(RandomEffectData data, List<ValidatorWithPurpose> validators,
             IEffectRepository effectRepository) : base(data, validators)
         {
             this.data = data;
@@ -38,6 +38,7 @@ namespace DarkBestiary.Effects
         {
             var effect = this.effectRepository.Find(this.data.Effects.Random());
             effect.Skill = Skill;
+            effect.DamageMultiplier = DamageMultiplier;
             effect.Origin = Origin;
             effect.StackCount = StackCount;
             effect.Apply(caster, target);

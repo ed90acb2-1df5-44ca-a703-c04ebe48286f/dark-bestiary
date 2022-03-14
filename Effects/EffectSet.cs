@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using DarkBestiary.Data;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Validators;
@@ -14,7 +15,7 @@ namespace DarkBestiary.Effects
         private Queue<Effect> queue;
         private object target;
 
-        public EffectSet(EffectSetData data, List<Validator> validators,
+        public EffectSet(EffectSetData data, List<ValidatorWithPurpose> validators,
             IEffectRepository effectRepository) : base(data, validators)
         {
             this.data = data;
@@ -48,12 +49,17 @@ namespace DarkBestiary.Effects
 
             this.queue = new Queue<Effect>();
 
-            foreach (var effectId in this.data.Effects)
+            foreach (var effect in GetEffects())
             {
-                this.queue.Enqueue(this.effectRepository.FindOrFail(effectId));
+                this.queue.Enqueue(effect);
             }
 
             ApplyNextEffectFromQueue();
+        }
+
+        public IEnumerable<Effect> GetEffects()
+        {
+            return this.data.Effects.Select(effectId => this.effectRepository.FindOrFail(effectId)).ToList();
         }
 
         private void OnEffectFinished(Effect effect)
@@ -71,12 +77,9 @@ namespace DarkBestiary.Effects
 
         private void ApplyNextEffectFromQueue()
         {
-            var clone = this.queue.Dequeue().Clone();
-            clone.Finished += OnEffectFinished;
-            clone.Origin = Origin;
-            clone.Skill = Skill;
-            clone.StackCount = StackCount;
-            clone.Apply(Caster, this.target);
+            var effect = Inherit(this.queue.Dequeue().Clone());
+            effect.Finished += OnEffectFinished;
+            effect.Apply(Caster, this.target);
         }
     }
 }

@@ -8,8 +8,8 @@ namespace DarkBestiary.GameStates
 
         protected override void OnEnter()
         {
-            this.controller = Container.Instance.Instantiate<IntroViewController>();
-            this.controller.Initialize();
+            this.controller = ViewControllerRegistry.Initialize<IntroViewController>();
+            this.controller.View.Show();
         }
 
         protected override void OnExit()

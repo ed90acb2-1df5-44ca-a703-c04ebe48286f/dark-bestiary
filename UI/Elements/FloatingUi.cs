@@ -1,8 +1,10 @@
 using DarkBestiary.Components;
 using DarkBestiary.GameBoard;
 using DarkBestiary.Items;
+using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
 using DarkBestiary.Scenarios;
+using DarkBestiary.Scenarios.Encounters;
 using UnityEngine;
 
 namespace DarkBestiary.UI.Elements
@@ -37,6 +39,8 @@ namespace DarkBestiary.UI.Elements
 
             Episode.AnyEpisodeStarted += OnAnyEpisodeStarted;
 
+            CombatEncounter.AnyCombatTurnStarted += OnAnyCombatTurnStarted;
+
             Board.Instance.CellMouseEnter += OnCellMouseEnter;
             Board.Instance.CellMouseExit += OnCellMouseExit;
 
@@ -53,6 +57,8 @@ namespace DarkBestiary.UI.Elements
             this.healthComponent.Died -= OnDeath;
 
             Episode.AnyEpisodeStarted -= OnAnyEpisodeStarted;
+
+            CombatEncounter.AnyCombatTurnStarted -= OnAnyCombatTurnStarted;
 
             Board.Instance.CellMouseEnter -= OnCellMouseEnter;
             Board.Instance.CellMouseExit -= OnCellMouseExit;
@@ -88,9 +94,14 @@ namespace DarkBestiary.UI.Elements
             }
         }
 
+        private void OnAnyCombatTurnStarted(GameObject entity)
+        {
+            MaybeShowOrHide();
+        }
+
         private void OnAnyEpisodeStarted(Episode episode)
         {
-            MaybeHide();
+            MaybeShowOrHide();
         }
 
         private void OnCellMouseEnter(BoardCell cell)
@@ -146,6 +157,18 @@ namespace DarkBestiary.UI.Elements
             transform.position = Camera.main.WorldToScreenPoint(this.target.position);
         }
 
+        private void MaybeShowOrHide()
+        {
+            if (ShouldBeVisible())
+            {
+                Show();
+            }
+            else
+            {
+                Hide();
+            }
+        }
+
         protected void MaybeShow()
         {
             if (!ShouldBeVisible())
@@ -197,7 +220,17 @@ namespace DarkBestiary.UI.Elements
 
         protected bool ShouldBeVisible()
         {
-            return !this.alwaysHide && this.actor.IsVisible && this.healthComponent.IsAlive && (this.alwaysShow || Input.GetKey(KeyCode.LeftAlt) || this.isHovered);
+            var alwaysShowOrAltPressed = this.alwaysShow || Input.GetKey(KeyCode.LeftAlt) || this.isHovered;
+
+            var hideSelectedEntityHealthBar = SettingsManager.Instance.HideActingUnitHealth &&
+                                              SelectionManager.Instance.SelectedAlly == this.healthComponent.gameObject;
+
+            return !this.alwaysHide &&
+                   this.actor.IsVisible &&
+                   this.healthComponent.IsAlive &&
+                   alwaysShowOrAltPressed &&
+                   !hideSelectedEntityHealthBar &&
+                   Scenario.Active != null;
         }
     }
 }

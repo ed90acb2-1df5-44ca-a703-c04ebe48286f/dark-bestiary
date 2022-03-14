@@ -13,9 +13,11 @@ namespace DarkBestiary
     {
         public bool IsVisible { get; private set; } = true;
         public bool IsFacingLeft { get; private set; } = true;
+        public bool FadeInOnStart { get; set; }
 
         [Header("Attachment Points")]
         [SerializeField] private Transform headAttachmentPoint;
+        [SerializeField] private Transform maskAttachmentPoint;
         [SerializeField] private Transform hairAttachmentPoint;
         [SerializeField] private Transform overheadAttachmentPoint;
         [SerializeField] private Transform chestAttachmentPoint;
@@ -80,7 +82,11 @@ namespace DarkBestiary
         private void Start()
         {
             Initialize();
-            FadeIn();
+
+            if (FadeInOnStart)
+            {
+                FadeIn();
+            }
         }
 
         public void Initialize()
@@ -97,6 +103,7 @@ namespace DarkBestiary
             this.attachmentPoints = new Dictionary<AttachmentPoint, Transform>
             {
                 {AttachmentPoint.Head, this.headAttachmentPoint},
+                {AttachmentPoint.Mask, this.maskAttachmentPoint},
                 {AttachmentPoint.Hair, this.hairAttachmentPoint},
                 {AttachmentPoint.OverHead, this.overheadAttachmentPoint},
                 {AttachmentPoint.Chest, this.chestAttachmentPoint},
@@ -151,6 +158,11 @@ namespace DarkBestiary
         public void PlayDig()
         {
             AudioManager.Instance.PlayDig(transform.position);
+        }
+
+        public void PlayDrinkPotion()
+        {
+            AudioManager.Instance.PlayDrinkPotion();
         }
 
         public void CreateRifleMuzzleFlash()

@@ -10,8 +10,7 @@ namespace DarkBestiary.GameStates
 
         protected override void OnEnter()
         {
-            this.notification = Object.Instantiate(Resources.Load<Notification>("Prefabs/UI/EarlyAccessNotification"),
-                UIManager.Instance.ViewCanvas.transform);
+            this.notification = Object.Instantiate(Resources.Load<Notification>("Prefabs/UI/EarlyAccessNotification"), UIManager.Instance.ViewCanvas.transform);
             this.notification.Closed += OnNotificationClosed;
         }
 

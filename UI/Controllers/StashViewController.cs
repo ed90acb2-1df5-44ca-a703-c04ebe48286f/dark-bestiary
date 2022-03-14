@@ -1,4 +1,5 @@
-﻿using DarkBestiary.Components;
+﻿using System.Linq;
+using DarkBestiary.Components;
 using DarkBestiary.Items;
 using DarkBestiary.Managers;
 using DarkBestiary.UI.Views;
@@ -24,29 +25,56 @@ namespace DarkBestiary.UI.Controllers
         {
             View.Deposit += OnItemDeposit;
             View.Withdraw += OnItemWithdraw;
-            View.Construct(this.character, this.stash.Inventory);
+            View.DepositIngredients += OnDepositMaterials;
+            View.WithdrawIngredients += OnWithdrawIngredients;
+            View.Construct(ViewControllerRegistry.Get<EquipmentViewController>().View.GetInventoryPanel(), this.character, this.stash.Inventories);
         }
 
         protected override void OnTerminate()
         {
             View.Deposit -= OnItemDeposit;
             View.Withdraw -= OnItemWithdraw;
+            View.DepositIngredients -= OnDepositMaterials;
+            View.WithdrawIngredients -= OnWithdrawIngredients;
         }
 
-        private void OnItemWithdraw(Item item)
+        private void OnDepositMaterials(int inventoryIndex)
         {
-            this.stash.Inventory.Remove(item);
+            foreach (var item in this.inventory.Items.Where(item => item.Type?.Type == ItemTypeType.Ingredient).ToList())
+            {
+                this.inventory.Remove(item);
+                this.stash.Inventories[inventoryIndex].Pickup(item);
+            }
+        }
+
+        private void OnWithdrawIngredients(int inventoryIndex)
+        {
+            var ingredients = this.stash.Inventories[inventoryIndex].Items
+                .Where(item => item.Type?.Type == ItemTypeType.Ingredient)
+                .Take(this.inventory.GetFreeSlotCount())
+                .ToList();
+
+            foreach (var item in ingredients)
+            {
+                this.stash.Inventories[inventoryIndex].Remove(item);
+                this.inventory.Pickup(item);
+            }
+        }
+
+        private void OnItemWithdraw(Item item, int inventoryIndex)
+        {
+            this.stash.Inventories[inventoryIndex].Remove(item);
             this.inventory.Pickup(item);
         }
 
-        private void OnItemDeposit(Item item)
+        private void OnItemDeposit(Item item, int inventoryIndex)
         {
             if (this.equipment.IsEquipped(item))
             {
                 this.equipment.Unequip(item);
             }
 
-            this.stash.Inventory.Pickup(item);
+            this.stash.Inventories[inventoryIndex].Pickup(item);
             this.inventory.Remove(item);
         }
     }

@@ -13,21 +13,21 @@ namespace DarkBestiary.Behaviours
 
         private readonly DamageBehaviourData data;
 
-        protected DamageBehaviour(DamageBehaviourData data, List<Validator> validators) : base(data, validators)
+        protected DamageBehaviour(DamageBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }
 
-        public Damage Modify(GameObject victim, GameObject attacker, Damage damage)
+        public float GetDamageMultiplier(GameObject victim, GameObject attacker, ref Damage damage)
         {
             if (this.data.DamageTypes.Count > 0 && !this.data.DamageTypes.Contains(damage.Type))
             {
-                return damage;
+                return 0;
             }
 
-            return OnModify(victim, attacker, damage);
+            return OnGetDamageMultiplier(victim, attacker, ref damage);
         }
 
-        protected abstract Damage OnModify(GameObject victim, GameObject attacker, Damage damage);
+        protected abstract float OnGetDamageMultiplier(GameObject victim, GameObject attacker, ref Damage damage);
     }
 }

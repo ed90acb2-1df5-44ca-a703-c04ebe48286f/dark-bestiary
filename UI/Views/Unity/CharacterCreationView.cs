@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
+using DarkBestiary.Skills;
 using DarkBestiary.UI.Elements;
 using TMPro;
 using UnityEngine;
@@ -30,19 +32,27 @@ namespace DarkBestiary.UI.Views.Unity
         [SerializeField] private Button createButton;
         [SerializeField] private Button cancelButton;
         [SerializeField] private Button randomButton;
-        [SerializeField] private Toggle isHardcoreToggle;
-        [SerializeField] private Toggle isRandomSkillsToggle;
         [SerializeField] private GameObject backgroundImagePrefab;
+        [SerializeField] private SkillSlotView skillPrefab;
+        [SerializeField] private Transform skillContainer;
 
         private readonly List<BackgroundRow> backgroundRows = new List<BackgroundRow>();
+        private readonly List<SkillSlotView> skillSlotViews = new List<SkillSlotView>();
 
         private BackgroundRow selectedBackgroundRow;
         private GameObject backgroundImage;
 
-        public void Construct(List<Background> backgrounds,
-            List<Color> hairColors, List<Color> skinColors, int hairstyleCount, int beardCount)
+        public void Construct(CharacterCreationViewContext context)
         {
-            foreach (var background in backgrounds)
+            this.backgroundImage = Instantiate(this.backgroundImagePrefab);
+            // this.backgroundImage.transform.localScale = UIManager.Instance.ViewCanvas.localScale;
+
+            this.nameInput.onEndEdit.AddListener(OnNameInputChanged);
+            this.createButton.onClick.AddListener(OnCreateButtonClicked);
+            this.cancelButton.onClick.AddListener(OnCancelButtonClicked);
+            this.randomButton.onClick.AddListener(OnRandomButtonClicked);
+
+            foreach (var background in context.Backgrounds)
             {
                 var backgroundRow = Instantiate(this.backgroundRowPrefab, this.backgroundRowContainer);
                 backgroundRow.Clicked += OnBackgroundRowClicked;
@@ -52,34 +62,28 @@ namespace DarkBestiary.UI.Views.Unity
 
             OnBackgroundRowClicked(this.backgroundRows.First());
 
-            this.hairSelect.Initialize(hairstyleCount);
+            this.hairSelect.Initialize(context.HairstyleCount);
             this.hairSelect.Changed += OnHairSelectChanged;
 
-            this.beardSelect.Initialize(beardCount);
+            this.beardSelect.Initialize(context.BeardCount);
             this.beardSelect.Changed += OnBeardSelectChanged;
 
-            this.hairColorSelect.Initialize(hairColors);
+            this.hairColorSelect.Initialize(context.HairColors);
             this.hairColorSelect.Changed += OnHairColorSelectChanged;
 
-            this.beardColorSelect.Initialize(hairColors);
+            this.beardColorSelect.Initialize(context.HairColors);
             this.beardColorSelect.Changed += OnBeardColorSelectChanged;
 
-            this.skinColorSelect.Initialize(skinColors);
+            this.skinColorSelect.Initialize(context.SkinColors);
             this.skinColorSelect.Changed += OnSkinColorSelectChanged;
-        }
 
-        protected override void OnInitialize()
-        {
-            this.backgroundImage = Instantiate(this.backgroundImagePrefab);
-
-            this.nameInput.onEndEdit.AddListener(OnNameInputChanged);
-            this.createButton.onClick.AddListener(OnCreateButtonClicked);
-            this.cancelButton.onClick.AddListener(OnCancelButtonClicked);
-            this.randomButton.onClick.AddListener(OnRandomButtonClicked);
+            OnRandomButtonClicked();
         }
 
         protected override void OnTerminate()
         {
+            ClearSkillSlots();
+
             foreach (var backgroundRow in this.backgroundRows)
             {
                 backgroundRow.Clicked -= OnBackgroundRowClicked;
@@ -104,6 +108,32 @@ namespace DarkBestiary.UI.Views.Unity
             this.selectedBackgroundRow.Select();
 
             BackgroundSelected?.Invoke(this.selectedBackgroundRow.Background);
+        }
+
+        public void UpdateSkillSlots(List<SkillSlot> slots)
+        {
+            ClearSkillSlots();
+
+            foreach (var slot in slots)
+            {
+                var skillSlotView = Instantiate(this.skillPrefab, this.skillContainer);
+                skillSlotView.ShowParticles = false;
+                skillSlotView.Initialize(slot);
+                skillSlotView.DisableDrag();
+                skillSlotView.HideHotkey();
+                this.skillSlotViews.Add(skillSlotView);
+            }
+        }
+
+        private void ClearSkillSlots()
+        {
+            foreach (var skillSlotView in this.skillSlotViews)
+            {
+                skillSlotView.Terminate();
+                Destroy(skillSlotView.gameObject);
+            }
+
+            this.skillSlotViews.Clear();
         }
 
         private void OnHairColorSelectChanged(int index)
@@ -157,8 +187,7 @@ namespace DarkBestiary.UI.Views.Unity
 
         private void OnCreateButtonClicked()
         {
-            Create?.Invoke(new CharacterCreationEventData(
-                this.nameInput.text, this.isHardcoreToggle.isOn, this.isRandomSkillsToggle.isOn));
+            Create?.Invoke(new CharacterCreationEventData(this.nameInput.text));
         }
     }
 }

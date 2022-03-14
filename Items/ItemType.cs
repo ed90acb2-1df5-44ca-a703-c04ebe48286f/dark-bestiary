@@ -1,4 +1,5 @@
-﻿using DarkBestiary.Data;
+﻿using System.Collections.Generic;
+using DarkBestiary.Data;
 
 namespace DarkBestiary.Items
 {
@@ -10,6 +11,8 @@ namespace DarkBestiary.Items
         public int MasteryId { get; }
         public IEquipmentStrategy EquipmentStrategy { get; }
         public int MaxSocketCount { get; }
+        public int MaxRuneCount { get; }
+        public List<int> Categories { get; } = new List<int>();
 
         public ItemType(ItemTypeData data, IEquipmentStrategy equipmentStrategy)
         {
@@ -18,7 +21,9 @@ namespace DarkBestiary.Items
             Name = I18N.Instance.Get(data.NameKey);
             Type = data.Type;
             MaxSocketCount = data.MaxSocketCount;
+            MaxRuneCount = data.MaxRuneCount;
             EquipmentStrategy = equipmentStrategy;
+            Categories = data.Categories;
         }
     }
 }

@@ -11,7 +11,7 @@ namespace DarkBestiary.Effects
         private readonly RewardEffectData data;
         private readonly IRewardRepository rewardRepository;
 
-        public RewardEffect(RewardEffectData data, List<Validator> validators,
+        public RewardEffect(RewardEffectData data, List<ValidatorWithPurpose> validators,
             IRewardRepository rewardRepository) : base(data, validators)
         {
             this.data = data;

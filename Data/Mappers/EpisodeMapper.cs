@@ -43,7 +43,7 @@ namespace DarkBestiary.Data.Mappers
         public override Episode ToEntity(EpisodeData data)
         {
             var scene = GetScene(data);
-            scene.Entities.Add(GetEntities(data.Encounter));
+            scene.Entities.Add(GetEntities(data));
             scene.Entities.Add(CharacterManager.Instance.Character.Entity);
             scene.Hide();
 
@@ -89,11 +89,11 @@ namespace DarkBestiary.Data.Mappers
             return encounter;
         }
 
-        private List<GameObject> GetEntities(EncounterData data)
+        private List<GameObject> GetEntities(EpisodeData data)
         {
             List<GameObject> entities;
 
-            switch (data.UnitSourceType)
+            switch (data.Encounter.UnitSourceType)
             {
                 case EncounterUnitSourceType.Table:
                     entities = FromTable(data);
@@ -121,11 +121,11 @@ namespace DarkBestiary.Data.Mappers
             return entities;
         }
 
-        private List<GameObject> FromTable(EncounterData data)
+        private List<GameObject> FromTable(EpisodeData data)
         {
-            var table = new RandomizerTable(data.UnitTable.Count);
+            var table = new RandomizerTable(data.Encounter.UnitTable.Count);
 
-            foreach (var episodeUnitData in data.UnitTable.Units)
+            foreach (var episodeUnitData in data.Encounter.UnitTable.Units)
             {
                 var value = new RandomizerValue<int>(
                     episodeUnitData.UnitId,
@@ -145,10 +145,15 @@ namespace DarkBestiary.Data.Mappers
                 .ToList();
         }
 
-        private List<GameObject> FromEnvironment(EncounterData data)
+        private List<GameObject> FromEnvironment(EpisodeData data)
         {
+            var maxChallengeRating = data.Encounter.UnitGroupChallengeRating < 8 ? 3 : 10;
+
             var units = this.unitDataRepository.FindAll()
-                .Where(unit => data.UnitGroupEnvironmentId == 0 || unit.Environment.Id == data.UnitGroupEnvironmentId)
+                .Where(unit => data.Encounter.UnitGroupEnvironmentId == 0 &&
+                               unit.ChallengeRating <= maxChallengeRating &&
+                               unit.Environment.Id != Constants.EnvironmentTowerId ||
+                               unit.Environment.Id == data.Encounter.UnitGroupEnvironmentId)
                 .Where(unit => !unit.Flags.HasFlag(UnitFlags.Dummy) &&
                                !unit.Flags.HasFlag(UnitFlags.Boss) &&
                                !unit.Flags.HasFlag(UnitFlags.Summoned) &&
@@ -162,7 +167,7 @@ namespace DarkBestiary.Data.Mappers
             while (true)
             {
                 var possible = units
-                    .Where(u1 => u1.ChallengeRating <= data.UnitGroupChallengeRating - result.Sum(u2 => u2.ChallengeRating))
+                    .Where(u1 => u1.ChallengeRating <= data.Encounter.UnitGroupChallengeRating - result.Sum(u2 => u2.ChallengeRating))
                     .ToList();
 
                 if (possible.Count == 0)
@@ -184,11 +189,11 @@ namespace DarkBestiary.Data.Mappers
             return this.unitRepository.Find(result.Select(unit => unit.Id).ToList());
         }
 
-        private List<GameObject> FromUnitGroup(EncounterData data)
+        private List<GameObject> FromUnitGroup(EpisodeData data)
         {
             var units = new List<GameObject>();
 
-            var unitGroup = this.unitGroupDataRepository.FindOrFail(data.UnitGroups.Random());
+            var unitGroup = this.unitGroupDataRepository.FindOrFail(data.Encounter.UnitGroups.Random());
 
             foreach (var unitId in unitGroup.Units)
             {

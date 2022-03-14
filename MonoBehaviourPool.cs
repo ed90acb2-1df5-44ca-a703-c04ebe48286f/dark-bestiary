@@ -10,17 +10,23 @@ namespace DarkBestiary
     {
         public static MonoBehaviourPool<T> Factory(T prefab, Transform container, int size = 10)
         {
+            return Factory(prefab, container, new T[0], size);
+        }
+
+        public static MonoBehaviourPool<T> Factory(T prefab, Transform container, IEnumerable<T> precreated, int size = 10)
+        {
             return DarkBestiary.Container.Instance.Instantiate<MonoBehaviourPool<T>>(
                 new object[]
                 {
                     new MemoryPoolSettings {InitialSize = size},
-                    new MonoBehaviourFactory<T>(prefab, container),
-                });
+                    new MonoBehaviourFactory<T>(prefab, container, precreated),
+                }
+            );
         }
 
-        public IReadOnlyCollection<T> Items => this.items;
+        public IReadOnlyCollection<T> ActiveItems => this.activeItems;
 
-        private readonly List<T> items = new List<T>();
+        private readonly List<T> activeItems = new List<T>();
 
         public new void Clear()
         {
@@ -30,7 +36,7 @@ namespace DarkBestiary
 
         public void DespawnAll()
         {
-            foreach (var item in this.items.ToList())
+            foreach (var item in this.activeItems.ToList())
             {
                 Despawn(item);
             }
@@ -45,7 +51,7 @@ namespace DarkBestiary
         {
             item.gameObject.SetActive(false);
             item.OnDespawned();
-            this.items.Remove(item);
+            this.activeItems.Remove(item);
         }
 
         protected override void OnSpawned(T item)
@@ -54,7 +60,7 @@ namespace DarkBestiary
             item.transform.SetAsLastSibling();
             item.OnSpawned(this);
 
-            this.items.Add(item);
+            this.activeItems.Add(item);
         }
     }
 }

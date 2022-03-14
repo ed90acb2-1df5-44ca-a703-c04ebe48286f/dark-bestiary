@@ -9,6 +9,7 @@ namespace DarkBestiary.Skills
         public int Index { get; }
         public Skill Skill { get; private set; }
         public SkillType SkillType { get; }
+        public bool IsEmpty => Skill.IsEmpty();
 
         public SkillSlot(int index, SkillType skillType)
         {

@@ -6,6 +6,7 @@ using DarkBestiary.Exceptions;
 using DarkBestiary.Extensions;
 using DarkBestiary.Interaction;
 using DarkBestiary.Managers;
+using DarkBestiary.Scenarios;
 using DarkBestiary.Scenarios.Encounters;
 using DarkBestiary.Skills;
 using DarkBestiary.UI.Elements;
@@ -79,6 +80,8 @@ namespace DarkBestiary.UI.Controllers
 
         private void Setup(GameObject entity)
         {
+            View.SetPotionBagEnabled(entity.IsCharacter());
+
             this.movement = entity.GetComponent<MovementComponent>();
             this.movement.Started += OnMovementStarted;
             this.movement.Stopped += OnMovementStopped;
@@ -111,7 +114,7 @@ namespace DarkBestiary.UI.Controllers
             this.spellbook.SkillCooldownUpdated += OnSkillCooldownUpdated;
             this.spellbook.SkillCooldownFinished += OnSkillCooldownFinished;
 
-            View.CreateSkills(this.spellbook.Slots);
+            View.CreateSkillSlots(this.spellbook.Slots);
 
             foreach (var slot in this.spellbook.Slots.Where(slot => slot.Skill.IsOnCooldown()))
             {
@@ -123,7 +126,7 @@ namespace DarkBestiary.UI.Controllers
 
         private void Cleanup()
         {
-            View.RemoveSkills();
+            View.RemoveSkillSlots();
             View.RemoveBehaviours();
 
             if (this.behaviours != null)
@@ -173,11 +176,11 @@ namespace DarkBestiary.UI.Controllers
 
             if (!(this.interactor.State is WaitState) && isMyTurn)
             {
-                View.EnableSkills();
+                View.EnableSkillSlots();
             }
             else
             {
-                View.DisableSkills();
+                View.DisableSkillSlots();
             }
         }
 
@@ -190,7 +193,7 @@ namespace DarkBestiary.UI.Controllers
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
         }
 
@@ -202,20 +205,25 @@ namespace DarkBestiary.UI.Controllers
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
         }
 
         private void OnSkillRemoved(Skill skill)
         {
-            try
+            if (Scenario.Active != null)
             {
-                this.spellbook.RemoveFromActionBar(skill);
+                UiErrorFrame.Instance.ShowMessage(I18N.Instance.Get("exception_in_combat"));
+                return;
             }
-            catch (GameplayException exception)
+
+            if (skill.IsOnCooldown())
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(I18N.Instance.Get("exception_skill_is_on_cooldown"));
+                return;
             }
+
+            this.spellbook.RemoveFromActionBar(skill);
         }
 
         private void OnHealthChanged(HealthComponent health)
@@ -344,7 +352,8 @@ namespace DarkBestiary.UI.Controllers
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
+                throw;
             }
         }
 

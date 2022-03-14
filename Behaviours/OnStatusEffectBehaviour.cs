@@ -15,7 +15,7 @@ namespace DarkBestiary.Behaviours
 
         private BehavioursComponent behaviours;
 
-        public OnStatusEffectBehaviour(OnStatusEffectBehaviourData data, List<Validator> validators) : base(data, validators)
+        public OnStatusEffectBehaviour(OnStatusEffectBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
             this.behaviour = Container.Instance.Resolve<IBehaviourRepository>().FindOrFail(data.BehaviourId);
@@ -50,7 +50,7 @@ namespace DarkBestiary.Behaviours
             }
             else
             {
-                this.behaviours.Apply(this.behaviour, Target);
+                this.behaviours.ApplyAllStacks(this.behaviour, Target);
                 this.behaviours.SetStackCount(this.behaviour.Id, StackCount);
             }
         }

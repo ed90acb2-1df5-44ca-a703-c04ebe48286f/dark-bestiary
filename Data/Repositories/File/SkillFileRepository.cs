@@ -5,19 +5,18 @@ using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
 using DarkBestiary.Extensions;
 using DarkBestiary.Skills;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
     public class SkillFileRepository : FileRepository<int, SkillData, Skill>, ISkillRepository
     {
-        public SkillFileRepository(IFileReader loader, SkillMapper mapper) : base(loader, mapper)
+        public SkillFileRepository(IFileReader reader, SkillMapper mapper) : base(reader, mapper)
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/skills.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/skills.json";
         }
 
         public List<Skill> Find(Func<SkillData, bool> predicate)

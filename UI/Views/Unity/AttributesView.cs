@@ -37,20 +37,17 @@ namespace DarkBestiary.UI.Views.Unity
 
                 this.attributeRows.Add(attributeRow);
             }
-        }
 
-        protected override void OnInitialize()
-        {
-            this.closeButton.PointerUp += Hide;
-            this.applyButton.PointerUp += Hide;
-            this.resetButton.PointerUp += OnResetButtonDown;
+            this.closeButton.PointerClick += Hide;
+            this.applyButton.PointerClick += Hide;
+            this.resetButton.PointerClick += OnResetButtonDown;
         }
 
         protected override void OnTerminate()
         {
-            this.closeButton.PointerUp -= Hide;
-            this.applyButton.PointerUp -= Hide;
-            this.resetButton.PointerUp -= OnResetButtonDown;
+            this.closeButton.PointerClick -= Hide;
+            this.applyButton.PointerClick -= Hide;
+            this.resetButton.PointerClick -= OnResetButtonDown;
 
             foreach (var attributeRow in this.attributeRows)
             {

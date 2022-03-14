@@ -13,7 +13,7 @@ namespace DarkBestiary.Effects
 
         private int counter;
 
-        public RepeatEffect(RepeatEffectData data, List<Validator> validators,
+        public RepeatEffect(RepeatEffectData data, List<ValidatorWithPurpose> validators,
             IEffectRepository effectRepository) : base(data, validators)
         {
             this.data = data;

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using DarkBestiary.GameBoard;
 using DarkBestiary.Messaging;
 using Pathfinding;
 using UnityEngine;
@@ -20,7 +19,7 @@ namespace DarkBestiary.Pathfinding
         private AstarPath pathfinder;
         private Seeker seeker;
 
-        private void Start()
+        private void Awake()
         {
             BlockManager = GetComponent<BlockManager>();
 
@@ -60,9 +59,16 @@ namespace DarkBestiary.Pathfinding
 
         public void FindPathAsync(GameObject entity, Vector3 destination, bool calculatePartial, Action<List<Vector3>> callback)
         {
-            StartPath(entity, destination, calculatePartial, path =>
+            StartPath(entity, destination, calculatePartial, _ =>
             {
-                callback.Invoke(path.path.Count < 2 || path.error ? new List<Vector3>() : path.vectorPath.ToList());
+                // TODO: First path ignores SingleNodeBlocker stuff.
+                StartPath(entity, destination, calculatePartial, path =>
+                {
+                    var points = path.error || path.path.Count < 2
+                        ? new List<Vector3>() : path.vectorPath.ToList();
+
+                    callback.Invoke(points);
+                });
             });
         }
 
@@ -90,19 +96,21 @@ namespace DarkBestiary.Pathfinding
 
         private Path StartPath(GameObject entity, Vector3 destination, bool calculatePartial, OnPathDelegate callback = null)
         {
-            var traversalProvider = DetermineTraversalProvider(entity);
+            var traversalProvider = CreateTraversalProvider(entity);
 
-            var path = (ABPath) this.seeker.StartPath(entity.transform.position, destination, callback);
+            var path = ABPath.Construct(entity.transform.position, destination, callback);
             path.calculatePartial = calculatePartial;
             path.traversalProvider = traversalProvider;
             path.nnConstraint = new TraversableNNConstraint(path, traversalProvider);
 
+            AstarPath.StartPath(path);
+
             return path;
         }
 
-        private ITraversalProvider DetermineTraversalProvider(GameObject entity)
+        private ITraversalProvider CreateTraversalProvider(GameObject entity)
         {
-            return new BlockManagerTraversalProvider(BlockManager, new List<SingleNodeBlocker>
+            return new BlockManager.TraversalProvider(BlockManager, BlockManager.BlockMode.AllExceptSelector, new List<SingleNodeBlocker>
             {
                 entity.GetComponent<SingleNodeBlocker>()
             });

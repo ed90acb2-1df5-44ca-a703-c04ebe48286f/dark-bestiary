@@ -13,7 +13,7 @@ namespace DarkBestiary.Behaviours
         private readonly IEffectRepository effectRepository;
 
         public OnBlockBehaviour(EffectBehaviourData data, IEffectRepository effectRepository,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
             this.effectRepository = effectRepository;
@@ -31,7 +31,9 @@ namespace DarkBestiary.Behaviours
 
         private void OnAttackBlocked(DefenseComponent defense)
         {
-            this.effectRepository.FindOrFail(this.data.EffectId).Apply(Caster, Target);
+            var effect = this.effectRepository.FindOrFail(this.data.EffectId);
+            effect.StackCount = StackCount;
+            effect.Apply(Caster, Target);
         }
     }
 }

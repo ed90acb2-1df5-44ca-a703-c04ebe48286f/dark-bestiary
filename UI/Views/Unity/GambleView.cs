@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using DarkBestiary.Components;
 using DarkBestiary.Currencies;
 using DarkBestiary.Items;
 using DarkBestiary.Managers;
@@ -15,60 +14,66 @@ namespace DarkBestiary.UI.Views.Unity
     {
         public event Payload Gamble;
         public event Payload<Item> Buy;
+        public event Payload<Item> Sell;
 
-        [SerializeField] private InventoryPanel inventoryPanel;
-        [SerializeField] private EquipmentPanel equipmentPanel;
-        [SerializeField] private CharacterPanel characterPanel;
         [SerializeField] private ItemListRow itemPrefab;
         [SerializeField] private Transform itemContainer;
         [SerializeField] private Interactable closeButton;
         [SerializeField] private Interactable gambleButton;
         [SerializeField] private TextMeshProUGUI priceText;
+        [SerializeField] private Interactable sellDropArea;
         [SerializeField] private Image priceIcon;
 
+        private InventoryPanel inventoryPanel;
         private MonoBehaviourPool<ItemListRow> itemPool;
 
-        private Character character;
-        private InventoryComponent inventory;
-        private EquipmentComponent equipment;
-
-        public void Construct(Character character, Currency price)
+        public void Construct(InventoryPanel inventoryPanel)
         {
-            this.character = character;
-            this.inventory = character.Entity.GetComponent<InventoryComponent>();
-            this.equipment = character.Entity.GetComponent<EquipmentComponent>();
-
-            this.priceIcon.sprite = Resources.Load<Sprite>(price.Icon);
-            this.priceText.text = price.Amount.ToString();
-        }
-
-        protected override void OnInitialize()
-        {
+            this.inventoryPanel = inventoryPanel;
             this.itemPool = MonoBehaviourPool<ItemListRow>.Factory(this.itemPrefab, this.itemContainer);
 
-            this.characterPanel.Initialize(this.character);
-            this.equipmentPanel.Initialize(this.equipment);
-            this.inventoryPanel.Initialize(this.inventory);
-            this.inventoryPanel.ItemRightClicked += OnInventoryItemRightClicked;
-
-            this.gambleButton.PointerUp += OnGambleButtonClicked;
-            this.closeButton.PointerUp += Hide;
+            this.gambleButton.PointerClick += OnGambleButtonClicked;
+            this.closeButton.PointerClick += Hide;
+            this.sellDropArea.Dropped += OnSellAreaDropped;
         }
 
         protected override void OnTerminate()
         {
-            this.characterPanel.Terminate();
-            this.equipmentPanel.Terminate();
-            this.inventoryPanel.Terminate();
-
             this.itemPool.Clear();
-            this.gambleButton.PointerUp -= OnGambleButtonClicked;
-            this.closeButton.PointerUp -= Hide;
+            this.gambleButton.PointerClick -= OnGambleButtonClicked;
+            this.closeButton.PointerClick -= Hide;
+            this.sellDropArea.Dropped -= OnSellAreaDropped;
+        }
+
+        private void OnEnable()
+        {
+            if (this.inventoryPanel == null)
+            {
+                return;
+            }
+
+            this.inventoryPanel.ItemControlClicked += OnInventoryItemControlClicked;
+        }
+
+        private void OnDisable()
+        {
+            if (this.inventoryPanel == null)
+            {
+                return;
+            }
+
+            this.inventoryPanel.ItemControlClicked -= OnInventoryItemControlClicked;
+        }
+
+        public void UpdatePrice(Currency price)
+        {
+            this.priceIcon.sprite = Resources.Load<Sprite>(price.Icon);
+            this.priceText.text = price.Amount.ToString();
         }
 
         public void Display(List<Item> items)
         {
-            foreach (var itemView in this.itemPool.Items)
+            foreach (var itemView in this.itemPool.ActiveItems)
             {
                 itemView.Clicked -= OnItemClicked;
                 itemView.RightClicked -= OnItemRightClicked;
@@ -85,15 +90,21 @@ namespace DarkBestiary.UI.Views.Unity
             }
         }
 
-        private void OnInventoryItemRightClicked(InventoryItem inventoryItem)
+        private void OnSellAreaDropped(GameObject dropped)
         {
-            if (this.inventory.MaybeUse(inventoryItem.Item))
+            var inventoryItem = dropped.GetComponent<InventoryItem>();
+
+            if (inventoryItem == null)
             {
                 return;
             }
 
-            AudioManager.Instance.PlayItemPlace(inventoryItem.Item);
-            this.equipment.Equip(inventoryItem.Item);
+            TriggerSelling(inventoryItem.Item);
+        }
+
+        private void OnInventoryItemControlClicked(InventoryItem inventoryItem)
+        {
+            TriggerSelling(inventoryItem.Item);
         }
 
         private void OnGambleButtonClicked()
@@ -114,6 +125,12 @@ namespace DarkBestiary.UI.Views.Unity
         private void OnItemRightClicked(ItemListRow itemView)
         {
             TriggerBuying(itemView.Item);
+        }
+
+        private void TriggerSelling(Item item)
+        {
+            Sell?.Invoke(item);
+            AudioManager.Instance.PlayItemSell();
         }
 
         private void TriggerBuying(Item item)

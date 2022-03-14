@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Effects;
+using DarkBestiary.Validators;
 using UnityEngine;
 
 namespace DarkBestiary.Data.Mappers
@@ -46,7 +47,7 @@ namespace DarkBestiary.Data.Mappers
                     new object[]
                     {
                         data,
-                        this.validatorRepository.Find(data.Validators).ToList()
+                        CreateValidators(data),
                     }) as Effect;
                 ;
             }
@@ -55,6 +56,15 @@ namespace DarkBestiary.Data.Mappers
                 Debug.LogError(data.Name + ": " + exception.Message);
                 throw;
             }
+        }
+
+        private List<ValidatorWithPurpose> CreateValidators(EffectData effect)
+        {
+            return effect.Validators
+                .Select(validator =>
+                    new ValidatorWithPurpose(
+                        this.validatorRepository.Find(validator.ValidatorId), validator.ValidatorPurpose))
+                .ToList();
         }
     }
 }

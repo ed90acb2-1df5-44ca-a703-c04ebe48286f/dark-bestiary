@@ -8,7 +8,9 @@ namespace DarkBestiary.Data
     {
         public bool IsSuffix;
         public string SuffixTextKey;
+        public int BehaviourId;
         public int RarityId;
+        public float Weight;
         public List<AttributeModifierCurveData> Attributes = new List<AttributeModifierCurveData>();
         public List<PropertyModifierCurveData> Properties = new List<PropertyModifierCurveData>();
         public List<int> ItemModifiers = new List<int>();

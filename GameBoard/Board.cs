@@ -4,6 +4,7 @@ using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
 using DarkBestiary.Pathfinding;
 using DarkBestiary.Scenarios;
+using FMODUnity;
 using UnityEngine;
 
 namespace DarkBestiary.GameBoard
@@ -34,9 +35,7 @@ namespace DarkBestiary.GameBoard
         [SerializeField] private Vector3 center;
         [SerializeField] private float cellSize;
         [SerializeField] private float cellGap;
-
-        [Header("Sounds")]
-        [FMODUnity.EventRef] [SerializeField] private string cellClickSound;
+        [SerializeField] private EventReference cellClickEventReference;
 
         [Header("Shapes")]
         [SerializeField] private Collider2D cleaveShapeCollider;
@@ -99,6 +98,9 @@ namespace DarkBestiary.GameBoard
                     cell.transform.localPosition = position;
                     cell.transform.localRotation = Quaternion.identity;
                     cell.transform.localScale = Vector3.one * (this.cellSize - this.cellGap);
+                    cell.Index = Cells.Count;
+                    cell.X = x;
+                    cell.Y = y;
 
                     Cells.Add(cell);
                 }
@@ -151,7 +153,7 @@ namespace DarkBestiary.GameBoard
 
         private void OnCellMouseDown(BoardCell cell)
         {
-            AudioManager.Instance.PlayOneShot(this.cellClickSound);
+            AudioManager.Instance.PlayOneShot(this.cellClickEventReference.Path);
             CellMouseDown?.Invoke(cell);
         }
 

@@ -20,12 +20,12 @@ namespace DarkBestiary.UI.Views.Unity
 
         protected override void OnInitialize()
         {
-            this.continueButton.PointerUp += OnContinueButtonClicked;
+            this.continueButton.PointerClick += OnContinueButtonClicked;
         }
 
         protected override void OnTerminate()
         {
-            this.continueButton.PointerUp -= OnContinueButtonClicked;
+            this.continueButton.PointerClick -= OnContinueButtonClicked;
         }
 
         private void OnContinueButtonClicked()

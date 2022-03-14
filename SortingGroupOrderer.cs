@@ -17,6 +17,11 @@ namespace DarkBestiary
         private void Update()
         {
             this.sortingGroup.sortingOrder = Mathf.RoundToInt(transform.position.y * 100f) * -1;
+
+            if (Application.isPlaying && gameObject.isStatic)
+            {
+                enabled = false;
+            }
         }
     }
 }

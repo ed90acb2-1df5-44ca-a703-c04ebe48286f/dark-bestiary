@@ -26,26 +26,28 @@ namespace DarkBestiary.Components
             HealthComponent.AnyEntityDamaged -= OnEntityDamaged;
         }
 
-        public Damage Modify(GameObject target, Damage damage)
+        public Damage Modify(GameObject victim, Damage damage)
         {
-            if (this.properties == null || damage.Type == DamageType.Health)
+            if (this.properties == null || damage.Type == DamageType.Health || damage.IsTrue())
             {
                 return damage;
             }
 
+            var multiplier = GetDamageMultiplier(damage);
+
             foreach (var behaviour in this.behaviours.OffensiveDamageBehaviours())
             {
-                damage = behaviour.Modify(target, gameObject, damage);
+                multiplier += behaviour.GetDamageMultiplier(victim, gameObject, ref damage);
             }
 
-            damage *= GetDamageIncreaseMultiplier(damage);
+            damage *= multiplier;
 
             return RollDiceCritical(damage);
         }
 
-        public float GetDamageIncreaseMultiplier(Damage damage)
+        public float GetDamageMultiplier(Damage damage)
         {
-            if (damage.Type == DamageType.Health)
+            if (damage.Type == DamageType.Health || damage.IsTrue())
             {
                 return 1;
             }
@@ -128,7 +130,7 @@ namespace DarkBestiary.Components
 
         private void OnEntityDamaged(EntityDamagedEventData data)
         {
-            if ((data.Damage < 1 && data.Damage.Absorbed > 0) || data.Attacker != gameObject || data.Attacker == data.Victim ||
+            if (data.Damage < 1 && data.Damage.Absorbed > 0 || data.Attacker != gameObject || data.Attacker == data.Victim ||
                 data.Damage.InfoFlags.HasFlag(DamageInfoFlags.Reflected))
             {
                 return;
@@ -141,11 +143,18 @@ namespace DarkBestiary.Components
                 return;
             }
 
-            // Note: Shield Explode deals damage then removes shields, to prevent "overheal"
+            if (data.Victim.GetComponent<BehavioursComponent>().IsBleeding)
+            {
+                vampirism *= 1.5f;
+            }
+
+            // Note: "Shield Explode" deals damage first then removes shields, to prevent "overheal"
             // shield removal we need to wait a little bit.
             Timer.Instance.WaitForFixedUpdate(() =>
             {
-                this.health.Heal(gameObject, new Healing(data.Damage * vampirism, HealingFlags.Vampirism));
+                var amount = Mathf.Max(1, data.Damage * vampirism);
+
+                this.health.Heal(gameObject, new Healing(amount, HealFlags.Vampirism, data.Damage.Skill));
             });
         }
     }

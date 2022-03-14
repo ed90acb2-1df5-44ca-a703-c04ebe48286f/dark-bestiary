@@ -1,8 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using DarkBestiary.Components;
+using DarkBestiary.Extensions;
 using DarkBestiary.GameBoard;
 using DarkBestiary.Interaction;
+using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
+using DarkBestiary.Properties;
 using DarkBestiary.Skills;
 using DarkBestiary.UI.Elements;
 using TMPro;
@@ -23,43 +28,146 @@ namespace DarkBestiary.UI.Views.Unity
         public event Payload EndTurnButtonClicked;
         public event Payload SwapWeaponButtonClicked;
 
-        private readonly List<SpellbookSlot> spellbookSlots = new List<SpellbookSlot>();
+        private readonly List<SkillSlotView> spellbookSlots = new List<SkillSlotView>();
 
-        [SerializeField] private SpellbookSlot slotPrefab;
+        [SerializeField] private SkillSlotView slotPrefab;
         [SerializeField] private Transform slotContainerLeft;
         [SerializeField] private Transform slotContainerRight;
         [SerializeField] private EndTurnButton endTurnButton;
         [SerializeField] private ActionPoint actionPointPrefab;
-        [SerializeField] private Transform actionPointContainer;
+        [SerializeField] private RectTransform actionPointContainer;
         [SerializeField] private BehavioursPanel behaviourFrame;
         [SerializeField] private HealthFrame healthFrame;
         [SerializeField] private RectTransform tooltipAnchor;
         [SerializeField] private Interactable swapWeaponButton;
+        [SerializeField] private Interactable potionBagButton;
         [SerializeField] private Image rageFiller;
         [SerializeField] private TextMeshProUGUI rageText;
+        [SerializeField] private Interactable actionPointInteractable;
+        [SerializeField] private Interactable rageInteractable;
+        [SerializeField] private PotionBag potionBag;
+        [SerializeField] private ParticleSystem rageParticles;
 
         private readonly List<ActionPoint> actionPointDots = new List<ActionPoint>();
 
         private bool isEnabled = true;
 
-        protected override void OnInitialize()
+        private void Start()
         {
             Active = this;
 
-            this.endTurnButton.PointerUp += OnEndTurnButtonPointerUp;
-            this.swapWeaponButton.PointerUp += OnSwapWeaponButtonPointerUp;
+            BoardCell.AnyCellMouseEnter += OnAnyCellMouseEnter;
+            BoardCell.AnyCellMouseExit += OnAnyCellMouseExit;
+
+            this.actionPointInteractable.PointerEnter += OnActionPointInteractablePointerEnter;
+            this.actionPointInteractable.PointerExit += OnActionPointInteractablePointerExit;
+            this.rageInteractable.PointerEnter += OnRageInteractablePointerEnter;
+            this.rageInteractable.PointerExit += OnRageInteractablePointerExit;
+            this.endTurnButton.PointerClick += OnEndTurnButtonPointerClick;
+
+            this.swapWeaponButton.PointerClick += OnSwapWeaponButtonPointerClick;
             this.swapWeaponButton.PointerEnter += OnSwapWeaponButtonPointerEnter;
             this.swapWeaponButton.PointerExit += OnSwapWeaponButtonPointerExit;
+
+            this.potionBagButton.PointerClick += OnPotionBagButtonPointerClick;
+            this.potionBagButton.PointerEnter += OnPotionBagButtonPointerEnter;
+            this.potionBagButton.PointerExit += OnPotionBagButtonPointerExit;
+
+            this.potionBag.Initialize(CharacterManager.Instance.Character.Entity.GetComponent<InventoryComponent>());
+
+            var rectTransform = GetComponent<RectTransform>();
+            rectTransform.anchorMin = rectTransform.anchorMin.With(y: Screen.safeArea.position.y / Screen.height);
         }
 
         protected override void OnTerminate()
         {
             Active = null;
 
-            this.endTurnButton.PointerUp -= OnEndTurnButtonPointerUp;
-            this.swapWeaponButton.PointerUp -= OnSwapWeaponButtonPointerUp;
+            BoardCell.AnyCellMouseEnter -= OnAnyCellMouseEnter;
+            BoardCell.AnyCellMouseExit -= OnAnyCellMouseExit;
+
+            this.actionPointInteractable.PointerEnter -= OnActionPointInteractablePointerEnter;
+            this.actionPointInteractable.PointerExit -= OnActionPointInteractablePointerExit;
+            this.rageInteractable.PointerEnter -= OnRageInteractablePointerEnter;
+            this.rageInteractable.PointerExit -= OnRageInteractablePointerExit;
+            this.endTurnButton.PointerClick -= OnEndTurnButtonPointerClick;
+
+            this.swapWeaponButton.PointerClick -= OnSwapWeaponButtonPointerClick;
             this.swapWeaponButton.PointerEnter -= OnSwapWeaponButtonPointerEnter;
             this.swapWeaponButton.PointerExit -= OnSwapWeaponButtonPointerExit;
+
+            this.potionBagButton.PointerClick -= OnPotionBagButtonPointerClick;
+            this.potionBagButton.PointerEnter -= OnPotionBagButtonPointerEnter;
+            this.potionBagButton.PointerExit -= OnPotionBagButtonPointerExit;
+
+            this.potionBag.Terminate();
+        }
+
+        private void OnDisable()
+        {
+            Tooltip.Instance.Hide();
+            SkillTooltip.Instance.Hide();
+            this.potionBag.gameObject.SetActive(false);
+        }
+
+        private void OnAnyCellMouseEnter(BoardCell cell)
+        {
+            if (!cell.IsOccupied || UIManager.Instance.IsGameFieldBlockedByUI())
+            {
+                return;
+            }
+
+            var properties = cell.OccupiedBy.GetComponent<PropertiesComponent>();
+            var unit = cell.OccupiedBy.GetComponent<UnitComponent>();
+
+            var damageEffect = cell.OccupiedBy.GetComponent<SpellbookComponent>()
+                .Slots
+                .FirstOrDefault(s => !s.IsEmpty && s.SkillType == SkillType.Weapon)?
+                .Skill
+                .GetFirstDamageEffect();
+
+            var description = "";
+            description += $"{I18N.Instance.Translate("ui_level")}: {unit.Level}\n";
+            description += $"{I18N.Instance.Translate("ui_challenge_rating")}: {unit.ChallengeRating}\n\n";
+            description += $"{I18N.Instance.Translate("ui_attack")}: {damageEffect?.GetAmountString(cell.OccupiedBy) ?? "-"}\n";
+            description += $"{I18N.Instance.Translate("ui_health")}: {properties.Get(PropertyType.Health).ValueString()}\n";
+            description += $"{I18N.Instance.Translate("ui_physical_resistance")}: {properties.AveragePhysicalResistance() * 100:F2}%\n";
+            description += $"{I18N.Instance.Translate("ui_magical_resistance")}: {properties.AverageMagicalResistance() * 100:F2}%";
+
+            Tooltip.Instance.Show(unit.Name, description, this.tooltipAnchor);
+        }
+
+        private void OnAnyCellMouseExit(BoardCell cell)
+        {
+            Tooltip.Instance.Hide();
+        }
+
+        private void OnRageInteractablePointerEnter()
+        {
+            Tooltip.Instance.Show(
+                I18N.Instance.Get("resource_rage"), I18N.Instance.Get("resource_rage_description"), this.tooltipAnchor);
+        }
+
+        private void OnRageInteractablePointerExit()
+        {
+            Tooltip.Instance.Hide();
+        }
+
+        private void OnActionPointInteractablePointerEnter()
+        {
+            Tooltip.Instance.Show(
+                I18N.Instance.Get("resource_action_points"), I18N.Instance.Get("resource_action_points_description"), this.tooltipAnchor);
+        }
+
+        private void OnActionPointInteractablePointerExit()
+        {
+            Tooltip.Instance.Hide();
+        }
+
+        public void SetPotionBagEnabled(bool isEnabled)
+        {
+            this.potionBagButton.gameObject.SetActive(isEnabled);
+            this.potionBag.gameObject.SetActive(false);
         }
 
         public void SetPoisoned(bool isPoisoned)
@@ -82,24 +190,26 @@ namespace DarkBestiary.UI.Views.Unity
             this.behaviourFrame.Clear();
         }
 
-        public void EnableSkills()
+        public void EnableSkillSlots()
         {
             this.spellbookSlots.ForEach(button => button.Enable());
             this.isEnabled = true;
         }
 
-        public void DisableSkills()
+        public void DisableSkillSlots()
         {
             this.spellbookSlots.ForEach(button => button.Disable());
             this.isEnabled = false;
         }
 
-        public void CreateSkills(IReadOnlyList<SkillSlot> slots)
+        public void CreateSkillSlots(IReadOnlyList<SkillSlot> slots)
         {
             foreach (var slot in slots)
             {
                 var spellbookSlot = Instantiate(
                     this.slotPrefab, slot.Index < 5 ? this.slotContainerLeft : this.slotContainerRight);
+
+                var skillKeyBindings = KeyBindings.Skills();
 
                 spellbookSlot.PointerUp += OnSlotPointerUp;
                 spellbookSlot.SkillDroppedIn += OnSlotSkillDroppedIn;
@@ -109,29 +219,29 @@ namespace DarkBestiary.UI.Views.Unity
                 spellbookSlot.Selected += OnSkillSelected;
                 spellbookSlot.ShowTooltip = false;
                 spellbookSlot.Initialize(slot);
-                spellbookSlot.SetHotkey(KeyCodes.Hotkeys[slot.Index]);
+                spellbookSlot.SetHotkey(skillKeyBindings[slot.Index]);
                 this.spellbookSlots.Add(spellbookSlot);
             }
         }
 
-        private void OnSlotPointerEnter(SpellbookSlot slot)
+        private void OnSlotPointerEnter(SkillSlotView slotView)
         {
             if (Interactor.Instance.IsSelectionState || Interactor.Instance.IsWaitState)
             {
                 BoardNavigator.Instance.Board.Clear();
                 BoardNavigator.Instance.HighlightSkillRangeDefault(
-                    slot.Slot.Skill,
-                    slot.Slot.Skill.Caster.transform.position,
-                    slot.Slot.Skill.Caster.transform.position
+                    slotView.Slot.Skill,
+                    slotView.Slot.Skill.Caster.transform.position,
+                    slotView.Slot.Skill.Caster.transform.position
                 );
             }
 
-            SkillTooltip.Instance.Show(slot.Slot.Skill, this.tooltipAnchor);
+            SkillTooltip.Instance.Show(slotView.Slot.Skill, this.tooltipAnchor);
 
-            ShowActionPointUsage(slot.Slot.Skill.GetCost(ResourceType.ActionPoint));
+            ShowActionPointUsage(slotView.Slot.Skill.GetCost(ResourceType.ActionPoint));
         }
 
-        private void OnSlotPointerExit(SpellbookSlot slot)
+        private void OnSlotPointerExit(SkillSlotView slotView)
         {
             if (Interactor.Instance.IsSelectionState || Interactor.Instance.IsWaitState)
             {
@@ -168,7 +278,7 @@ namespace DarkBestiary.UI.Views.Unity
             SkillRemoved?.Invoke(skill);
         }
 
-        public void RemoveSkills()
+        public void RemoveSkillSlots()
         {
             foreach (var slot in this.spellbookSlots)
             {
@@ -244,8 +354,10 @@ namespace DarkBestiary.UI.Views.Unity
 
         public void UpdateRageAmount(float current, float maximum)
         {
+            this.rageParticles.gameObject.SetActive(Math.Abs(current - maximum) < Mathf.Epsilon);
+
             this.rageFiller.fillAmount = current / maximum;
-            this.rageText.text = $"{(int) current}/{(int) maximum}";
+            this.rageText.text = $"{((int) current).ToString()}/{((int) maximum).ToString()}";
         }
 
         public void UpdateActionPointsAmount(float current, float maximum)
@@ -292,19 +404,19 @@ namespace DarkBestiary.UI.Views.Unity
             }
         }
 
-        private void OnEndTurnButtonPointerUp()
+        private void OnEndTurnButtonPointerClick()
         {
             EndTurnButtonClicked?.Invoke();
         }
 
-        private void OnSwapWeaponButtonPointerUp()
+        private void OnSwapWeaponButtonPointerClick()
         {
             SwapWeaponButtonClicked?.Invoke();
         }
 
         private void OnSwapWeaponButtonPointerEnter()
         {
-            Tooltip.Instance.Show(I18N.Instance.Get("ui_swap_weapon") + " [Tab]", this.swapWeaponButton.GetComponent<RectTransform>());
+            Tooltip.Instance.Show(I18N.Instance.Get("ui_swap_weapon"), this.swapWeaponButton.GetComponent<RectTransform>());
         }
 
         private void OnSwapWeaponButtonPointerExit()
@@ -312,21 +424,42 @@ namespace DarkBestiary.UI.Views.Unity
             Tooltip.Instance.Hide();
         }
 
-        private void OnSlotPointerUp(SpellbookSlot slot)
+        private void OnPotionBagButtonPointerClick()
         {
-            if (slot.Slot.Skill.IsEmpty() || !this.isEnabled)
+            this.potionBag.gameObject.SetActive(!this.potionBag.gameObject.activeSelf);
+            ItemTooltip.Instance.Hide();
+        }
+
+        private void OnPotionBagButtonPointerEnter()
+        {
+            Tooltip.Instance.Show(I18N.Instance.Get("ui_potion_bag"), this.potionBagButton.GetComponent<RectTransform>());
+        }
+
+        private void OnPotionBagButtonPointerExit()
+        {
+            Tooltip.Instance.Hide();
+        }
+
+        private void OnSlotPointerUp(SkillSlotView slotView)
+        {
+            if (slotView.Slot.Skill.IsEmpty() || !this.isEnabled)
             {
                 return;
             }
 
-            SkillClicked?.Invoke(slot.Slot.Skill);
+            SkillClicked?.Invoke(slotView.Slot.Skill);
         }
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Tab))
+            if (Input.GetKeyDown(KeyBindings.Get(KeyType.SwapWeapon)))
             {
-                OnSwapWeaponButtonPointerUp();
+                OnSwapWeaponButtonPointerClick();
+            }
+
+            if (Input.GetKeyDown(KeyBindings.Get(KeyType.ConsumablesBag)))
+            {
+                OnPotionBagButtonPointerClick();
             }
         }
     }

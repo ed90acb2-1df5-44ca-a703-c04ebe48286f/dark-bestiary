@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using DarkBestiary.Components;
-using DarkBestiary.Currencies;
+using DarkBestiary.Exceptions;
 using DarkBestiary.Extensions;
 using DarkBestiary.Items;
 using DarkBestiary.Messaging;
@@ -12,6 +12,7 @@ namespace DarkBestiary.UI.Elements
 {
     public class InventoryPanel : MonoBehaviour
     {
+        public event Payload<InventoryItem> ItemControlClicked;
         public event Payload<InventoryItem> ItemRightClicked;
         public event Payload<InventoryItem> ItemDoubleClicked;
 
@@ -28,20 +29,40 @@ namespace DarkBestiary.UI.Elements
 
         private InventoryComponent inventory;
         private Item deleting;
+        private Item enchantSource;
+        private Item enchantTarget;
+
+        public void ChangeInventory(InventoryComponent inventory)
+        {
+            UnsubscribeFromInventoryUpdates(this.inventory);
+
+            this.inventory = inventory;
+
+            SubscribeToInventoryUpdates(this.inventory);
+
+            for (var i = 0; i < Slots.Count; i++)
+            {
+                Slots[i].ChangeItem(this.inventory.Items[i]);
+            }
+
+            OnFilterChanged();
+        }
 
         public void Initialize(InventoryComponent inventory)
         {
             this.inventory = inventory;
-            this.inventory.Sorted += OnSorted;
-            this.inventory.Expanded += OnExpanded;
-            this.inventory.ItemPicked += OnItemPicked;
-            this.inventory.ItemRemoved += OnItemRemoved;
-            this.inventory.ItemsSwapped += OnItemsSwapped;
-            this.inventory.ItemStackCountChanged += OnItemStackCountChanged;
+            SubscribeToInventoryUpdates(this.inventory);
 
-            foreach (var item in this.inventory.Items)
+            Slots.AddRange(this.slotContainer.GetComponentsInChildren<InventoryItemSlot>());
+
+            for (var i = 0; i < this.inventory.Items.Count; i++)
             {
-                AddInventorySlot(item);
+                if (!Slots.IndexInBounds(i))
+                {
+                    Slots.Add(Instantiate(this.slotPrefab, this.slotContainer));
+                }
+
+                SetupInventorySlot(Slots[i], this.inventory.Items[i]);
             }
 
             foreach (var currency in this.inventory.GetCurrencies())
@@ -56,20 +77,16 @@ namespace DarkBestiary.UI.Elements
                 this.filter.Changed += OnFilterChanged;
             }
 
-            this.sortButton.PointerUp += OnSortButtonPointerUp;
+            this.sortButton.PointerClick += OnSortButtonPointerClick;
         }
 
         public void Terminate()
         {
-            this.inventory.Sorted -= OnSorted;
-            this.inventory.Expanded -= OnExpanded;
-            this.inventory.ItemPicked -= OnItemPicked;
-            this.inventory.ItemRemoved -= OnItemRemoved;
-            this.inventory.ItemsSwapped -= OnItemsSwapped;
-            this.inventory.ItemStackCountChanged -= OnItemStackCountChanged;
+            UnsubscribeFromInventoryUpdates(this.inventory);
 
             foreach (var inventorySlot in Slots)
             {
+                inventorySlot.InventoryItem.ControlClicked -= OnItemControlClicked;
                 inventorySlot.InventoryItem.RightClicked -= OnItemRightClicked;
                 inventorySlot.InventoryItem.Clicked -= OnItemClicked;
                 inventorySlot.InventoryItem.EndDrag -= OnItemEndDrag;
@@ -81,7 +98,27 @@ namespace DarkBestiary.UI.Elements
                 currency.Terminate();
             }
 
-            this.sortButton.PointerUp -= OnSortButtonPointerUp;
+            this.sortButton.PointerClick -= OnSortButtonPointerClick;
+        }
+
+        private void SubscribeToInventoryUpdates(InventoryComponent inventory)
+        {
+            inventory.Sorted += OnSorted;
+            inventory.Expanded += OnExpanded;
+            inventory.ItemPicked += OnItemPicked;
+            inventory.ItemRemoved += OnItemRemoved;
+            inventory.ItemsSwapped += OnItemsSwapped;
+            inventory.ItemStackCountChanged += OnItemStackCountChanged;
+        }
+
+        private void UnsubscribeFromInventoryUpdates(InventoryComponent inventory)
+        {
+            inventory.Sorted -= OnSorted;
+            inventory.Expanded -= OnExpanded;
+            inventory.ItemPicked -= OnItemPicked;
+            inventory.ItemRemoved -= OnItemRemoved;
+            inventory.ItemsSwapped -= OnItemsSwapped;
+            inventory.ItemStackCountChanged -= OnItemStackCountChanged;
         }
 
         public void Block(Item item)
@@ -108,20 +145,19 @@ namespace DarkBestiary.UI.Elements
             slot.InventoryItem.Unblock();
         }
 
-        private void AddInventorySlot(Item item)
+        private void SetupInventorySlot(InventoryItemSlot slot, Item item)
         {
-            var inventorySlot = Instantiate(this.slotPrefab, this.slotContainer);
-            inventorySlot.Construct(item);
-            inventorySlot.InventoryItem.RightClicked += OnItemRightClicked;
-            inventorySlot.InventoryItem.DoubleClicked += OnItemDoubleClicked;
-            inventorySlot.InventoryItem.Clicked += OnItemClicked;
-            inventorySlot.InventoryItem.EndDrag += OnItemEndDrag;
-            inventorySlot.ItemDroppedIn += OnItemDroppedIn;
-
-            Slots.Add(inventorySlot);
+            slot.transform.SetParent(this.slotContainer);
+            slot.InventoryItem.RightClicked += OnItemRightClicked;
+            slot.InventoryItem.ControlClicked += OnItemControlClicked;
+            slot.InventoryItem.DoubleClicked += OnItemDoubleClicked;
+            slot.InventoryItem.Clicked += OnItemClicked;
+            slot.InventoryItem.EndDrag += OnItemEndDrag;
+            slot.ItemDroppedIn += OnItemDroppedIn;
+            slot.ChangeItem(item);
         }
 
-        private void OnSortButtonPointerUp()
+        private void OnSortButtonPointerClick()
         {
             this.inventory.Sort();
         }
@@ -165,29 +201,81 @@ namespace DarkBestiary.UI.Elements
 
         private void OnItemDroppedIn(ItemDroppedEventData data)
         {
-            if (data.InventoryItem.Item.IsGem &&
-                data.InventorySlot.InventoryItem.Item.IsSocketable &&
-                data.InventorySlot.InventoryItem.Item.HasEmptySockets)
+            try
             {
-                data.InventorySlot.InventoryItem.Item.InsertSocket(data.InventoryItem.Item);
-                return;
-            }
+                if (data.InventoryItem.Item.IsGem &&
+                    data.InventorySlot.InventoryItem.Item.IsSocketable &&
+                    data.InventorySlot.InventoryItem.Item.HasEmptySockets)
+                {
+                    data.InventorySlot.InventoryItem.Item.InsertSocket(data.InventoryItem.Item);
+                    return;
+                }
 
-            if (!this.inventory.Contains(data.InventoryItem.Item) && data.InventoryItem.Item.Equipment == null)
+                if (data.InventoryItem.Item.IsEnchantment &&
+                    data.InventorySlot.InventoryItem.Item.IsEnchantable)
+                {
+                    this.enchantSource = data.InventoryItem.Item;
+                    this.enchantTarget = data.InventorySlot.InventoryItem.Item;
+
+                    ConfirmationWindow.Instance.Cancelled += OnEnchantCancelled;
+                    ConfirmationWindow.Instance.Confirmed += OnEnchantConfirmed;
+                    ConfirmationWindow.Instance.Show(
+                        I18N.Instance.Get("ui_confirm_enchant_x").ToString(data.InventorySlot.InventoryItem.Item.ColoredName),
+                        I18N.Instance.Get("ui_confirm")
+                    );
+
+                    return;
+                }
+
+                if (!this.inventory.Contains(data.InventoryItem.Item) && data.InventoryItem.Item.Equipment == null)
+                {
+                    var item = data.InventoryItem.Item;
+                    item.Inventory.Remove(item);
+                    this.inventory.Pickup(item.Clone(), data.InventorySlot.InventoryItem.Item);
+                    return;
+                }
+
+                this.inventory.Swap(data.InventoryItem.Item, data.InventorySlot.InventoryItem.Item);
+            }
+            catch (GameplayException exception)
             {
-                this.inventory.Pickup(data.InventoryItem.Item.Clone(), data.InventorySlot.InventoryItem.Item);
-                data.InventoryItem.Item.Inventory.Remove(data.InventoryItem.Item);
-                return;
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
+        }
 
-            this.inventory.Swap(data.InventoryItem.Item, data.InventorySlot.InventoryItem.Item);
+        private void OnEnchantConfirmed()
+        {
+            try
+            {
+                this.enchantTarget.Enchant(this.enchantSource);
+                (this.enchantSource.Inventory ? this.enchantSource.Inventory : this.inventory)
+                    .Remove(this.enchantSource, 1);
+            }
+            catch (GameplayException exception)
+            {
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
+            }
+            finally
+            {
+                OnEnchantCancelled();
+            }
+        }
+
+        private void OnEnchantCancelled()
+        {
+            ConfirmationWindow.Instance.Cancelled -= OnEnchantCancelled;
+            ConfirmationWindow.Instance.Confirmed -= OnEnchantConfirmed;
+
+            this.enchantSource = null;
+            this.enchantTarget = null;
         }
 
         private void OnExpanded(InventoryComponent inventory)
         {
-            for(var index = Slots.Count; index < this.inventory.Items.Count; index++)
+            for (var index = Slots.Count; index < this.inventory.Items.Count; index++)
             {
-                AddInventorySlot(this.inventory.Items[index]);
+                Slots.Add(Instantiate(this.slotPrefab, this.slotContainer));
+                SetupInventorySlot(Slots[index], this.inventory.Items[index]);
             }
         }
 
@@ -247,6 +335,11 @@ namespace DarkBestiary.UI.Elements
         private void OnItemDoubleClicked(InventoryItem item)
         {
             ItemDoubleClicked?.Invoke(item);
+        }
+
+        private void OnItemControlClicked(InventoryItem inventoryItem)
+        {
+            ItemControlClicked?.Invoke(inventoryItem);
         }
 
         private void OnItemRightClicked(InventoryItem inventoryItem)

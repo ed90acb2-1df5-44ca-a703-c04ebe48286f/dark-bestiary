@@ -1,4 +1,5 @@
 using DarkBestiary.Managers;
+using FMODUnity;
 using TMPro;
 using UnityEngine;
 
@@ -11,35 +12,28 @@ namespace DarkBestiary.UI.Elements
         [SerializeField] private Interactable nextButton;
         [SerializeField] private Interactable prevButton;
         [SerializeField] private Interactable closeButton;
-
-        [Header("Sounds")]
-        [FMODUnity.EventRef]
-        [SerializeField] private string openSound;
-
-        [FMODUnity.EventRef]
-        [SerializeField] private string closeSound;
-
-        [FMODUnity.EventRef]
-        [SerializeField] private string turnPageSound;
+        [SerializeField] private EventReference openSoundEventReference;
+        [SerializeField] private EventReference closeSoundEventReference;
+        [SerializeField] private EventReference turnPageSoundEventReference;
 
         private void Start()
         {
-            this.closeButton.PointerUp += Hide;
-            this.nextButton.PointerUp += NextPage;
-            this.prevButton.PointerUp += PrevPage;
+            this.closeButton.PointerClick += Hide;
+            this.nextButton.PointerClick += NextPage;
+            this.prevButton.PointerClick += PrevPage;
 
             Instance.gameObject.SetActive(false);
         }
 
         public void Hide()
         {
-            AudioManager.Instance.PlayOneShot(this.closeSound);
+            AudioManager.Instance.PlayOneShot(this.closeSoundEventReference.Path);
             gameObject.SetActive(false);
         }
 
         public void Show(string text)
         {
-            AudioManager.Instance.PlayOneShot(this.openSound);
+            AudioManager.Instance.PlayOneShot(this.openSoundEventReference.Path);
 
             gameObject.SetActive(true);
             this.textLeft.text = text;
@@ -60,7 +54,7 @@ namespace DarkBestiary.UI.Elements
 
         private void SetPage(int page)
         {
-            AudioManager.Instance.PlayOneShot(this.turnPageSound);
+            AudioManager.Instance.PlayOneShot(this.turnPageSoundEventReference.Path);
 
             this.textLeft.pageToDisplay = Mathf.Clamp(page, 1, this.textLeft.textInfo.pageCount);
             this.textRight.pageToDisplay = this.textLeft.pageToDisplay + 1;

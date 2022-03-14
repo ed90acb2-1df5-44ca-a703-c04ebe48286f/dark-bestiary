@@ -1,5 +1,6 @@
 ﻿using DarkBestiary.Extensions;
 using DarkBestiary.GameStates;
+using DarkBestiary.UI.Views;
 using DarkBestiary.UI.Views.Unity;
 using TMPro;
 using UnityEngine;
@@ -15,10 +16,10 @@ namespace DarkBestiary.UI.Elements
         {
             Instance.Hide();
             GameState.AnyGameStateExit += OnAnyGameStateExit;
-            View.AnyViewShowing += OnAnyViewShowing;
+            View.AnyViewShown += OnAnyViewShown;
         }
 
-        private void OnAnyViewShowing(View view)
+        private void OnAnyViewShown(IView view)
         {
             Hide();
         }

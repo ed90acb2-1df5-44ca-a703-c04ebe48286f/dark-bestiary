@@ -29,6 +29,7 @@ namespace DarkBestiary.Managers
                 {"units", "/api/units"},
                 {"unit_groups", "/api/unit_groups"},
                 {"archetypes", "/api/archetypes"},
+                {"specializations", "/api/specializations"},
                 {"rewards", "/api/rewards"},
                 {"loot", "/api/loot"},
                 {"items", "/api/items"},
@@ -61,11 +62,12 @@ namespace DarkBestiary.Managers
                 {"masteries", "/api/masteries"},
                 {"dialogues", "/api/dialogues"},
                 {"phrases", "/api/phrases"},
+                {"visions", "/api/visions"},
                 {"food", "/api/food"},
                 {"i18n", "/api/i18n"},
             };
 
-            yield return StartCoroutine(Download(links, "data"));
+            yield return StartCoroutine(Download(links, "core/data"));
 
             links = new Dictionary<string, string>
             {
@@ -73,7 +75,7 @@ namespace DarkBestiary.Managers
                 {"en-US", "/api/i18n/en"},
             };
 
-            yield return StartCoroutine(Download(links, "i18n"));
+            yield return StartCoroutine(Download(links, "core/i18n"));
 
             UpdateCompleted?.Invoke();
         }
@@ -95,7 +97,7 @@ namespace DarkBestiary.Managers
                     }
 
                     File.WriteAllText(
-                        Application.streamingAssetsPath + "/" + directory + "/" + link.Key + ".json",
+                        Environment.StreamingAssetsPath + "/" + directory + "/" + link.Key + ".json",
                         request.downloadHandler.text);
                 }
             }

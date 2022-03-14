@@ -8,6 +8,7 @@ namespace DarkBestiary.Data
     {
         public int Index;
         public string NameKey;
+        public string DescriptionKey;
         public PropertyType Type;
         public bool IsUnscalable;
         public float Min;

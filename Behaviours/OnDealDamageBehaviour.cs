@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using DarkBestiary.Components;
 using DarkBestiary.Data;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Effects;
+using DarkBestiary.Extensions;
 using DarkBestiary.Messaging;
 using DarkBestiary.Validators;
 using UnityEngine;
@@ -16,7 +16,7 @@ namespace DarkBestiary.Behaviours
         private readonly Effect effect;
 
         public OnDealDamageBehaviour(OnDealDamageBehaviourData data,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
             this.effect = Container.Instance.Resolve<IEffectRepository>().FindOrFail(data.EffectId);
@@ -59,12 +59,23 @@ namespace DarkBestiary.Behaviours
                 return;
             }
 
-            if (!this.Validators.All(v => v.Validate(data.Attacker, data.Victim)))
+            if (!this.Validators.ByPurpose(ValidatorPurpose.Other).Validate(data.Attacker, data.Victim))
             {
                 return;
             }
 
-            this.effect.Clone().Apply(Caster, EventSubject == BehaviourEventSubject.Me ? Target : data.Victim);
+            var clone = this.effect.Clone();
+            clone.StackCount = StackCount;
+
+            // Note: if this effect will apply behaviour with BreaksOnTakeDamage flag, it will be removed immediately.
+            Timer.Instance.WaitForFixedUpdate(() =>
+            {
+                // Wait for BehavioursComponent OnTakeDamage callback...
+                Timer.Instance.WaitForFixedUpdate(() =>
+                {
+                    clone.Apply(Caster, EventSubject == BehaviourEventSubject.Me ? Target : data.Victim);
+                });
+            });
         }
     }
 }

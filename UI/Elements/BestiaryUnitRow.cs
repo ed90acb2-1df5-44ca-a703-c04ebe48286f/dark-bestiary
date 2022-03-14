@@ -6,7 +6,7 @@ using UnityEngine.EventSystems;
 
 namespace DarkBestiary.UI.Elements
 {
-    public class BestiaryUnitRow : MonoBehaviour, IPointerUpHandler
+    public class BestiaryUnitRow : PoolableMonoBehaviour, IPointerClickHandler
     {
         public event Payload<BestiaryUnitRow> Clicked;
 
@@ -34,7 +34,7 @@ namespace DarkBestiary.UI.Elements
             this.text.color = this.normal;
         }
 
-        public void OnPointerUp(PointerEventData pointer)
+        public void OnPointerClick(PointerEventData pointer)
         {
             Clicked?.Invoke(this);
         }

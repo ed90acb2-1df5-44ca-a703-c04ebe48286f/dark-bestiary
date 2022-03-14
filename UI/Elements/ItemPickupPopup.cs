@@ -14,6 +14,13 @@ namespace DarkBestiary.UI.Elements
         [SerializeField] private TextMeshProUGUI itemStackCountText;
         [SerializeField] private CanvasGroup canvasGroup;
 
+        public void Construct(Relic relic)
+        {
+            this.itemNameText.text = relic.Name;
+            this.itemStackCountText.text = "";
+            this.icon.sprite = Resources.Load<Sprite>(relic.Icon);
+        }
+
         public void Construct(Item item)
         {
             this.itemNameText.text = item.ColoredName;

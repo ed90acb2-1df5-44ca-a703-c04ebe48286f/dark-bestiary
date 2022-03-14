@@ -18,7 +18,9 @@ namespace DarkBestiary.UI.Controllers
                 new NextRoundConsoleCommand(),
                 new ResetLevelConsoleCommand(),
                 new KillAllConsoleCommand(),
+                Container.Instance.Instantiate<AddRunesConsoleCommand>(),
                 Container.Instance.Instantiate<AddAttributePointsConsoleCommand>(),
+                Container.Instance.Instantiate<AddSkillPointsConsoleCommand>(),
                 Container.Instance.Instantiate<AddTalentPointsConsoleCommand>(),
                 Container.Instance.Instantiate<StartScenarioConsoleCommand>(),
                 Container.Instance.Instantiate<LevelupConsoleCommand>(),
@@ -27,7 +29,11 @@ namespace DarkBestiary.UI.Controllers
                 Container.Instance.Instantiate<AddSkillConsoleCommand>(),
                 Container.Instance.Instantiate<RemoveSkillConsoleCommand>(),
                 Container.Instance.Instantiate<ResetCooldownsConsoleCommand>(),
+                Container.Instance.Instantiate<AddExperienceConsoleCommand>(),
                 Container.Instance.Instantiate<AddItemConsoleCommand>(),
+                Container.Instance.Instantiate<AddGemsConsoleCommand>(),
+                Container.Instance.Instantiate<AddIngredientsConsoleCommand>(),
+                Container.Instance.Instantiate<AddVisionItemsConsoleCommand>(),
                 Container.Instance.Instantiate<CreditsConsoleCommand>(),
             };
         }

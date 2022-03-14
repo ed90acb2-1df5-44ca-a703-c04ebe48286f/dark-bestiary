@@ -7,7 +7,6 @@ using DarkBestiary.GameBoard;
 using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
 using UnityEngine;
-using Component = DarkBestiary.Components.Component;
 
 namespace DarkBestiary.Scenarios.Scenes
 {
@@ -59,17 +58,17 @@ namespace DarkBestiary.Scenarios.Scenes
 
         public void Initialize()
         {
-            Component.AnyComponentInitialized += OnComponentInitialized;
-            Component.AnyComponentTerminated += OnComponentTerminated;
+            UnitComponent.AnyUnitInitialized += OnComponentInitialized;
+            UnitComponent.AnyUnitTerminated += OnComponentTerminated;
         }
 
         public void Terminate()
         {
+            UnitComponent.AnyUnitInitialized -= OnComponentInitialized;
+            UnitComponent.AnyUnitTerminated -= OnComponentTerminated;
+
             EnableDoorCells();
             TerminateEntities();
-
-            Component.AnyComponentInitialized -= OnComponentInitialized;
-            Component.AnyComponentTerminated -= OnComponentTerminated;
 
             if (this.weather != null)
             {
@@ -82,6 +81,8 @@ namespace DarkBestiary.Scenarios.Scenes
         public void Show()
         {
             Active = this;
+
+            MusicManager.Instance.Play(Data.Environment.Music);
 
             EnableEntities();
 
@@ -179,6 +180,30 @@ namespace DarkBestiary.Scenarios.Scenes
             this.exitDoor.Open();
         }
 
+        public void MoveEntitiesAwayFromExitDoor()
+        {
+            if (this.exitDoor == null)
+            {
+                return;
+            }
+
+            var position = this.exitDoor.transform.position;
+
+            var nearby = BoardNavigator.Instance.WithinCircle(position, 2);
+            var others = BoardNavigator.Instance.Board.Cells
+                .Where(c => !nearby.Contains(c) && c.IsWalkable && !c.IsOccupied)
+                .OrderBy(c => (c.transform.position - position).sqrMagnitude)
+                .Take(nearby.Count)
+                .ToList();
+
+            var entities = nearby.ToEntities().ToList();
+
+            for (var i = 0; i < entities.Count; i++)
+            {
+                entities[i].transform.position = others[i].transform.position;
+            }
+        }
+
         private void OnEnterDoorEntered(GameObject entity)
         {
             EnterDoor?.Invoke(entity);
@@ -194,9 +219,9 @@ namespace DarkBestiary.Scenarios.Scenes
             foreach (var entity in Entities.All())
             {
                 var actor = entity.GetComponent<ActorComponent>();
+                entity.SetActive(true);
                 actor.PlayAnimation("idle");
                 actor.Show();
-                entity.SetActive(true);
             }
         }
 
@@ -207,7 +232,6 @@ namespace DarkBestiary.Scenarios.Scenes
                 var actor = entity.GetComponent<ActorComponent>();
                 actor.PlayAnimation("idle");
                 actor.Hide();
-
                 entity.SetActive(false);
             }
         }
@@ -294,21 +318,14 @@ namespace DarkBestiary.Scenarios.Scenes
                 .ToList();
         }
 
-        private void OnComponentInitialized(Component component)
+        private void OnComponentInitialized(UnitComponent unit)
         {
-            var unit = component as UnitComponent;
-
-            if (unit == null)
-            {
-                return;
-            }
-
             Entities.Add(unit.gameObject);
         }
 
-        private void OnComponentTerminated(Component component)
+        private void OnComponentTerminated(UnitComponent unit)
         {
-            Entities.Remove(component.gameObject);
+            Entities.Remove(unit.gameObject);
         }
     }
 }

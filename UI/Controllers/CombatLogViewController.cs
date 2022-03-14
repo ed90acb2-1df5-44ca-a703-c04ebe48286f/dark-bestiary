@@ -6,6 +6,7 @@ using DarkBestiary.Extensions;
 using DarkBestiary.Messaging;
 using DarkBestiary.Skills;
 using DarkBestiary.UI.Views;
+using DarkBestiary.Utility;
 using UnityEngine;
 using Behaviour = DarkBestiary.Behaviours.Behaviour;
 
@@ -37,13 +38,10 @@ namespace DarkBestiary.UI.Controllers
             BehavioursComponent.AnyBehaviourRemoved += OnBehaviourRemoved;
             HealthComponent.AnyEntityDamaged += OnEntityDamaged;
             HealthComponent.AnyEntityHealed += OnEntityHealed;
-        }
 
-        protected override void OnViewInitialized()
-        {
             foreach (var entry in Buffer)
             {
-                View.AddRow(entry);
+                View.Add(entry);
             }
         }
 
@@ -75,9 +73,9 @@ namespace DarkBestiary.UI.Controllers
                         I18N.Instance.Get("ui_combat_log_buff_applied")
                             .ToString(new object[]
                             {
-                                ColorYellow + behaviour.Caster.GetComponent<UnitComponent>().Name + EndColor,
+                                ColorYellow + behaviour.Caster.GetComponent<UnitComponent>().GetNameOrLabel() + EndColor,
                                 ColorBlue + behaviour.Name + EndColor,
-                                ColorYellow + behaviour.Target.GetComponent<UnitComponent>().Name + EndColor,
+                                ColorYellow + behaviour.Target.GetComponent<UnitComponent>().GetNameOrLabel() + EndColor,
                             }));
         }
 
@@ -93,7 +91,7 @@ namespace DarkBestiary.UI.Controllers
                             .ToString(new object[]
                             {
                                 ColorBlue + behaviour.Name + EndColor,
-                                ColorRed + behaviour.Target.GetComponent<UnitComponent>().Name + EndColor,
+                                ColorRed + behaviour.Target.GetComponent<UnitComponent>().GetNameOrLabel() + EndColor,
                             }));
         }
 
@@ -103,8 +101,8 @@ namespace DarkBestiary.UI.Controllers
                         I18N.Instance.Get("ui_combat_log_healing")
                             .ToString(new object[]
                         {
-                            ColorYellow + data.Healer.GetComponent<UnitComponent>().Name + EndColor,
-                            ColorYellow + data.Target.GetComponent<UnitComponent>().Name + EndColor,
+                            ColorYellow + data.Healer.GetComponent<UnitComponent>().GetNameOrLabel() + EndColor,
+                            ColorYellow + data.Target.GetComponent<UnitComponent>().GetNameOrLabel() + EndColor,
                             ColorGreen + (int) data.Healing + EndColor,
                         }));
         }
@@ -115,10 +113,10 @@ namespace DarkBestiary.UI.Controllers
                       I18N.Instance.Get("ui_combat_log_damage")
                           .ToString(new object[]
                           {
-                              ColorYellow + data.Attacker.GetComponent<UnitComponent>().Name + EndColor,
-                              ColorYellow + data.Victim.GetComponent<UnitComponent>().Name + EndColor,
+                              ColorYellow + data.Attacker.GetComponent<UnitComponent>().GetNameOrLabel() + EndColor,
+                              ColorYellow + data.Victim.GetComponent<UnitComponent>().GetNameOrLabel() + EndColor,
                               ColorRed + (int) data.Damage + EndColor,
-                              data.Damage.Type
+                              EnumTranslator.Translate(data.Damage.Type)
                           });
 
             var flags = new List<string>();
@@ -154,7 +152,7 @@ namespace DarkBestiary.UI.Controllers
                        I18N.Instance.Get("ui_combat_log_death")
                            .ToString(new object[]
                            {
-                               ColorYellow + data.Victim.GetComponent<UnitComponent>().Name + EndColor,
+                               ColorYellow + data.Victim.GetComponent<UnitComponent>().GetNameOrLabel() + EndColor,
                            }));
             }
             else
@@ -163,8 +161,8 @@ namespace DarkBestiary.UI.Controllers
                        I18N.Instance.Get("ui_combat_log_kill")
                            .ToString(new object[]
                            {
-                               ColorYellow + data.Killer.GetComponent<UnitComponent>().Name + EndColor,
-                               ColorYellow + data.Victim.GetComponent<UnitComponent>().Name + EndColor,
+                               ColorYellow + data.Killer.GetComponent<UnitComponent>().GetNameOrLabel() + EndColor,
+                               ColorYellow + data.Victim.GetComponent<UnitComponent>().GetNameOrLabel() + EndColor,
                            }));
             }
         }
@@ -175,9 +173,9 @@ namespace DarkBestiary.UI.Controllers
                         I18N.Instance.Get("ui_combat_log_skill_used_on_entity")
                             .ToString(new object[]
                         {
-                            ColorYellow + caster.GetComponent<UnitComponent>().Name + EndColor,
+                            ColorYellow + caster.GetComponent<UnitComponent>().GetNameOrLabel() + EndColor,
                             ColorBlue + skill.Name + EndColor,
-                            ColorYellow + target.GetComponent<UnitComponent>().Name + EndColor
+                            ColorYellow + target.GetComponent<UnitComponent>().GetNameOrLabel() + EndColor
                         }));
         }
 
@@ -187,7 +185,7 @@ namespace DarkBestiary.UI.Controllers
                         I18N.Instance.Get("ui_combat_log_skill_used_on_point")
                             .ToString(new object[]
                         {
-                            ColorYellow + caster.GetComponent<UnitComponent>().Name + EndColor,
+                            ColorYellow + caster.GetComponent<UnitComponent>().GetNameOrLabel() + EndColor,
                             ColorBlue + skill.Name + EndColor,
                             target.x,
                             target.y
@@ -203,7 +201,7 @@ namespace DarkBestiary.UI.Controllers
                 Buffer.RemoveFirst();
             }
 
-            View.AddRow(row);
+            View.Add(row);
         }
 
         private void OnSkillUsing(SkillUseEventData data)

@@ -15,7 +15,7 @@ namespace DarkBestiary.Behaviours
         private HealthComponent health;
 
         public OnHealthDropsBelowBehaviour(OnHealthDropsBelowBehaviourData data,
-            IEffectRepository effectRepository, List<Validator> validators) : base(data, validators)
+            IEffectRepository effectRepository, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
             this.effectRepository = effectRepository;
@@ -40,8 +40,9 @@ namespace DarkBestiary.Behaviours
                 return;
             }
 
-            this.effectRepository.FindOrFail(this.data.EffectId)
-                .Apply(Caster, this.data.EventSubject == BehaviourEventSubject.Me ? Target : data.Attacker);
+            var effect = this.effectRepository.FindOrFail(this.data.EffectId);
+            effect.StackCount = StackCount;
+            effect.Apply(Caster, this.data.EventSubject == BehaviourEventSubject.Me ? Target : data.Attacker);
         }
     }
 }

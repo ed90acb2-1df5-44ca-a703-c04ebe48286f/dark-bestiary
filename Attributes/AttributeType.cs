@@ -6,6 +6,7 @@
         Might,
         Ferocity,
         Precision,
+        Leadership,
         Constitution,
         Defense,
         Resistance,

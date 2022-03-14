@@ -1,19 +1,18 @@
 ﻿using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
 using DarkBestiary.Items;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
     public class ItemSetFileRepository : FileRepository<int, ItemSetData, ItemSet>, IItemSetRepository
     {
-        public ItemSetFileRepository(IFileReader loader, ItemSetMapper mapper) : base(loader, mapper)
+        public ItemSetFileRepository(IFileReader reader, ItemSetMapper mapper) : base(reader, mapper)
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/item_sets.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/item_sets.json";
         }
     }
 }

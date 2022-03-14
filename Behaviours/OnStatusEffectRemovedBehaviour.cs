@@ -13,7 +13,7 @@ namespace DarkBestiary.Behaviours
         private readonly OnStatusEffectRemovedBehaviourData data;
         private readonly Effect effect;
 
-        public OnStatusEffectRemovedBehaviour(OnStatusEffectRemovedBehaviourData data, List<Validator> validators) : base(data, validators)
+        public OnStatusEffectRemovedBehaviour(OnStatusEffectRemovedBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
             this.effect = Container.Instance.Resolve<IEffectRepository>().FindOrFail(data.EffectId);
@@ -41,7 +41,9 @@ namespace DarkBestiary.Behaviours
                 return;
             }
 
-            this.effect.Clone().Apply(Target, EventSubject == BehaviourEventSubject.Me ? Target : Caster);
+            var clone = this.effect.Clone();
+            clone.StackCount = StackCount;
+            clone.Apply(Target, EventSubject == BehaviourEventSubject.Me ? Target : Caster);
         }
     }
 }

@@ -1,4 +1,4 @@
-using DarkBestiary.Items.Alchemy;
+using DarkBestiary.Items.Transmutation.Ingredients;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -8,15 +8,15 @@ namespace DarkBestiary.UI.Elements
 {
     public class AlchemyIngredient : PoolableMonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        public IAlchemyIngredient Ingredient { get; private set; }
+        public ITransmutationIngredient Ingredient { get; private set; }
 
         [SerializeField] private Image icon;
         [SerializeField] private TextMeshProUGUI countText;
 
-        public void Construct(IAlchemyIngredient alchemyIngredient)
+        public void Construct(ITransmutationIngredient transmutationIngredient)
         {
-            Ingredient = alchemyIngredient;
-            this.icon.sprite = Resources.Load<Sprite>(alchemyIngredient.Icon);
+            Ingredient = transmutationIngredient;
+            this.icon.sprite = Resources.Load<Sprite>(transmutationIngredient.Icon);
             this.countText.text = $"x{Ingredient.Count}";
         }
 

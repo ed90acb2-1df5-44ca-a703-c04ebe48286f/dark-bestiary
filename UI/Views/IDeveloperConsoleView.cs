@@ -8,11 +8,8 @@ namespace DarkBestiary.UI.Views
         event Payload<string> SubmittingCommand;
 
         void Info(string text);
-
         void Error(string text);
-
         void Success(string text);
-
         void Clear();
     }
 }

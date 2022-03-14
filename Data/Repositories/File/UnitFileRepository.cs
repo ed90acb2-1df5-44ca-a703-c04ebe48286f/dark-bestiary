@@ -10,7 +10,7 @@ namespace DarkBestiary.Data.Repositories.File
 {
     public class UnitFileRepository : FileRepository<int, UnitData, GameObject>, IUnitRepository
     {
-        public UnitFileRepository(IFileReader loader, UnitMapper mapper) : base(loader, mapper)
+        public UnitFileRepository(IFileReader reader, UnitMapper mapper) : base(reader, mapper)
         {
         }
 
@@ -31,7 +31,7 @@ namespace DarkBestiary.Data.Repositories.File
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/units.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/units.json";
         }
     }
 }

@@ -1,3 +1,4 @@
+using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
 using DarkBestiary.UI.Elements;
 using UnityEngine;
@@ -12,24 +13,24 @@ namespace DarkBestiary.UI.Views.Unity
 
         protected override void OnInitialize()
         {
-            this.continueButton.PointerUp += OnContinueButtonPointerUp;
+            this.continueButton.PointerClick += OnContinueButtonPointerClick;
         }
 
         protected override void OnTerminate()
         {
-            this.continueButton.PointerUp -= OnContinueButtonPointerUp;
+            this.continueButton.PointerClick -= OnContinueButtonPointerClick;
         }
 
-        private void OnContinueButtonPointerUp()
+        private void OnContinueButtonPointerClick()
         {
             Continue?.Invoke();
         }
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Space))
+            if (Input.GetKeyDown(KeyBindings.Get(KeyType.EndTurn)))
             {
-                OnContinueButtonPointerUp();
+                OnContinueButtonPointerClick();
             }
         }
     }

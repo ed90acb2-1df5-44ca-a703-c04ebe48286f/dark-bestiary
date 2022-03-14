@@ -15,31 +15,6 @@ namespace DarkBestiary.UI.Elements
         [SerializeField] private Interactable successButton;
         [SerializeField] private Interactable cancelButton;
 
-        private void Start()
-        {
-            this.dangerButton.PointerUp += OnConfirmButtonPointerUp;
-            this.dangerButton.gameObject.SetActive(false);
-
-            this.successButton.PointerUp += OnConfirmButtonPointerUp;
-            this.successButton.gameObject.SetActive(false);
-
-            this.cancelButton.PointerUp += OnCancelButtonPointerUp;
-
-            Instance.Hide();
-        }
-
-        private void OnConfirmButtonPointerUp()
-        {
-            Confirmed?.Invoke();
-            Hide();
-        }
-
-        private void OnCancelButtonPointerUp()
-        {
-            Cancelled?.Invoke();
-            Hide();
-        }
-
         public void Show(string text, string confirm, bool success = false)
         {
             this.messageText.text = text;
@@ -51,9 +26,34 @@ namespace DarkBestiary.UI.Elements
             gameObject.SetActive(true);
         }
 
-        private void Hide()
+        protected void Hide()
         {
             gameObject.SetActive(false);
+        }
+
+        private void Start()
+        {
+            this.dangerButton.PointerClick += OnConfirmButtonPointerClick;
+            this.dangerButton.gameObject.SetActive(false);
+
+            this.successButton.PointerClick += OnConfirmButtonPointerClick;
+            this.successButton.gameObject.SetActive(false);
+
+            this.cancelButton.PointerClick += OnCancelButtonPointerClick;
+
+            Instance.Hide();
+        }
+
+        private void OnConfirmButtonPointerClick()
+        {
+            Confirmed?.Invoke();
+            Hide();
+        }
+
+        private void OnCancelButtonPointerClick()
+        {
+            Cancelled?.Invoke();
+            Hide();
         }
     }
 }

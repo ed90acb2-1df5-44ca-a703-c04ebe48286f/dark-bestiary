@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using DarkBestiary.Data;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Effects;
@@ -15,7 +14,7 @@ namespace DarkBestiary.Behaviours
         private readonly Effect effect;
 
         public OnContactBehaviour(EffectBehaviourData data, IEffectRepository effectRepository,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.effect = effectRepository.FindOrFail(data.EffectId);
         }
@@ -61,12 +60,14 @@ namespace DarkBestiary.Behaviours
 
         private void MaybeApplyEffect(GameObject entity)
         {
-            if (entity.IsAirborne() || this.Validators.Any(v => !v.Validate(Caster, entity)))
+            if (entity.IsAirborne() || !this.Validators.ByPurpose(ValidatorPurpose.Other).Validate(Caster, entity))
             {
                 return;
             }
 
-            this.effect.Clone().Apply(Caster, EventSubject == BehaviourEventSubject.Me ? Target : entity);
+            var clone = this.effect.Clone();
+            clone.StackCount = StackCount;
+            clone.Apply(Caster, EventSubject == BehaviourEventSubject.Me ? Target : entity);
         }
     }
 }

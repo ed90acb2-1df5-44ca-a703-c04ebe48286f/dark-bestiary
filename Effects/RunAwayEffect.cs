@@ -24,7 +24,7 @@ namespace DarkBestiary.Effects
         private ActorComponent actor;
         private BehavioursComponent behaviours;
 
-        public RunAwayEffect(RunAwayEffectData data, List<Validator> validators,
+        public RunAwayEffect(RunAwayEffectData data, List<ValidatorWithPurpose> validators,
             IPathfinder pathfinder, BoardNavigator boardNavigator) : base(data, validators)
         {
             this.data = data;
@@ -72,11 +72,11 @@ namespace DarkBestiary.Effects
             this.behaviours.BehaviourApplied += OnBehaviourApplied;
 
             this.mover = Mover.Factory(new MoverData(MoverType.Linear, this.data.Speed, 0, 0, false));
-            this.mover.Finished += OnMoverFinished;
+            this.mover.Stopped += OnMoverStopped;
 
             this.actor.GetComponent<UnitComponent>().Flags |= UnitFlags.MovingViaScript;
 
-            OnMoverFinished();
+            OnMoverStopped();
         }
 
         private void OnBehaviourApplied(Behaviour behaviour)
@@ -125,13 +125,13 @@ namespace DarkBestiary.Effects
                 .FirstOrDefault();
         }
 
-        private void OnMoverFinished()
+        private void OnMoverStopped()
         {
             if (this.path.Count > 0)
             {
                 var nextPosition = this.path.Dequeue();
 
-                this.mover.Start(this.actor.gameObject, nextPosition);
+                this.mover.Move(this.actor.gameObject, nextPosition);
                 this.actor.Model.LookAt(nextPosition);
 
                 return;
@@ -142,8 +142,9 @@ namespace DarkBestiary.Effects
             this.behaviours.BehaviourApplied -= OnBehaviourApplied;
 
             this.actor.GetComponent<ActorComponent>().PlayAnimation("idle");
-            this.actor.transform.position = this.actor.transform.position.Snapped();
+            this.actor.transform.position = this.destination.transform.position;
 
+            this.destination.OnEnter(this.actor.gameObject);
             this.destination.IsReserved = false;
 
             TriggerFinished();

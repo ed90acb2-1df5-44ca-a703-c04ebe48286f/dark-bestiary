@@ -1,6 +1,5 @@
 ﻿using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
@@ -8,13 +7,13 @@ namespace DarkBestiary.Data.Repositories.File
 
     public class LootDataFileRepository : FileRepository<int, LootData, LootData>, ILootDataRepository
     {
-        public LootDataFileRepository(IFileReader loader) : base(loader, new LootDataMapper())
+        public LootDataFileRepository(IFileReader reader) : base(reader, new LootDataMapper())
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/loot.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/loot.json";
         }
     }
 }

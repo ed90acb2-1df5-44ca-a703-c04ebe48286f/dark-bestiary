@@ -10,7 +10,7 @@ namespace DarkBestiary.Effects
     {
         private readonly RestoreResourceEffectData data;
 
-        public RestoreResourceEffect(RestoreResourceEffectData data, List<Validator> validators) : base(data, validators)
+        public RestoreResourceEffect(RestoreResourceEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }

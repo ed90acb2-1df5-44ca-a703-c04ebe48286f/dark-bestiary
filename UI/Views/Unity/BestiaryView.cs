@@ -4,7 +4,6 @@ using System.Linq;
 using DarkBestiary.Behaviours;
 using DarkBestiary.Components;
 using DarkBestiary.Data;
-using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
 using DarkBestiary.Properties;
 using DarkBestiary.Skills;
@@ -32,34 +31,92 @@ namespace DarkBestiary.UI.Views.Unity
         [SerializeField] private GameObject propertyRowSeparatorPrefab;
         [SerializeField] private CharacterInfoRow propertyRowPrefab;
         [SerializeField] private Transform propertyRowContainer;
-        [SerializeField] private SpellbookSlot spellbookSlotPrefab;
+        [SerializeField] private SkillSlotView spellbookSlotPrefab;
         [SerializeField] private Transform spellbookSlotContainer;
 
         private BestiaryUnitRow selected;
         private MonoBehaviourPool<BehaviourView> behaviourPool;
-        private MonoBehaviourPool<SpellbookSlot> spellbookSlotPool;
+        private MonoBehaviourPool<SkillSlotView> spellbookSlotPool;
         private MonoBehaviourPool<CharacterInfoRow> propertyRowPool;
         private MonoBehaviourPool<BestiaryAttributeRow> attributeRowPool;
+        private MonoBehaviourPool<ObjectWithText> unitRowTitlePool;
+        private MonoBehaviourPool<BestiaryUnitRow> unitRowPool;
         private GameObjectPool propertyRowSeparatorPool;
 
-        protected override void OnInitialize()
+        public void Construct(List<UnitData> units, int level)
         {
-            this.closeButton.PointerUp += Hide;
-
+            this.closeButton.PointerClick += Hide;
             this.levelInput.onValueChanged.AddListener(OnLevelInputChanged);
-            this.levelInput.text = CharacterManager.Instance.Character.Entity
-                .GetComponent<ExperienceComponent>().Experience.Level.ToString();
+
+            this.unitRowPool = MonoBehaviourPool<BestiaryUnitRow>.Factory(
+                this.unitRowPrefab, this.unitRowContainer
+            );
+
+            this.unitRowTitlePool = MonoBehaviourPool<ObjectWithText>.Factory(
+                this.unitRowTitlePrefab, this.unitRowContainer
+            );
+
+            this.behaviourPool = MonoBehaviourPool<BehaviourView>.Factory(
+                this.behaviourPrefab, this.behaviourContainer
+            );
+
+            this.spellbookSlotPool = MonoBehaviourPool<SkillSlotView>.Factory(
+                this.spellbookSlotPrefab, this.spellbookSlotContainer
+            );
+
+            this.propertyRowPool = MonoBehaviourPool<CharacterInfoRow>.Factory(
+                this.propertyRowPrefab, this.propertyRowContainer
+            );
+
+            this.attributeRowPool = MonoBehaviourPool<BestiaryAttributeRow>.Factory(
+                this.attributeRowPrefab, this.attributeRowContainer
+            );
+
+            this.propertyRowSeparatorPool = GameObjectPool.Factory(
+                this.propertyRowSeparatorPrefab, this.propertyRowContainer
+            );
+
+            this.levelInput.text = level.ToString();
+            ClearRows();
+            CreateRows(units);
+            SelectFirstRow();
         }
 
         protected override void OnTerminate()
         {
-            this.closeButton.PointerUp -= Hide;
+            this.closeButton.PointerClick -= Hide;
+            this.levelInput.onValueChanged.RemoveListener(OnLevelInputChanged);
 
+            this.unitRowPool.Clear();
+            this.unitRowTitlePool.Clear();
             this.behaviourPool.Clear();
             this.spellbookSlotPool.Clear();
             this.propertyRowPool.Clear();
             this.attributeRowPool.Clear();
             this.propertyRowSeparatorPool.Clear();
+        }
+
+        private void ClearRows()
+        {
+            this.unitRowTitlePool.DespawnAll();
+            this.unitRowPool.DespawnAll();
+        }
+
+        private void CreateRows(IEnumerable<UnitData> units)
+        {
+            var grouped = units.OrderBy(u => u.Environment.Index).GroupBy(u => u.Environment.Id);
+
+            foreach (var group in grouped)
+            {
+                this.unitRowTitlePool.Spawn().ChangeTitle(I18N.Instance.Get(group.First().Environment.NameKey));
+
+                foreach (var unit in group.OrderBy(u => u.NameKey))
+                {
+                    var unitRow = this.unitRowPool.Spawn();
+                    unitRow.Clicked += OnUnitRowClicked;
+                    unitRow.Construct(unit);
+                }
+            }
         }
 
         private void OnLevelInputChanged(string value)
@@ -69,8 +126,7 @@ namespace DarkBestiary.UI.Views.Unity
             try
             {
                 level = int.Parse(value);
-            }
-            catch (Exception exception)
+            } catch (Exception exception)
             {
                 // ignored
             }
@@ -78,38 +134,8 @@ namespace DarkBestiary.UI.Views.Unity
             LevelChanged?.Invoke(level);
         }
 
-        public void Construct(List<UnitData> units)
+        private void SelectFirstRow()
         {
-            this.behaviourPool = MonoBehaviourPool<BehaviourView>.Factory(
-                this.behaviourPrefab, this.behaviourContainer);
-
-            this.spellbookSlotPool = MonoBehaviourPool<SpellbookSlot>.Factory(
-                this.spellbookSlotPrefab, this.spellbookSlotContainer);
-
-            this.propertyRowPool = MonoBehaviourPool<CharacterInfoRow>.Factory(
-                this.propertyRowPrefab, this.propertyRowContainer);
-
-            this.attributeRowPool = MonoBehaviourPool<BestiaryAttributeRow>.Factory(
-                this.attributeRowPrefab, this.attributeRowContainer);
-
-            this.propertyRowSeparatorPool = GameObjectPool.Factory(
-                this.propertyRowSeparatorPrefab, this.propertyRowContainer);
-
-            var grouped = units.OrderBy(u => u.Environment.Index).GroupBy(u => u.Environment.Id);
-
-            foreach (var group in grouped)
-            {
-                Instantiate(this.unitRowTitlePrefab, this.unitRowContainer)
-                    .ChangeTitle(I18N.Instance.Get(group.First().Environment.NameKey));
-
-                foreach (var unit in group.OrderBy(u => u.NameKey))
-                {
-                    var unitRow = Instantiate(this.unitRowPrefab, this.unitRowContainer);
-                    unitRow.Clicked += OnUnitRowClicked;
-                    unitRow.Construct(unit);
-                }
-            }
-
             var firstRow = this.unitRowContainer.GetComponentsInChildren<BestiaryUnitRow>().FirstOrDefault();
 
             if (firstRow == null)

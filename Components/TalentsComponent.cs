@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using DarkBestiary.Messaging;
 using DarkBestiary.Talents;
@@ -34,12 +33,14 @@ namespace DarkBestiary.Components
             {
                 foreach (var tier in category.OrderBy(t => t.Tier).GroupBy(t => t.Tier))
                 {
+                    var first = tier.First();
+
                     Tiers.Add(
                         new TalentTier(
-                            tier.First().Category,
-                            tier.First().Tier,
+                            first.Category,
+                            first.Tier,
                             tier.OrderBy(talent => talent.Index).ToList(),
-                            tier.First().Tier == 1
+                            first.Tier == 1
                         )
                     );
                 }
@@ -140,12 +141,8 @@ namespace DarkBestiary.Components
             talent.Unlearn(gameObject);
         }
 
-        public void Reset()
+        public void UnlearnAll()
         {
-            var experience = GetComponent<ExperienceComponent>().Experience;
-
-            Points = Math.Min(20, experience.Level) / 2;
-
             foreach (var tier in Tiers)
             {
                 foreach (var talent in tier.Talents)
@@ -162,12 +159,12 @@ namespace DarkBestiary.Components
 
         private void OnTalentUnlearned(Talent talent)
         {
-            AnyTalentLearned?.Invoke(this, talent);
+            AnyTalentUnlearned?.Invoke(this, talent);
         }
 
         private void OnTalentLearned(Talent talent)
         {
-            AnyTalentUnlearned?.Invoke(this, talent);
+            AnyTalentLearned?.Invoke(this, talent);
         }
     }
 }

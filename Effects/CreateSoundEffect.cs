@@ -11,7 +11,7 @@ namespace DarkBestiary.Effects
         private readonly CreateSoundEffectData data;
         private readonly FmodAudioEngine audioEngine;
 
-        public CreateSoundEffect(CreateSoundEffectData data, List<Validator> validators,
+        public CreateSoundEffect(CreateSoundEffectData data, List<ValidatorWithPurpose> validators,
             FmodAudioEngine audioEngine) : base(data, validators)
         {
             this.data = data;

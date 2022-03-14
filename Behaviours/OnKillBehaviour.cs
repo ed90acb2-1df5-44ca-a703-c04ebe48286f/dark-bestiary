@@ -15,7 +15,7 @@ namespace DarkBestiary.Behaviours
         private readonly OnKillBehaviourData data;
         private readonly Effect effect;
 
-        public OnKillBehaviour(OnKillBehaviourData data, List<Validator> validators) : base(data, validators)
+        public OnKillBehaviour(OnKillBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
             this.effect = Container.Instance.Resolve<IEffectRepository>().FindOrFail(data.EffectId);
@@ -40,7 +40,9 @@ namespace DarkBestiary.Behaviours
                 return;
             }
 
-            this.effect.Clone().Apply(Caster, Target);
+            var clone = this.effect.Clone();
+            clone.StackCount = StackCount;
+            clone.Apply(Caster, EventSubject == BehaviourEventSubject.Me ? Target : data.Victim);
         }
     }
 }

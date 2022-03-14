@@ -19,7 +19,8 @@ namespace DarkBestiary.AI.Tasks
         {
             var closest = Scene.Active.Entities
                 .Alive(entity => entity.IsAllyOf(context.Entity))
-                .Where(entity => entity.GetComponent<HealthComponent>().HealthFraction <= this.fraction)
+                .Where(entity => !entity.GetComponent<UnitComponent>().IsUndead &&
+                                  entity.GetComponent<HealthComponent>().HealthFraction <= this.fraction)
                 .OrderBy(entity => (context.Entity.transform.position - entity.transform.position).sqrMagnitude)
                 .FirstOrDefault();
 

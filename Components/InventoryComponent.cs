@@ -20,6 +20,8 @@ namespace DarkBestiary.Components
         public static event Payload<InventoryComponent, Item> AnyItemSelled;
         public static event Payload<InventoryComponent, Item> AnyItemBuyed;
 
+        public static bool IsAutoIngredientStashEnabled = true;
+
         public event Payload<ItemPickupEventData> ItemPicked;
         public event Payload<ItemRemovedEventData> ItemRemoved;
         public event Payload<ItemStackCountChangedEventData> ItemStackCountChanged;
@@ -29,6 +31,7 @@ namespace DarkBestiary.Components
         public event Payload<Item> ItemSelled;
         public event Payload<Item> ItemBuyed;
 
+        public bool IsIngredientsStash { get; set; }
         public GameObject Owner { get; set; }
         public List<Item> Items { get; private set; } = new List<Item>();
 
@@ -49,7 +52,7 @@ namespace DarkBestiary.Components
             Owner = CharacterManager.Instance.Character == null ? gameObject : CharacterManager.Instance.Character.Entity;
 
             CombatEncounter.AnyCombatRoundStarted += OnRoundStarted;
-            Scenario.AnyScenarioCompleted += OnAnyScenarioCompleted;
+            Scenario.AnyScenarioExit += OnAnyScenarioExit;
             Item.AnyItemCooldownStarted += OnAnyItemCooldownStarted;
 
             this.currencies = Owner.GetComponent<CurrenciesComponent>();
@@ -57,16 +60,20 @@ namespace DarkBestiary.Components
 
         private void OnAnyItemCooldownStarted(Item item)
         {
+            Item.AnyItemCooldownStarted -= OnAnyItemCooldownStarted;
+
             foreach (var element in Items.Where(i => i.Id == item.Id))
             {
                 element.RunCooldown();
             }
+
+            Item.AnyItemCooldownStarted += OnAnyItemCooldownStarted;
         }
 
         protected override void OnTerminate()
         {
             CombatEncounter.AnyCombatRoundStarted -= OnRoundStarted;
-            Scenario.AnyScenarioCompleted -= OnAnyScenarioCompleted;
+            Scenario.AnyScenarioExit -= OnAnyScenarioExit;
         }
 
         private void OnRoundStarted(CombatEncounter combat)
@@ -77,7 +84,7 @@ namespace DarkBestiary.Components
             }
         }
 
-        private void OnAnyScenarioCompleted(Scenario scenario)
+        private void OnAnyScenarioExit(Scenario scenario)
         {
             foreach (var item in Items.Where(i => !i.IsEmpty))
             {
@@ -131,7 +138,12 @@ namespace DarkBestiary.Components
                 return;
             }
 
-            if (Stack(item))
+            if (MaybeMoveToIngredientsStash(item))
+            {
+                return;
+            }
+
+            if (MaybeStack(item))
             {
                 return;
             }
@@ -146,24 +158,35 @@ namespace DarkBestiary.Components
             }
         }
 
-        public void PickupDoNotStack(Item item)
+        public int GetFreeSlotCount()
         {
-            var free = Items.FirstOrDefault(i => i.IsEmpty);
+            return Items.Count(i => i.IsEmpty);
+        }
 
-            if (free == null)
+        public void PickupDoNotStack(Item item, Item target = null)
+        {
+            if (MaybeMoveToIngredientsStash(item))
             {
-                OnItemPickup(item);
-                Mailbox.Instance.SendMail(item);
-                UiErrorFrame.Instance.Push(I18N.Instance.Get("exception_inventory_is_full"));
                 return;
             }
 
-            PickupDoNotStack(item, free);
-        }
+            ChangeOwner(item);
 
-        public void PickupDoNotStack(Item item, Item target)
-        {
-            OnItemPickup(item);
+            if (target == null)
+            {
+                target = Items.FirstOrDefault(i => i.IsEmpty);
+
+                if (target == null)
+                {
+                    if (Game.Instance.IsCampaign)
+                    {
+                        Mailbox.Instance.SendMail(item);
+                    }
+
+                    UiErrorFrame.Instance.ShowMessage(I18N.Instance.Get("exception_inventory_is_full"));
+                    return;
+                }
+            }
 
             var index = Items.IndexOf(target);
             Items[index] = item;
@@ -172,16 +195,35 @@ namespace DarkBestiary.Components
             AnyItemPicked?.Invoke(new ItemPickupEventData(Items[index], index));
         }
 
-        private void OnItemPickup(Item item)
+        private void ChangeOwner(Item item)
         {
-            item.ChangeOwner(Owner);
-            item.RollSuffix();
-            item.RollSockets();
-            item.IsPreviouslyOwned = true;
             item.Inventory = this;
+
+            foreach (var rune in item.Runes)
+            {
+                rune.Inventory = this;
+            }
+
+            item.ChangeOwner(Owner);
         }
 
-        private bool Stack(Item item)
+        private bool MaybeMoveToIngredientsStash(Item item)
+        {
+            if (!IsAutoIngredientStashEnabled)
+            {
+                return false;
+            }
+
+            if (item.IsEmpty || item.Type.Type != ItemTypeType.Ingredient || IsIngredientsStash)
+            {
+                return false;
+            }
+
+            Stash.Instance.GetIngredientsInventory().Pickup(item);
+            return true;
+        }
+
+        private bool MaybeStack(Item item)
         {
             if (!item.IsStackable)
             {
@@ -342,7 +384,12 @@ namespace DarkBestiary.Components
 
         private bool MaybeConsume(Item item)
         {
-            if (!item.IsConsumable && !item.IsBlueprint && !item.IsRelic)
+            if (!item.IsConsumable && !item.IsBlueprint && !item.IsRelic && !item.IsSkillBook && !item.IsPotion)
+            {
+                return false;
+            }
+
+            if (item.IsPotion && Game.Instance.State.IsTown)
             {
                 return false;
             }
@@ -354,7 +401,7 @@ namespace DarkBestiary.Components
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
 
             return true;
@@ -415,6 +462,11 @@ namespace DarkBestiary.Components
 
         public void Swap(int indexFrom, int indexTo)
         {
+            if (indexFrom == -1 || indexTo == -1)
+            {
+                return;
+            }
+
             var from = Items[indexFrom];
             var to = Items[indexTo];
 

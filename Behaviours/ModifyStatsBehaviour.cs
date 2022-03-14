@@ -17,9 +17,11 @@ namespace DarkBestiary.Behaviours
         private readonly List<AttributeModifier> attributeModifiers = new List<AttributeModifier>();
         private readonly List<PropertyModifier> propertyModifiers = new List<PropertyModifier>();
 
-        public ModifyStatsBehaviour(ModifyStatsBehaviourData data,
-            IAttributeRepository attributeRepository, IPropertyRepository propertyRepository,
-            List<Validator> validators) : base(data, validators)
+        public ModifyStatsBehaviour(
+            ModifyStatsBehaviourData data,
+            IAttributeRepository attributeRepository,
+            IPropertyRepository propertyRepository,
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             foreach (var attributeModifierData in data.AttributeModifiers)
             {
@@ -54,7 +56,7 @@ namespace DarkBestiary.Behaviours
             target.GetComponent<PropertiesComponent>().RemoveModifiers(this.propertyModifiers);
         }
 
-        protected override void OnStackCountChanged(Behaviour behaviour)
+        protected override void OnStackCountChanged(Behaviour _, int delta)
         {
             foreach (var modifier in this.attributeModifiers)
             {
@@ -81,16 +83,58 @@ namespace DarkBestiary.Behaviours
             return AttributeModifierValueString(modifier);
         }
 
-        public string GetStrengthString(GameObject entity)
+        public string GetMightString(GameObject entity)
         {
             var modifier = this.attributeModifiers.First(m => m.Attribute.Type == AttributeType.Might);
 
             return AttributeModifierValueString(modifier);
         }
 
+        public string GetConstitutionString(GameObject entity)
+        {
+            var modifier = this.attributeModifiers.First(m => m.Attribute.Type == AttributeType.Constitution);
+
+            return AttributeModifierValueString(modifier);
+        }
+
+        public string GetLeadershipString(GameObject entity)
+        {
+            var modifier = this.attributeModifiers.First(m => m.Attribute.Type == AttributeType.Leadership);
+
+            return AttributeModifierValueString(modifier);
+        }
+
+        public string GetMinionHealthString(GameObject entity)
+        {
+            var modifier = this.propertyModifiers.First(m => m.Property.Type == PropertyType.MinionHealth);
+
+            return PropertyModifierValueString(modifier);
+        }
+
+        public string GetMinionDamageString(GameObject entity)
+        {
+            var modifier = this.propertyModifiers.First(m => m.Property.Type == PropertyType.MinionDamage);
+
+            return PropertyModifierValueString(modifier);
+        }
+
         public string GetDamageString(GameObject entity)
         {
             var modifier = this.propertyModifiers.First(m => m.Property.Type == PropertyType.DamageIncrease);
+
+            return PropertyModifierValueString(modifier);
+        }
+
+        public string GetDamageReductionString(GameObject entity)
+        {
+            var modifier = this.propertyModifiers.First(m => m.Property.Type == PropertyType.IncomingDamageReduction);
+
+            return PropertyModifierValueString(modifier);
+        }
+
+        public string GetDamageReflectionString(GameObject entity)
+        {
+            var modifier = this.propertyModifiers.First(m => m.Property.Type == PropertyType.DamageReflection);
 
             return PropertyModifierValueString(modifier);
         }
@@ -144,9 +188,23 @@ namespace DarkBestiary.Behaviours
             return PropertyModifierValueString(modifier);
         }
 
+        public string GetHealingCriticalChanceString(GameObject entity)
+        {
+            var modifier = this.propertyModifiers.First(m => m.Property.Type == PropertyType.HealingCriticalChance);
+
+            return PropertyModifierValueString(modifier);
+        }
+
         public string GetCriticalDamageString(GameObject entity)
         {
             var modifier = this.propertyModifiers.First(m => m.Property.Type == PropertyType.CriticalHitDamage);
+
+            return PropertyModifierValueString(modifier);
+        }
+
+        public string GetRageGenerationString(GameObject entity)
+        {
+            var modifier = this.propertyModifiers.First(m => m.Property.Type == PropertyType.RageGeneration);
 
             return PropertyModifierValueString(modifier);
         }
@@ -165,9 +223,16 @@ namespace DarkBestiary.Behaviours
             return PropertyModifierValueString(modifier);
         }
 
-        public string GetDodgeString(GameObject entity)
+        public string GetDodgeChanceString(GameObject entity)
         {
             var modifier = this.propertyModifiers.First(m => m.Property.Type == PropertyType.Dodge);
+
+            return PropertyModifierValueString(modifier);
+        }
+
+        public string GetBlockChanceString(GameObject entity)
+        {
+            var modifier = this.propertyModifiers.First(m => m.Property.Type == PropertyType.BlockChance);
 
             return PropertyModifierValueString(modifier);
         }

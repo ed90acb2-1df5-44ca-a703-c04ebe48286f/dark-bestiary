@@ -17,7 +17,7 @@ namespace DarkBestiary.Behaviours
 
         private readonly ShieldBehaviourData data;
 
-        public ShieldBehaviour(ShieldBehaviourData data, List<Validator> validators) : base(data, validators)
+        public ShieldBehaviour(ShieldBehaviourData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }

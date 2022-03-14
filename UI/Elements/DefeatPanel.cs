@@ -1,4 +1,5 @@
-﻿using DarkBestiary.Components;
+﻿using System.Linq;
+using DarkBestiary.Components;
 using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
 using DarkBestiary.Scenarios;
@@ -12,12 +13,15 @@ namespace DarkBestiary.UI.Elements
 
         [SerializeField] private VictoryPanelExperience experience;
         [SerializeField] private VictoryPanelLoot loot;
-        [SerializeField] private VictoryPanelSummary summary;
         [SerializeField] private Interactable completeButton;
+        [SerializeField] private DeathRecapRow recapRowPrefab;
+        [SerializeField] private Transform recapRowContainer;
 
         public void Initialize(Scenario scenario)
         {
             AudioManager.Instance.PlayDefeat();
+
+            CreateRecap(scenario.GetDeathRecap());
 
             var scenarioLoot = scenario.GetLoot();
 
@@ -32,13 +36,13 @@ namespace DarkBestiary.UI.Elements
                 this.loot.gameObject.SetActive(false);
             }
 
-            this.experience.Construct(
-                CharacterManager.Instance.Character.Entity.GetComponent<ExperienceComponent>().Experience);
+            var character = CharacterManager.Instance.Character.Entity;
+
+            this.experience.Construct(character.GetComponent<ExperienceComponent>().Experience, scenarioLoot.SkillPoints);
 
             Timer.Instance.Wait(1, () => this.experience.Simulate());
 
-            this.completeButton.PointerUp += OnCompleteButtonPointerUp;
-            this.summary.Construct(scenario.GetSummary());
+            this.completeButton.PointerClick += OnCompleteButtonPointerClick;
         }
 
         public void Terminate()
@@ -46,7 +50,21 @@ namespace DarkBestiary.UI.Elements
             this.loot.Terminate();
         }
 
-        private void OnCompleteButtonPointerUp()
+        private void CreateRecap(DeathRecapRecorder recap)
+        {
+            foreach (var record in recap.Records.Reverse().Take(20))
+            {
+                if (record.IsDamage)
+                {
+                    Instantiate(this.recapRowPrefab, this.recapRowContainer).Construct(record.Damage, record.Source);
+                    continue;
+                }
+
+                Instantiate(this.recapRowPrefab, this.recapRowContainer).Construct(record.Healing, record.Source);
+            }
+        }
+
+        private void OnCompleteButtonPointerClick()
         {
             ReturnToTown?.Invoke();
             this.completeButton.Active = false;

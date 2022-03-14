@@ -11,7 +11,6 @@ namespace DarkBestiary.Components
         public ExperienceComponent Construct(int level, int experience)
         {
             Experience = new Experience(level, MaxLevel, experience, RequiredExperienceAtLevel);
-
             return this;
         }
 

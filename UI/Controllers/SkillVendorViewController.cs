@@ -48,6 +48,19 @@ namespace DarkBestiary.UI.Controllers
 
             this.currencies.AnyCurrencyChanged += OnAnyCurrencyChanged;
             OnAnyCurrencyChanged(null);
+
+            this.spellbook.SkillAdded += OnSkillAdded;
+        }
+
+        protected override void OnTerminate()
+        {
+            View.SkillBuyed -= OnSkillBuyed;
+            this.spellbook.SkillAdded -= OnSkillAdded;
+        }
+
+        private void OnSkillAdded(Skill skill)
+        {
+            View.UnlockSkill(skill);
         }
 
         private static List<SkillCategory> ExtractCategories(List<Skill> skills)
@@ -63,11 +76,6 @@ namespace DarkBestiary.UI.Controllers
             View.MarkExpensive(skill => !this.currencies.HasEnough(skill.GetPrice()));
         }
 
-        protected override void OnTerminate()
-        {
-            View.SkillBuyed -= OnSkillBuyed;
-        }
-
         private void OnSkillBuyed(Skill skill)
         {
             if (this.spellbook.Skills.Any(unlocked => unlocked.Id == skill.Id))
@@ -81,7 +89,7 @@ namespace DarkBestiary.UI.Controllers
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
                 return;
             }
 

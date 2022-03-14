@@ -58,6 +58,11 @@ namespace DarkBestiary
             return this.entities.Where(entity => !entity.IsDummy() && entity.IsAlive() && predicate(entity)).ToList();
         }
 
+        public List<GameObject> EnemiesOf(GameObject entity)
+        {
+            return this.entities.Where(e => !e.IsDummy() && e.IsEnemyOf(entity)).ToList();
+        }
+
         public List<GameObject> Find(Func<GameObject, bool> predicate)
         {
             return this.entities.Where(predicate).ToList();

@@ -55,13 +55,19 @@ namespace DarkBestiary.Skills
         public int DefaultCooldown { get; }
         public bool IsAttacking { get; set; }
         public string Icon { get; set; }
-        public List<SkillSet> Sets { get; set; }
+        public List<SkillSet> Sets { get; set; } = new List<SkillSet>();
         public EquipmentSlot EquipmentSlot { get; set; }
+        public Item Weapon { get; set; }
         public ItemCategory RequiredItemCategory { get; set; }
         public Behaviour Behaviour { get; set; }
         public SkillCategory Category { get; set; }
-        public GameObject Caster { get; set; }
         public Rarity Rarity { get; set; }
+
+        public GameObject Caster
+        {
+            get => this.caster;
+            set => this.caster = value;
+        }
 
         public float PriceMultiplier
         {
@@ -79,8 +85,24 @@ namespace DarkBestiary.Skills
 
         private float priceMultiplier = 1;
         private List<Skill> skills;
+        private GameObject caster;
 
-        public int Cooldown => IsOffhandWeapon() ? 1 : DefaultCooldown;
+        public int Cooldown
+        {
+            get
+            {
+                var cooldown = IsOffhandWeapon() ? 1 : DefaultCooldown;
+
+                if (DefaultCooldown <= 1 || Caster == null)
+                {
+                    return cooldown;
+                }
+
+                var cooldownReduction = (int) Caster.GetComponent<PropertiesComponent>().Get(PropertyType.CooldownReduction).Value();
+
+                return Mathf.Max(cooldown - cooldownReduction, 1);
+            }
+        }
 
         public int RemainingCooldown
         {
@@ -118,8 +140,6 @@ namespace DarkBestiary.Skills
             this.price = price;
             this.baseCost = data.ResourcesCosts;
             this.baseRangeMax = data.RangeMax;
-
-            CombatEncounter.AnyCombatRoundStarted += OnRoundStarted;
         }
 
         private Skill(int id, I18NString name)
@@ -159,6 +179,7 @@ namespace DarkBestiary.Skills
         public static bool IsTradable(SkillType type, SkillFlags flags)
         {
             return type == SkillType.Common &&
+                   !flags.HasFlag(SkillFlags.Vision) &&
                    !flags.HasFlag(SkillFlags.Monster) &&
                    !flags.HasFlag(SkillFlags.Talent) &&
                    !flags.HasFlag(SkillFlags.Item);
@@ -216,7 +237,22 @@ namespace DarkBestiary.Skills
 
         public Missile GetMissile()
         {
-            return (Effect as LaunchMissileEffect)?.GetMissile();
+            if (Effect is LaunchMissileEffect launchMissileEffect)
+            {
+                return launchMissileEffect.GetMissile();
+            }
+
+            if (Effect is ChainEffect chainEffect)
+            {
+                return (chainEffect.GetEffect() as LaunchMissileEffect)?.GetMissile();
+            }
+
+            if (Effect is EffectSet effectSet)
+            {
+                return (effectSet.GetEffects().FirstOrDefault() as LaunchMissileEffect)?.GetMissile();
+            }
+
+            return null;
         }
 
         public string GetRangeString()
@@ -237,13 +273,24 @@ namespace DarkBestiary.Skills
 
         public int GetMaxRange()
         {
-            if (Caster == null || !Flags.HasFlag(SkillFlags.RangedWeapon) || Flags.HasFlag(SkillFlags.FixedRange))
+            if (Caster == null || Flags.HasFlag(SkillFlags.FixedRange) || UseStrategy is NoneSkillUseStrategy)
             {
                 return this.baseRangeMax;
             }
 
-            return this.baseRangeMax + (int) Caster.GetComponent<PropertiesComponent>()
-                       .Get(PropertyType.RangedWeaponExtraRange).Value();
+            var properties = Caster.GetComponent<PropertiesComponent>();
+            var extraRange = 0;
+
+            if (Flags.HasFlag(SkillFlags.RangedWeapon))
+            {
+                extraRange = (int) properties.Get(PropertyType.RangedWeaponExtraRange).Value();
+            }
+            else if (Flags.HasFlag(SkillFlags.Magic))
+            {
+                extraRange = (int) properties.Get(PropertyType.MagicExtraRange).Value();
+            }
+
+            return this.baseRangeMax + extraRange;
         }
 
         public float GetCost(ResourceType resourceType)
@@ -269,14 +316,6 @@ namespace DarkBestiary.Skills
                 .Where(pair => pair.Key == ResourceType.ActionPoint)
                 .ToDictionary(pair => pair.Key, pair => pair.Value);
 
-            if (behaviours.IsFreecasting)
-            {
-                foreach (var pair in cost.Clone())
-                {
-                    cost[pair.Key] *= 0;
-                }
-            }
-
             if (behaviours.IsWeakened)
             {
                 foreach (var pair in cost.Clone())
@@ -301,6 +340,14 @@ namespace DarkBestiary.Skills
                 }
             }
 
+            if (behaviours.IsFreecasting)
+            {
+                foreach (var pair in cost.Clone())
+                {
+                    cost[pair.Key] = 0;
+                }
+            }
+
             cost.Add(ResourceType.Rage, this.baseCost.GetValueOrDefault(ResourceType.Rage, 0));
 
             return cost;
@@ -313,10 +360,10 @@ namespace DarkBestiary.Skills
                 return false;
             }
 
-            return EquipmentSlot.Type == EquipmentSlotType.OffHand && IsWeapon();
+            return EquipmentSlot.Type == EquipmentSlotType.OffHand && HasAnyWeaponFlag();
         }
 
-        private bool IsWeapon()
+        private bool HasAnyWeaponFlag()
         {
             return Flags.HasFlag(SkillFlags.MeleeWeapon) || Flags.HasFlag(SkillFlags.RangedWeapon) ||
                    Flags.HasFlag(SkillFlags.MagicWeapon);
@@ -336,8 +383,8 @@ namespace DarkBestiary.Skills
                 return true;
             }
 
-            return IsWeapon() && behaviours.IsDisarmed ||
-                   Flags.HasFlag(SkillFlags.Magic) && behaviours.IsSilenced ||
+            return Type == SkillType.Weapon && behaviours.IsDisarmed ||
+                   Type == SkillType.Common && behaviours.IsSilenced ||
                    Flags.HasFlag(SkillFlags.Movement) && behaviours.IsImmobilized;
         }
 
@@ -392,10 +439,8 @@ namespace DarkBestiary.Skills
             CooldownFinished?.Invoke(this);
         }
 
-        public void Use(object @object)
+        public void Use(object target)
         {
-            var target = @object;
-
             if (Flags.HasFlag(SkillFlags.Passive) ||
                 Flags.HasFlag(SkillFlags.EndTurn) && !Encounter.IsCombat)
             {
@@ -404,11 +449,6 @@ namespace DarkBestiary.Skills
 
             Validate(target);
 
-            var payload = new SkillUseEventData(Caster, target, this);
-
-            Using?.Invoke(payload);
-            AnySkillUsing?.Invoke(payload);
-
             if (Flags.HasFlag(SkillFlags.EndTurn))
             {
                 CombatEncounter.Active?.EndTurn(Caster);
@@ -416,6 +456,16 @@ namespace DarkBestiary.Skills
 
             RunCooldown();
             ConsumeResources();
+
+            UseInternal(target);
+        }
+
+        public void UseInternal(object target)
+        {
+            var payload = new SkillUseEventData(Caster, target, this);
+
+            Using?.Invoke(payload);
+            AnySkillUsing?.Invoke(payload);
 
             if (Flags.HasFlag(SkillFlags.Delayed))
             {
@@ -457,6 +507,11 @@ namespace DarkBestiary.Skills
 
         public void Validate(object target)
         {
+            if (!(UseStrategy is NoneSkillUseStrategy) && !BoardNavigator.Instance.IsWithinSkillRange(Caster, target.GetPosition(), this))
+            {
+                throw new TargetIsTooFarException();
+            }
+
             if (!UseStrategy.IsValidTarget(this, target))
             {
                 throw new InvalidSkillTargetException();
@@ -482,11 +537,6 @@ namespace DarkBestiary.Skills
             if (IsDisabled())
             {
                 throw new SkillIsDisabledException();
-            }
-
-            if (!BoardNavigator.Instance.IsWithinSkillRange(Caster, target.GetPosition(), this))
-            {
-                throw new TargetIsTooFarException();
             }
         }
 
@@ -578,6 +628,7 @@ namespace DarkBestiary.Skills
                     animation = "attack_great_sword";
                     break;
                 case ItemTypeType.Claws:
+                case ItemTypeType.Chakram:
                     animation = "attack_claws";
                     break;
                 case ItemTypeType.Katar:
@@ -645,9 +696,22 @@ namespace DarkBestiary.Skills
             AnySkillUsed?.Invoke(data);
         }
 
-        private void OnRoundStarted(CombatEncounter combat)
+        public DamageEffect GetFirstDamageEffect()
         {
-            ReduceCooldown(1);
+            return GetFirstDamageEffect(Effect);
+        }
+
+        public DamageEffect GetFirstDamageEffect(Effect parent)
+        {
+            switch (parent)
+            {
+                case DamageEffect damage:
+                    return damage;
+                case LaunchMissileEffect launchMissile:
+                    return GetFirstDamageEffect(launchMissile.GetFinalEffect());
+                default:
+                    return null;
+            }
         }
 
         public string GetDamageValueString(string @default = "")

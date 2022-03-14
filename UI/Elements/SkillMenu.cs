@@ -21,7 +21,7 @@ namespace DarkBestiary.UI.Elements
 
         private void Start()
         {
-            this.button.PointerUp += OnToggleContainer;
+            this.button.PointerClick += OnToggleContainer;
         }
 
         public void Refresh(List<Skill> skills)

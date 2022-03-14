@@ -1,4 +1,3 @@
-using System;
 using DarkBestiary.Items;
 using DarkBestiary.Messaging;
 using TMPro;
@@ -26,7 +25,7 @@ namespace DarkBestiary.UI.Elements
             this.hover.PointerEnter += OnPointerEnter;
             this.hover.PointerExit += OnPointerExit;
 
-            this.deleteButton.PointerUp += OnDeleteButtonClicked;
+            this.deleteButton.PointerClick += OnDeleteButtonClicked;
         }
 
         public void Construct(Item item)

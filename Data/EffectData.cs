@@ -15,15 +15,56 @@ namespace DarkBestiary.Data
         public string Animation;
         public string Sound;
         public float Chance;
+        public int StackCountMax;
+        public bool StackChance;
         public bool CasterIsOwner;
         public EffectTargetType Target;
-        public List<int> Validators = new List<int>();
+        public List<ValidatorWithPurposeData> Validators = new List<ValidatorWithPurposeData>();
         public List<AttachmentInfo> Attachments = new List<AttachmentInfo>();
     }
 
     [Serializable]
     public class EmptyEffectData : EffectData
     {
+    }
+
+    [Serializable]
+    public class ChangeOwnerEffectData : EffectData
+    {
+        public bool IsNeutral;
+    }
+
+    [Serializable]
+    public class CreateCorpseEffectData : EffectData
+    {
+        public string Prefab;
+    }
+
+    [Serializable]
+    public class AttackEffectData : EffectData
+    {
+        public float DamageMultiplier;
+        public bool TriggerCooldown;
+        public bool IsOffHand;
+    }
+
+    [Serializable]
+    public class VisionRevealMapEffectData : EffectData
+    {
+        public int Range;
+    }
+
+    [Serializable]
+    public class GiveItemEffectData : EffectData
+    {
+        public int ItemId;
+        public int Count;
+    }
+
+    [Serializable]
+    public class VisionSanityEffectData : EffectData
+    {
+        public int Amount;
     }
 
     [Serializable]
@@ -116,6 +157,7 @@ namespace DarkBestiary.Data
         public int RangeMax;
         public int Limit;
         public int EffectId;
+        public bool IncludeOccupied;
     }
 
     [Serializable]
@@ -153,8 +195,15 @@ namespace DarkBestiary.Data
     }
 
     [Serializable]
-    public class RemoveBehaviourEffectData : FormulaBasedEffectData
+    public class RemoveBehaviourEffectData : EffectData
     {
+        public int BehaviourId;
+    }
+
+    [Serializable]
+    public class RemoveBehaviourStackEffectData : EffectData
+    {
+        public int StackCount;
         public int BehaviourId;
     }
 
@@ -162,6 +211,7 @@ namespace DarkBestiary.Data
     public class HealEffectData : FormulaBasedEffectData
     {
         public int Base;
+        public HealFlags Flags;
     }
 
     [Serializable]
@@ -200,8 +250,7 @@ namespace DarkBestiary.Data
         public int CollideWithEnvironmentEffectId;
         public int CollideWithEntityEffectId;
         public int FinalEffectId;
-        public bool StopOnEnvironmentCollision;
-        public bool StopOnEntityCollision;
+        public bool StopOnCollision;
         public bool IsAirborne;
     }
 
@@ -254,11 +303,12 @@ namespace DarkBestiary.Data
         public int EnterCellEffectId;
         public int ExitCellEffectId;
         public int FinalEffectId;
-        public bool StopOnEnvironmentCollision;
-        public bool StopOnEntityCollision;
         public bool FinishImmediately;
-        public float DirectionalOffsetX;
-        public float DirectionalOffsetY;
+        public bool IsPiercing;
+        public float CasterDirectionalOffsetX;
+        public float CasterDirectionalOffsetY;
+        public float TargetDirectionalOffsetX;
+        public float TargetDirectionalOffsetY;
         public float CasterOffsetX;
         public float CasterOffsetY;
         public float TargetOffsetX;
@@ -280,8 +330,6 @@ namespace DarkBestiary.Data
         public int FinalEffectId;
         public int Radius;
         public int EffectId;
-        public bool StopOnEnvironmentCollision;
-        public bool StopOnEntityCollision;
         public float DirectionalOffsetX;
         public float DirectionalOffsetY;
         public float CasterOffsetX;
@@ -324,6 +372,12 @@ namespace DarkBestiary.Data
     {
         public int BehaviourId;
         public int Stacks;
+    }
+
+    [Serializable]
+    public class DestroyEquippedItemEffectData : EffectData
+    {
+        public int ItemId;
     }
 
     [Serializable]

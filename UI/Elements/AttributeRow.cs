@@ -31,8 +31,8 @@ namespace DarkBestiary.UI.Elements
             this.hover.PointerEnter += OnPointerEnter;
             this.hover.PointerExit += OnPointerExit;
 
-            this.plusButton.PointerUp += OnPlusButtonPointerUp;
-            this.minusButton.PointerUp += OnMinusButtonPointerUp;
+            this.plusButton.PointerClick += OnPlusButtonPointerClick;
+            this.minusButton.PointerClick += OnMinusButtonPointerClick;
 
             this.icon.sprite = Resources.Load<Sprite>(attribute.Icon);
             this.nameText.text = attribute.Name;
@@ -57,14 +57,14 @@ namespace DarkBestiary.UI.Elements
             this.plusButton.Active = false;
         }
 
-        private void OnPlusButtonPointerUp()
+        private void OnPlusButtonPointerClick()
         {
             AudioManager.Instance.PlayAttributeIncrease();
             Instantiate(UIManager.Instance.SparksParticle, this.hover.transform).DestroyAsVisualEffect();
             PlusButtonClicked?.Invoke(this);
         }
 
-        private void OnMinusButtonPointerUp()
+        private void OnMinusButtonPointerClick()
         {
             MinusButtonClicked?.Invoke(this);
         }
@@ -92,6 +92,15 @@ namespace DarkBestiary.UI.Elements
             {
                 var criticalChance = Attribute.Properties.Get(PropertyType.CriticalHitChance);
                 text += $"\n{criticalChance.Name}: {criticalChance.ValueString()}";
+            }
+
+            if (Attribute.Type == AttributeType.Leadership)
+            {
+                var minionDamage = Attribute.Properties.Get(PropertyType.MinionDamage);
+                text += $"\n{minionDamage.Name}: {minionDamage.ValueString()}";
+
+                var minionHealth = Attribute.Properties.Get(PropertyType.MinionHealth);
+                text += $"\n{minionHealth.Name}: {minionHealth.ValueString()}";
             }
 
             if (Attribute.Type == AttributeType.Constitution)

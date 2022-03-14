@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using DarkBestiary.Currencies;
 using DarkBestiary.Messaging;
 using DarkBestiary.UI.Elements;
 using DarkBestiary.Utility;
@@ -23,6 +24,7 @@ namespace DarkBestiary.UI.Views.Unity
         [SerializeField] private Transform foodSlotContainer;
         [SerializeField] private TextMeshProUGUI titleText;
         [SerializeField] private TextMeshProUGUI priceText;
+        [SerializeField] private CurrencyView currencyView;
 
         private readonly Dictionary<FoodType, TavernFoodSlot> foodSlotViews
             = new Dictionary<FoodType, TavernFoodSlot>();
@@ -32,9 +34,10 @@ namespace DarkBestiary.UI.Views.Unity
         private Color defaultPriceTextColor;
         private TavernFoodSlot activeFoodSlot;
 
-        public void Construct(IReadOnlyDictionary<FoodType, Food> foodSlots, List<Food> assortment)
+        public void Construct(CurrenciesComponent currencies, IReadOnlyDictionary<FoodType, Food> foodSlots, List<Food> assortment)
         {
             this.defaultPriceTextColor = this.priceText.color;
+            this.currencyView.Initialize(currencies.Get(CurrencyType.Gold));
 
             foreach (var foodSlot in foodSlots)
             {
@@ -43,15 +46,17 @@ namespace DarkBestiary.UI.Views.Unity
 
             CreateAssortment(assortment);
 
-            this.buyButton.PointerUp += OnBuyButtonPointerUp;
-            this.crossButton.PointerUp += OnCrossButtonPointerUp;
-            this.closeButton.PointerUp += Hide;
+            this.buyButton.PointerClick += OnBuyButtonPointerClick;
+            this.crossButton.PointerClick += OnCrossButtonPointerClick;
+            this.closeButton.PointerClick += Hide;
 
             OnFoodSlotClicked(this.foodSlotViews.Values.First());
         }
 
         protected override void OnTerminate()
         {
+            this.currencyView.Terminate();
+
             foreach (var foodView in this.foodViews)
             {
                 foodView.Clicked -= OnFoodClicked;
@@ -64,9 +69,9 @@ namespace DarkBestiary.UI.Views.Unity
                 foodSlotView.Terminate();
             }
 
-            this.buyButton.PointerUp -= OnBuyButtonPointerUp;
-            this.crossButton.PointerUp -= OnCrossButtonPointerUp;
-            this.closeButton.PointerUp -= Hide;
+            this.buyButton.PointerClick -= OnBuyButtonPointerClick;
+            this.crossButton.PointerClick -= OnCrossButtonPointerClick;
+            this.closeButton.PointerClick -= Hide;
         }
 
         public void UpdateSlots(IReadOnlyDictionary<FoodType, Food> foodSlots)
@@ -138,12 +143,12 @@ namespace DarkBestiary.UI.Views.Unity
             }
         }
 
-        private void OnCrossButtonPointerUp()
+        private void OnCrossButtonPointerClick()
         {
             FoodRemoved?.Invoke(this.activeFoodSlot.Type);
         }
 
-        private void OnBuyButtonPointerUp()
+        private void OnBuyButtonPointerClick()
         {
             BuyButtonClicked?.Invoke();
         }

@@ -8,15 +8,13 @@ using DarkBestiary.Data.Repositories;
 using DarkBestiary.Data.Repositories.File;
 using DarkBestiary.GameBoard;
 using DarkBestiary.Interaction;
+using DarkBestiary.Leaderboards;
 using DarkBestiary.Modifiers;
 using DarkBestiary.Pathfinding;
 using DarkBestiary.Rewards;
 using DarkBestiary.UI.Views;
+using UnityEngine;
 using Zenject;
-
-#if !DISABLESTEAMWORKS
-using Steamworks;
-#endif
 
 namespace DarkBestiary.Managers
 {
@@ -74,6 +72,11 @@ namespace DarkBestiary.Managers
             Container.Bind<IPhraseDataRepository>().To<PhraseDataFileRepository>().AsSingle();
             Container.Bind<IMasteryRepository>().To<MasteryFileRepository>().AsSingle();
             Container.Bind<IFoodRepository>().To<FoodFileRepository>().AsSingle();
+            Container.Bind<IVisionDataRepository>().To<VisionDataFileRepository>().AsSingle();
+            Container.Bind<IBehaviourDataRepository>().To<BehaviourDataFileRepository>().AsSingle();
+            Container.Bind<ISpecializationDataRepository>().To<SpecializationDataFileRepository>().AsSingle();
+            Container.Bind<IItemDataRepository>().To<ItemDataFileRepository>().AsSingle();
+            Container.Bind<ISkillDataRepository>().To<SkillDataFileRepository>().AsSingle();
 
             Container.Bind<IAudioEngine>().To<FmodAudioEngine>().AsSingle();
 
@@ -88,16 +91,21 @@ namespace DarkBestiary.Managers
             Container.Bind<PropertyModifierFactory>().AsSingle();
             Container.Bind<AttributeModifierFactory>().AsSingle();
 
-            Container.BindInterfacesAndSelfTo<RandomSkillUnlockManager>().AsSingle();
             Container.BindInterfacesAndSelfTo<LevelupRewardManager>().AsSingle();
             Container.BindInterfacesAndSelfTo<Stash>().AsSingle();
             Container.BindInterfacesAndSelfTo<Mailbox>().AsSingle();
             Container.BindInterfacesAndSelfTo<CharacterManager>().AsSingle();
             Container.BindInterfacesAndSelfTo<SettingsManager>().AsSingle();
             Container.BindInterfacesAndSelfTo<AchievementManager>().AsSingle();
-            Container.BindInterfacesAndSelfTo<AnalyticsManager>().AsSingle();
-            Container.BindInterfacesAndSelfTo<UnityExceptionManager>().AsSingle();
+            Container.BindInterfacesAndSelfTo<TowerManager>().AsSingle();
             Container.BindInterfacesAndSelfTo<Interactor>().AsSingle();
+            Container.BindInterfacesAndSelfTo<VisionProgression>().AsSingle();
+            Container.BindInterfacesAndSelfTo<ForgottenDepthsManager>().AsSingle();
+            Container.BindInterfacesAndSelfTo<RandomSkillUnlockManager>().AsSingle();
+            Container.BindInterfacesAndSelfTo<SteamLeaderboard>().AsSingle();
+
+            // Container.BindInterfacesAndSelfTo<AnalyticsManager>().AsSingle();
+            // Container.BindInterfacesAndSelfTo<UnityExceptionManager>().AsSingle();
 
             Container.Bind<ItemSetMapper>().AsSingle();
             Container.Bind<SkillSetMapper>().AsSingle();
@@ -137,181 +145,78 @@ namespace DarkBestiary.Managers
             Container.Bind<MasterySaveDataMapper>().AsSingle();
             Container.Bind<FoodMapper>().AsSingle();
 
-            Container.Bind<IDeveloperConsoleView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/DeveloperConsoleView")
-                .UnderTransform(UIManager.Instance.OverlayCanvas.transform)
-                .AsTransient();
+            BindView<ITownView>("Prefabs/Town");
 
-            Container.Bind<ICharacterSelectionView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/CharacterSelectionView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
+            BindView<IDeveloperConsoleView>("Prefabs/UI/Views/DeveloperConsoleView", UIManager.Instance.OverlayCanvas.transform);
 
-            Container.Bind<ITalkEncounterView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/TalkEncounterView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
+            BindView<ISettingsView>("Prefabs/UI/Views/SettingsView", UIManager.Instance.WidgetCanvas.transform);
+            BindView<IMenuView>("Prefabs/UI/Views/MenuView", UIManager.Instance.WidgetCanvas.transform);
+            BindView<IKeyBindingsView>("Prefabs/UI/Views/KeyBindingsView", UIManager.Instance.WidgetCanvas.transform);
 
-            Container.Bind<IEateryView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/EateryView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
+            BindView<ITargetFrameView>("Prefabs/UI/Views/TargetFrameView", UIManager.Instance.GameplayCanvas.transform);
 
-            Container.Bind<IBestiaryView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/BestiaryView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
+            BindView<IVisionMapView>("Prefabs/UI/Views/VisionMapView", UIManager.Instance.GameplayCanvasSafeArea.transform);
+            BindView<ICharacterUnitFrameView>("Prefabs/UI/Views/CharacterUnitFrameView", UIManager.Instance.GameplayCanvasSafeArea.transform);
+            BindView<IActionBarView>("Prefabs/UI/Views/ActionBarView", UIManager.Instance.GameplayCanvasSafeArea.transform);
 
-            Container.Bind<IReliquaryView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/ReliquaryView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
+            BindView<IBestiaryView>("Prefabs/UI/Views/BestiaryView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<ILeaderboardView>("Prefabs/UI/Views/LeaderboardView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IRunesView>("Prefabs/UI/Views/RunesView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<ITransmutationView>("Prefabs/UI/Views/TransmutationView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IGambleView>("Prefabs/UI/Views/GambleView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IItemForgingView>("Prefabs/UI/Views/ItemForgingView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IEquipmentView>("Prefabs/UI/Views/EquipmentView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<ICombatLogView>("Prefabs/UI/Views/CombatLogView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<ITalentsView>("Prefabs/UI/Views/TalentsView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IVendorView>("Prefabs/UI/Views/VendorView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IStashView>("Prefabs/UI/Views/StashView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IDismantlingView>("Prefabs/UI/Views/DismantlingView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<ISpellbookView>("Prefabs/UI/Views/SpellbookView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IBlacksmithView>("Prefabs/UI/Views/BlacksmithView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IAlchemyView>("Prefabs/UI/Views/AlchemyView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IItemUpgradeView>("Prefabs/UI/Views/ItemUpgradeView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<ISkillVendorView>("Prefabs/UI/Views/SkillVendorView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IVisionSummaryView>("Prefabs/UI/Views/VisionSummaryView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IVisionIntroView>("Prefabs/UI/Views/VisionIntroView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IVisionMenuView>("Prefabs/UI/Views/VisionMenuView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IVisionProgressionView>("Prefabs/UI/Views/VisionProgressionView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IVisionTalentsView>("Prefabs/UI/Views/VisionTalentsView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<ISpecializationsView>("Prefabs/UI/Views/SpecializationsView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<ISphereCraftView>("Prefabs/UI/Views/SphereCraftView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IForgottenDepthsView>("Prefabs/UI/Views/ForgottenDepthsView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<ICommandBoardView>("Prefabs/UI/Views/CommandBoardView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IReliquaryView>("Prefabs/UI/Views/ReliquaryView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IMasteriesView>("Prefabs/UI/Views/MasteriesView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IAchievementsView>("Prefabs/UI/Views/AchievementsView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IAttributesView>("Prefabs/UI/Views/AttributesView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IMailboxView>("Prefabs/UI/Views/MailboxView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IFeedbackView>("Prefabs/UI/Views/FeedbackView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IEateryView>("Prefabs/UI/Views/EateryView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IIntroView>("Prefabs/UI/Views/IntroView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IBuffSelectionView>("Prefabs/UI/Views/TowerBuffSelectionView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<ITowerVendorView>("Prefabs/UI/Views/TowerVendorView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<ITowerConfirmationView>("Prefabs/UI/Views/TowerConfirmationView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
+            BindView<IScenarioView>("Prefabs/UI/Views/ScenarioView", UIManager.Instance.ViewCanvasSafeArea.transform.transform);
 
-            Container.Bind<IMasteriesView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/MasteriesView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IAlchemyView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/AlchemyView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IMailboxView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/MailboxView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IGambleView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/GambleView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IIntroView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/IntroView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IItemForgingView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/ItemForgingView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IFeedbackView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/FeedbackView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IAttributesView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/AttributesView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IMainMenuView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/MainMenuView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IAchievementsView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/AchievementsView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<ICharacterCreationView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/CharacterCreationView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<ICommandBoardView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/CommandBoardView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<ISkillVendorView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/SkillVendorView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IScenarioView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/ScenarioView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<INavigationView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/NavigationView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IEquipmentView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/EquipmentView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<ICombatLogView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/CombatLogView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<ITargetFrameView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/TargetFrameView")
-                .UnderTransform(UIManager.Instance.GameplayCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IActionBarView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/ActionBarView")
-                .UnderTransform(UIManager.Instance.GameplayCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<ITalentsView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/TalentsView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IVendorView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/VendorView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IStashView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/StashView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IDismantlingView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/DismantlingView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<ISpellbookView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/SpellbookView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<ISettingsView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/SettingsView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<ICraftView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/CraftView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IItemUpgradeView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/ItemUpgradeView")
-                .UnderTransform(UIManager.Instance.ViewCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<IMenuView>()
-                .FromComponentInNewPrefabResource("Prefabs/UI/Views/MenuView")
-                .UnderTransform(UIManager.Instance.WidgetCanvas.transform)
-                .AsTransient();
-
-            Container.Bind<Town>()
-                .FromComponentInNewPrefabResource("Prefabs/Town")
-                .AsTransient();
+            BindView<ICharacterSelectionView>("Prefabs/UI/Views/CharacterSelectionView", UIManager.Instance.ViewCanvasSafeArea.transform);
+            BindView<ICharacterCreationView>("Prefabs/UI/Views/CharacterCreationView", UIManager.Instance.ViewCanvasSafeArea.transform);
+            BindView<ITalkEncounterView>("Prefabs/UI/Views/TalkEncounterView", UIManager.Instance.ViewCanvasSafeArea.transform);
+            BindView<INavigationView>("Prefabs/UI/Views/NavigationView", UIManager.Instance.ViewCanvasSafeArea.transform);
+            BindView<IMainMenuView>("Prefabs/UI/Views/MainMenuView", UIManager.Instance.ViewCanvasSafeArea.transform);
 
             DarkBestiary.Container.Instance = new Container(Container);
+        }
+
+        private void BindView<T>(string prefab, Transform transform = null) where T : IView
+        {
+            var concrete = Container.Bind<T>().FromComponentInNewPrefabResource(prefab);
+
+            if (transform != null)
+            {
+                concrete.UnderTransform(transform);
+            }
+
+            concrete.AsTransient().OnInstantiated((context, view) => ((T) view).Hide());
         }
     }
 }

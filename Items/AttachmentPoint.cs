@@ -8,6 +8,7 @@
         OverHead,
         Chest,
         Head,
+        Mask,
         Hair,
         LeftHand,
         RightHand,

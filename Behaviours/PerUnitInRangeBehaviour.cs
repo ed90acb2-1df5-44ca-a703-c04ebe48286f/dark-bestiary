@@ -19,7 +19,7 @@ namespace DarkBestiary.Behaviours
         private BehavioursComponent behaviours;
 
         public PerUnitInRangeBehaviour(AuraBehaviourData data, IBehaviourRepository behaviourRepository,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
             this.behaviour = behaviourRepository.FindOrFail(data.BehaviourId);
@@ -72,7 +72,9 @@ namespace DarkBestiary.Behaviours
         {
             var entitiesInRange = BoardNavigator.Instance.WithinCircle(Target.transform.position, this.data.Range)
                 .ToEntities()
-                .Where(entity => entity != Target && entity.IsAlive() && this.Validators.All(validator => validator.Validate(Target, entity)))
+                .Where(entity => entity != Target &&
+                                 entity.IsAlive() &&
+                                 this.Validators.ByPurpose(ValidatorPurpose.Other).Validate(Target, entity))
                 .ToList();
 
             if (entitiesInRange.Count == 0)
@@ -83,7 +85,7 @@ namespace DarkBestiary.Behaviours
 
             if (!this.behaviour.IsApplied)
             {
-                this.behaviours.Apply(this.behaviour, Target);
+                this.behaviours.ApplyAllStacks(this.behaviour, Target);
             }
 
             this.behaviours.SetStackCount(this.behaviour.Id, entitiesInRange.Count);

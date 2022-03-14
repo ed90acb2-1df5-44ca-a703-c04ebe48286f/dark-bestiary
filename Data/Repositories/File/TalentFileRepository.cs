@@ -1,19 +1,29 @@
-﻿using DarkBestiary.Data.Mappers;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
 using DarkBestiary.Talents;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
     public class TalentFileRepository : FileRepository<int, TalentData, Talent>, ITalentRepository
     {
-        public TalentFileRepository(IFileReader loader, TalentMapper mapper) : base(loader, mapper)
+        public TalentFileRepository(IFileReader reader, TalentMapper mapper) : base(reader, mapper)
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/talents.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/talents.json";
+        }
+
+        public List<Talent> Find(Func<TalentData, bool> predicate)
+        {
+            return LoadData()
+                .Where(predicate)
+                .Select(this.Mapper.ToEntity)
+                .ToList();
         }
     }
 }

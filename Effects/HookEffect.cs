@@ -22,7 +22,7 @@ namespace DarkBestiary.Effects
         private GameObject hook;
         private Lightning beam;
 
-        public HookEffect(HookEffectData data, List<Validator> validators) : base(data, validators)
+        public HookEffect(HookEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }
@@ -56,19 +56,19 @@ namespace DarkBestiary.Effects
                 this.beam.Initialize(rightHand, this.hook.transform);
 
                 this.hookMover = Mover.Factory(new MoverData(MoverType.Linear, 20, 0, 0, true));
-                this.hookMover.Finished += OnHookMoverFinished;
-                this.hookMover.Start(this.hook,
+                this.hookMover.Stopped += OnHookMoverStopped;
+                this.hookMover.Move(this.hook,
                     this.target.GetComponent<ActorComponent>().Model
                         .GetAttachmentPoint(AttachmentPoint.Chest).transform.position);
             });
         }
 
-        private void OnHookMoverFinished()
+        private void OnHookMoverStopped()
         {
             var actor = Caster.GetComponent<ActorComponent>();
             actor.PlayAnimation("hook_end");
 
-            this.hookMover.Finished -= OnHookMoverFinished;
+            this.hookMover.Stopped -= OnHookMoverStopped;
 
             var destination = GetNearestFreeCell();
 
@@ -83,22 +83,24 @@ namespace DarkBestiary.Effects
             unitComponent.Flags |= UnitFlags.MovingViaScript;
 
             this.targetMover = Mover.Factory(new MoverData(MoverType.Parabolic, 15, 0, 2, false));
-            this.targetMover.Finished += OnTargetMoverFinished;
-            this.targetMover.Start(this.target, destination.transform.position);
+            this.targetMover.Stopped += OnTargetMoverStopped;
+            this.targetMover.Move(this.target, destination.transform.position);
 
             this.hookMover = Mover.Factory(new MoverData(MoverType.Parabolic, 15, 0, 2, false));
-            this.hookMover.Start(
+            this.hookMover.Move(
                 this.hook, actor.Model.GetAttachmentPoint(AttachmentPoint.RightHand).transform.position);
         }
 
-        private void OnTargetMoverFinished()
+        private void OnTargetMoverStopped()
         {
             var unitComponent = this.target.GetComponent<UnitComponent>();
             unitComponent.Flags &= ~UnitFlags.Airborne;
             unitComponent.Flags &= ~UnitFlags.MovingViaScript;
 
-            this.target.transform.position = this.targetMover.Destination;
-            this.targetMover.Finished -= OnTargetMoverFinished;
+            this.target.transform.position = this.targetMover.DestinationCell.transform.position;
+            this.targetMover.Stopped -= OnTargetMoverStopped;
+
+            this.targetMover.DestinationCell.OnEnter(this.target);
 
             Stop();
         }

@@ -23,7 +23,6 @@ namespace DarkBestiary.UI.Controllers
         protected override void OnInitialize()
         {
             View.UnsummonButtonClicked += OnUnsummonButtonClicked;
-            View.Hide();
 
             SelectionManager.Instance.EnemySelected += OnEntitySelected;
             SelectionManager.Instance.EnemyDeselected += OnEntityDeselected;
@@ -53,6 +52,11 @@ namespace DarkBestiary.UI.Controllers
 
         private void OnDeleteConfirmed()
         {
+            if (this.killing == null)
+            {
+                return;
+            }
+
             if (!this.killing.gameObject.GetComponent<BehavioursComponent>().IsMindControlled)
             {
                 this.killing.Kill(this.killing.gameObject);

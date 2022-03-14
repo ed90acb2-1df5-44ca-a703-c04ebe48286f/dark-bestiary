@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using DarkBestiary.Components;
 using DarkBestiary.Data;
-using DarkBestiary.Modifiers;
 using DarkBestiary.Validators;
 using DarkBestiary.Values;
 using UnityEngine;
@@ -17,7 +16,7 @@ namespace DarkBestiary.Behaviours
         private readonly float max;
 
         public PerMissingHealthPercentDamageBehaviour(PerMissingHealthPercentDamageBehaviourData data,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.target = data.Target;
             this.amountPerPercent = data.AmountPerPercent;
@@ -25,7 +24,7 @@ namespace DarkBestiary.Behaviours
             this.max = data.Max;
         }
 
-        protected override Damage OnModify(GameObject victim, GameObject attacker, Damage damage)
+        protected override float OnGetDamageMultiplier(GameObject victim, GameObject attacker, ref Damage damage)
         {
             HealthComponent health;
 
@@ -41,17 +40,11 @@ namespace DarkBestiary.Behaviours
                     throw new ArgumentOutOfRangeException();
             }
 
-            var modifier = new FloatModifier(
-                Mathf.Clamp(
-                    (1 - health.HealthFraction) * 100 * this.amountPerPercent,
-                    this.min,
-                    this.max
-                ),
-                ModifierType);
-
-            var modified = modifier.Modify(damage.Amount);
-
-            return new Damage(modified, damage.Type, damage.WeaponSound, damage.Flags, damage.InfoFlags);
+            return Mathf.Clamp(
+                (1 - health.HealthFraction) * 100 * (this.amountPerPercent * StackCount),
+                this.min,
+                this.max
+            );
         }
     }
 }

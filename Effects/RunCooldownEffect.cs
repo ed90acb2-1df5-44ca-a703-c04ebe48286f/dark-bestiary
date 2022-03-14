@@ -10,7 +10,7 @@ namespace DarkBestiary.Effects
     {
         private readonly RunCooldownEffectData data;
 
-        public RunCooldownEffect(RunCooldownEffectData data, List<Validator> validators) : base(data, validators)
+        public RunCooldownEffect(RunCooldownEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }

@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using DarkBestiary.Components;
 using DarkBestiary.Data;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Extensions;
+using DarkBestiary.Managers;
 using DarkBestiary.Randomization;
 
 namespace DarkBestiary.Items
@@ -28,11 +30,14 @@ namespace DarkBestiary.Items
             this.main = CreateTable(data, 0, true, true, true);
         }
 
-        public void RollDropAsync(int level, Action<List<Item>> callback)
+        public void RollDrop(int level, Action<List<Item>> callback)
         {
+            AssignMonsterLevel(this.main, level);
+            SetLearnedSkills();
+
             this.result = null;
 
-            new Thread(() => this.result = RollDrop(level)).Start();
+            new Thread(() => this.result = EvaluateTable()).Start();
 
             Timer.Instance.WaitUntil(() => this.result != null, () => callback.Invoke(this.result));
         }
@@ -40,10 +45,24 @@ namespace DarkBestiary.Items
         public List<Item> RollDrop(int level)
         {
             AssignMonsterLevel(this.main, level);
+            SetLearnedSkills();
 
+            return EvaluateTable();
+        }
+
+        private List<Item> EvaluateTable()
+        {
             return this.main.Evaluate()
                 .Select(random => ((RandomizerItemValue) random)?.Value?.Clone())
                 .NotNull()
+                .ToList();
+        }
+
+        private static void SetLearnedSkills()
+        {
+            RandomizerRandomItemValue.LearnedSkills = CharacterManager.Instance.Character.Entity
+                .GetComponent<SpellbookComponent>()
+                .Skills.Select(s => s.Id)
                 .ToList();
         }
 
@@ -75,24 +94,24 @@ namespace DarkBestiary.Items
                 switch (item.Type)
                 {
                     case LootItemType.Null:
-                        table.Contents.Add(new RandomizerNullValue(item.Probability));
+                        table.Add(new RandomizerNullValue(item.Probability));
                         break;
                     case LootItemType.Table:
-                        table.Contents.Add(
-                            CreateTable(
-                                this.lootDataRepository.FindOrFail(item.TableId),
-                                item.Probability,
-                                item.Unique,
-                                item.Guaranteed,
-                                item.Enabled
-                            )
+                        var childTable = CreateTable(
+                            this.lootDataRepository.FindOrFail(item.TableId),
+                            item.Probability,
+                            item.Unique,
+                            item.Guaranteed,
+                            item.Enabled
                         );
+                        childTable.IgnoreLevel = item.IgnoreLevel;
+                        table.Add(childTable);
                         break;
                     case LootItemType.Item:
-                        table.Contents.Add(CreateItem(item));
+                        table.Add(CreateItem(item));
                         break;
                     case LootItemType.Random:
-                        table.Contents.Add(CreateRandom(item));
+                        table.Add(CreateRandom(item));
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(item.Type), item.Type, null);

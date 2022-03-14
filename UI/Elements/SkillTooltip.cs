@@ -1,4 +1,5 @@
 ﻿using DarkBestiary.Extensions;
+using DarkBestiary.Items;
 using DarkBestiary.Skills;
 using DarkBestiary.Utility;
 using TMPro;
@@ -66,6 +67,16 @@ namespace DarkBestiary.UI.Elements
             CreateLore(skill);
             CreateCost(skill);
             CreateRequirements(skill);
+
+            if (skill.Rarity?.Type == RarityType.Legendary)
+            {
+                CreateText().Text = " ";
+
+                var text = CreateText();
+                text.Color = Color.red;
+                text.Text = I18N.Instance.Translate("exception_only_one_ultimate");
+            }
+
             CreateSets(skill);
 
             LayoutRebuilder.ForceRebuildLayoutImmediate(this.rectTransform);
@@ -159,10 +170,9 @@ namespace DarkBestiary.UI.Elements
 
             CreateText().Text = " ";
 
-            var description = CreateText();
-            description.Text = skill.Lore;
-            description.Style = FontStyles.Italic;
-            description.Color = Color.gray;
+            var lore = CreateText();
+            lore.Color = new Color(0.9f, 0.8f, 0.5f);
+            lore.Text = skill.Lore;
         }
 
         private void CreateDescription(Skill skill)

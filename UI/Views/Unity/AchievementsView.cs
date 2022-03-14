@@ -13,7 +13,7 @@ namespace DarkBestiary.UI.Views.Unity
 
         private readonly List<AchievementRow> achievementRows = new List<AchievementRow>();
 
-        public void DrawAchievements(List<Achievement> achievements)
+        public void Construct(List<Achievement> achievements)
         {
             foreach (var achievement in achievements)
             {
@@ -26,12 +26,12 @@ namespace DarkBestiary.UI.Views.Unity
 
         protected override void OnInitialize()
         {
-            this.closeButton.PointerUp += OnCloseButtonPointerUp;
+            this.closeButton.PointerClick += OnCloseButtonPointerClick;
         }
 
         protected override void OnTerminate()
         {
-            this.closeButton.PointerUp -= OnCloseButtonPointerUp;
+            this.closeButton.PointerClick -= OnCloseButtonPointerClick;
 
             foreach (var achievementRow in this.achievementRows)
             {
@@ -39,7 +39,7 @@ namespace DarkBestiary.UI.Views.Unity
             }
         }
 
-        private void OnCloseButtonPointerUp()
+        private void OnCloseButtonPointerClick()
         {
             Hide();
         }

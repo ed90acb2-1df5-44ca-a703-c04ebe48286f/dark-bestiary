@@ -7,27 +7,35 @@ using DarkBestiary.Items;
 using DarkBestiary.Messaging;
 using DarkBestiary.Modifiers;
 using DarkBestiary.Scenarios.Encounters;
+using DarkBestiary.UI.Elements;
 using UnityEngine;
+using Behaviour = DarkBestiary.Behaviours.Behaviour;
 
 namespace DarkBestiary.Components
 {
     public class EquipmentComponent : Component
     {
+        public static event Payload AnyWeaponSetSwapped;
+
         public event Payload<Item> ItemEquipped;
         public event Payload<Item> ItemUnequipped;
         public event Payload ItemsSwapped;
+        public event Payload WeaponSetSwapped;
 
         public List<EquipmentSlot> Slots { get; private set; }
 
+        private readonly Dictionary<Item, List<Behaviour>> itemsBehaviours =
+            new Dictionary<Item, List<Behaviour>>();
         private readonly Dictionary<Item, List<AttributeModifier>> itemsAttributeModifiers =
             new Dictionary<Item, List<AttributeModifier>>();
         private readonly Dictionary<Item, List<PropertyModifier>> itemsPropertyModifiers =
             new Dictionary<Item, List<PropertyModifier>>();
 
         public bool IsOnAltWeaponSet { get; private set; }
-        public List<Item> AltWeaponSet { get; private set; } = new List<Item>{Item.CreateEmpty(), Item.CreateEmpty()};
+        public List<Item> AltWeaponSet { get; } = new List<Item>{Item.CreateEmpty(), Item.CreateEmpty()};
 
         private ExperienceComponent experience;
+        private HealthComponent health;
         private InventoryComponent inventory;
         private AttributesComponent attributes;
         private PropertiesComponent properties;
@@ -58,13 +66,43 @@ namespace DarkBestiary.Components
         protected override void OnInitialize()
         {
             Item.AnyItemStatsUpdated += OnAnyItemStatsUpdated;
+            CombatEncounter.AnyCombatRoundStarted += OnRoundStarted;
 
+            this.health = GetComponent<HealthComponent>();
             this.experience = GetComponent<ExperienceComponent>();
             this.inventory = GetComponent<InventoryComponent>();
             this.attributes = GetComponent<AttributesComponent>();
             this.properties = GetComponent<PropertiesComponent>();
             this.behaviours = GetComponent<BehavioursComponent>();
             this.actor = GetComponent<ActorComponent>();
+        }
+
+        protected override void OnTerminate()
+        {
+            Item.AnyItemStatsUpdated -= OnAnyItemStatsUpdated;
+            CombatEncounter.AnyCombatRoundStarted -= OnRoundStarted;
+        }
+
+        private void OnRoundStarted(CombatEncounter combat)
+        {
+            // TODO: Move to SpellbookComponent
+
+            foreach (var item in AltWeaponSet)
+            {
+                item.WeaponSkillA?.ReduceCooldown(1);
+                item.WeaponSkillB?.ReduceCooldown(1);
+            }
+        }
+
+        public void ResetAltWeaponCooldown()
+        {
+            // TODO: Move to SpellbookComponent
+
+            foreach (var item in AltWeaponSet)
+            {
+                item.WeaponSkillA?.ResetCooldown();
+                item.WeaponSkillB?.ResetCooldown();
+            }
         }
 
         public void SetAltWeaponSet(List<Item> items)
@@ -88,13 +126,10 @@ namespace DarkBestiary.Components
                 return;
             }
 
+            var fraction = this.health.HealthFraction;
+
             var mh = Slots.First(s => s.Type == EquipmentSlotType.MainHand);
             var oh = Slots.First(s => s.Type == EquipmentSlotType.OffHand);
-
-            if (mh.Item.IsAnySkillOnCooldown() || oh.Item.IsAnySkillOnCooldown())
-            {
-                throw new SkillIsOnCooldownException();
-            }
 
             var current = new List<Item>{mh.Item, oh.Item};
 
@@ -102,35 +137,43 @@ namespace DarkBestiary.Components
             {
                 RemoveItemBonuses(mh.Item, mh);
                 RemoveVisuals(mh.Item, mh);
+                mh.Clear();
+                ItemUnequipped?.Invoke(mh.Item);
             }
 
             if (!oh.IsEmpty)
             {
                 RemoveItemBonuses(oh.Item, oh);
                 RemoveVisuals(oh.Item, oh);
+                oh.Clear();
+                ItemUnequipped?.Invoke(oh.Item);
             }
 
             mh.Put(AltWeaponSet[0]);
             oh.Put(AltWeaponSet[1]);
 
+            IsOnAltWeaponSet = !IsOnAltWeaponSet;
+
+            SetAltWeaponSet(current);
+
             if (!mh.IsEmpty)
             {
                 ApplyItemBonuses(mh.Item, mh);
                 ApplyVisuals(mh.Item, mh);
+                ItemEquipped?.Invoke(mh.Item);
             }
 
             if (!oh.IsEmpty)
             {
                 ApplyItemBonuses(oh.Item, oh);
                 ApplyVisuals(oh.Item, oh);
+                ItemEquipped?.Invoke(oh.Item);
             }
 
-            IsOnAltWeaponSet = !IsOnAltWeaponSet;
+            this.health.Health = this.health.HealthMax * fraction;
 
-            SetAltWeaponSet(current);
-
-            ItemEquipped?.Invoke(mh.Item);
-            ItemEquipped?.Invoke(oh.Item);
+            WeaponSetSwapped?.Invoke();
+            AnyWeaponSetSwapped?.Invoke();
         }
 
         private void OnAnyItemStatsUpdated(Item item)
@@ -141,7 +184,10 @@ namespace DarkBestiary.Components
             }
 
             RemoveStatModifiers(item);
+            RemoveBehaviours(item);
+
             ApplyStatModifiers(item);
+            ApplyBehaviours(item);
         }
 
         public Item GetPrimaryOrSecondaryWeapon()
@@ -174,8 +220,7 @@ namespace DarkBestiary.Components
                 return false;
             }
 
-            return mh.Item.IsWeapon &&
-                   oh.Item.Type.Type != ItemTypeType.Shield && oh.Item.Type.Type != ItemTypeType.OffHand;
+            return mh.Item.IsWeapon && oh.Item.Type.Type != ItemTypeType.Shield && oh.Item.Type.Type != ItemTypeType.OffHand;
         }
 
         public int GetItemSetPiecesEquipped(ItemSet set)
@@ -234,6 +279,18 @@ namespace DarkBestiary.Components
                 return;
             }
 
+            if (item.Affixes.Count > 0 && Slots.Any(x => x.Item.Affixes.Count > 0))
+            {
+                UiErrorFrame.Instance.ShowMessage(I18N.Instance.Translate("exception_equip_more_than_one_item_of_type"));
+                return;
+            }
+
+            if (item.IsMarkedAsIllusory && Game.Instance.IsVisions)
+            {
+                UiErrorFrame.Instance.ShowMessage(I18N.Instance.Translate("exception_equip_illusory_item"));
+                return;
+            }
+
             if (item.IsEmpty)
             {
                 Debug.LogError("Trying to equip empty item.");
@@ -242,7 +299,6 @@ namespace DarkBestiary.Components
 
             if (!slot.CanEquip(item))
             {
-                Debug.LogError($"Can't equip item {item.Name} into slot with type {slot.Type}");
                 return;
             }
 
@@ -333,12 +389,7 @@ namespace DarkBestiary.Components
                     break;
             }
 
-            if (slot.Type == EquipmentSlotType.Head && this.actor.IsHelmVisible)
-            {
-                this.actor.Model.HideHair();
-            }
-
-            this.actor.CreateAttachments(slot, item.Attachments, attachmentPoint);
+            this.actor.CreateEquipmentAttachments(slot, item.Attachments, attachmentPoint);
         }
 
         private void RemoveVisuals(Item item, EquipmentSlot slot)
@@ -427,6 +478,8 @@ namespace DarkBestiary.Components
         private void ApplyStatModifiers(Item item)
         {
             this.itemsAttributeModifiers.Add(item, item.GetAttributeModifiers());
+            this.itemsAttributeModifiers[item].AddRange(item.GetSharpeningAttributeModifiers());
+
             this.itemsPropertyModifiers.Add(item, item.GetPropertyModifiers());
 
             foreach (var socket in item.Sockets)
@@ -450,18 +503,38 @@ namespace DarkBestiary.Components
 
         private void ApplyBehaviours(Item item)
         {
-            foreach (var behaviour in item.Behaviours)
+            if (!this.itemsBehaviours.ContainsKey(item))
             {
-                this.behaviours.Apply(behaviour, gameObject);
+                this.itemsBehaviours.Add(item, new List<Behaviour>());
+            }
+
+            this.itemsBehaviours[item].AddRange(item.Behaviours);
+            this.itemsBehaviours[item].AddRange(item.Affixes);
+
+            if (item.EnchantmentBehaviour != null)
+            {
+                this.itemsBehaviours[item].Add(item.EnchantmentBehaviour);
+            }
+
+            foreach (var behaviour in this.itemsBehaviours[item])
+            {
+                this.behaviours.ApplyStack(behaviour, gameObject);
             }
         }
 
         private void RemoveBehaviours(Item item)
         {
-            foreach (var behaviour in item.Behaviours)
+            if (!this.itemsBehaviours.ContainsKey(item))
             {
-                this.behaviours.RemoveAllStacks(behaviour.Id);
+                return;
             }
+
+            foreach (var behaviour in this.itemsBehaviours[item])
+            {
+                this.behaviours.RemoveStack(behaviour.Id);
+            }
+
+            this.itemsBehaviours[item].Clear();
         }
 
         private void AddSkills(Item item, EquipmentSlot slot)
@@ -550,7 +623,7 @@ namespace DarkBestiary.Components
 
                 foreach (var behaviour in bonus.Value)
                 {
-                    this.behaviours.Apply(behaviour, gameObject);
+                    this.behaviours.ApplyAllStacks(behaviour, gameObject);
                 }
             }
         }

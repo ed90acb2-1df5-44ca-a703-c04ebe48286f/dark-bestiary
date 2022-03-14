@@ -1,6 +1,5 @@
 ﻿using DarkBestiary.Data.Mappers;
 using DarkBestiary.Data.Readers;
-using UnityEngine;
 
 namespace DarkBestiary.Data.Repositories.File
 {
@@ -8,13 +7,13 @@ namespace DarkBestiary.Data.Repositories.File
     {
         internal class UnitGroupDataMapper : FakeMapper<UnitGroupData> {}
 
-        public UnitGroupDataFileRepository(IFileReader loader) : base(loader, new UnitGroupDataMapper())
+        public UnitGroupDataFileRepository(IFileReader reader) : base(reader, new UnitGroupDataMapper())
         {
         }
 
         protected override string GetFilename()
         {
-            return Application.streamingAssetsPath + "/data/unit_groups.json";
+            return Environment.StreamingAssetsPath + "/compiled/data/unit_groups.json";
         }
     }
 }

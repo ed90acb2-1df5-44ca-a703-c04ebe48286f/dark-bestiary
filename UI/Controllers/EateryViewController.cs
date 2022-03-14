@@ -45,7 +45,7 @@ namespace DarkBestiary.UI.Controllers
             assortment.AddRange(this.foodRepository.Random(3, d => d.Type == FoodType.Dessert));
             assortment.AddRange(this.foodRepository.Random(3, d => d.Type == FoodType.Drink));
 
-            View.Construct(this.foods, assortment);
+            View.Construct(this.currencies, this.foods, assortment);
             View.UpdatePrice(0, false);
         }
 
@@ -89,7 +89,7 @@ namespace DarkBestiary.UI.Controllers
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
         }
     }

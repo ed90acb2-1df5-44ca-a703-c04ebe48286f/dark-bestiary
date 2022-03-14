@@ -1,8 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using DarkBestiary.Components;
 using DarkBestiary.Currencies;
+using DarkBestiary.Data;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Exceptions;
 using DarkBestiary.Items;
@@ -16,50 +16,73 @@ namespace DarkBestiary.UI.Controllers
     public class GambleViewController : ViewController<IGambleView>
     {
         private readonly IItemRepository itemRepository;
+        private readonly ICurrencyRepository currencyRepository;
         private readonly Character character;
-        private readonly Currency price;
+        private readonly InventoryComponent inventory;
+        private readonly List<Item> buyback = new List<Item>();
 
+        private Currency price;
         private List<Item> assortment;
 
         public GambleViewController(IGambleView view, IItemRepository itemRepository,
             ICurrencyRepository currencyRepository, CharacterManager characterManager) : base(view)
         {
             this.itemRepository = itemRepository;
+            this.currencyRepository = currencyRepository;
             this.character = characterManager.Character;
-
-            var power = this.character.Entity.GetComponent<ExperienceComponent>().Experience.Level / 10;
-
-            this.price = currencyRepository.FindByType(CurrencyType.Gold)
-                .Add(200 + Math.Pow(5, Mathf.Clamp(2 + power, 1, 5)));
+            this.inventory = this.character.Entity.GetComponent<InventoryComponent>();
         }
 
         protected override void OnInitialize()
         {
             View.Buy += OnBuy;
+            View.Sell += OnSell;
             View.Gamble += OnGamble;
-            View.Construct(this.character, this.price);
+            View.Construct(ViewControllerRegistry.Get<EquipmentViewController>().View.GetInventoryPanel());
+            RefreshAssortment();
+
+            var experience = this.character.Entity.GetComponent<ExperienceComponent>().Experience;
+            experience.LevelUp += OnLevelUp;
+            OnLevelUp(experience);
         }
 
         protected override void OnTerminate()
         {
             View.Buy -= OnBuy;
+            View.Sell -= OnSell;
             View.Gamble -= OnGamble;
+
+            this.character.Entity.GetComponent<ExperienceComponent>().Experience.LevelUp -= OnLevelUp;
+        }
+
+        private void OnSell(Item item)
+        {
+            this.inventory.Sell(item);
+
+            if (!item.IsJunk)
+            {
+                this.buyback.Add(item);
+            }
+
+            DisplayAssortment();
+        }
+
+        private void OnLevelUp(Experience experience)
+        {
+            this.price = CalculatePrice(experience);
+            View.UpdatePrice(this.price);
+        }
+
+        private Currency CalculatePrice(Experience experience)
+        {
+            return this.currencyRepository.FindByType(CurrencyType.Gold)
+                .Add(Mathf.Clamp(experience.Level / 10 * 1000, 250, 3000));
         }
 
         private void RefreshAssortment()
         {
-            this.assortment = this.itemRepository.Random(RNG.Range(5, 10), item =>
-                    !item.Flags.HasFlag(ItemFlags.QuestReward) &&
-                    item.IsEnabled &&
-                    item.TypeId != Constants.ItemTypeIdIngredient &&
-                    item.TypeId != Constants.ItemTypeIdConsumable &&
-                    item.RarityId != Constants.ItemRarityIdJunk &&
-                    item.RarityId != Constants.ItemRarityIdCommon &&
-                    item.RarityId != Constants.ItemRarityIdLegendary &&
-                    item.RarityId != Constants.ItemRarityIdBlizzard &&
-                    (item.Level > 3 ||
-                     Item.MatchDropByMonsterLevel(
-                         item.Level, this.character.Entity.GetComponent<ExperienceComponent>().Experience.Level)))
+            this.assortment = this.itemRepository
+                .Random(RNG.Range(8, 12), Filter)
                 .ToList();
 
             foreach (var item in this.assortment)
@@ -68,7 +91,64 @@ namespace DarkBestiary.UI.Controllers
                 item.PriceMultiplier = Mathf.Pow(8, (int) item.Rarity.Type * 0.3f);
             }
 
-            View.Display(this.assortment);
+            DisplayAssortment();
+        }
+
+        private void DisplayAssortment()
+        {
+            View.Display(this.assortment.Concat(this.buyback).ToList());
+        }
+
+        private bool Filter(ItemData item)
+        {
+            if (!item.IsEnabled ||
+                !item.Flags.HasFlag(ItemFlags.Droppable) ||
+                item.Flags.HasFlag(ItemFlags.QuestReward) ||
+                item.TypeId == Constants.ItemTypeIdSkillBook)
+            {
+                return false;
+            }
+
+            if (this.character.Data.UnlockedRecipes.Contains(item.BlueprintRecipeId))
+            {
+                return false;
+            }
+
+            if (item.TypeId == Constants.ItemTypeIdIngredient ||
+                item.TypeId == Constants.ItemTypeIdConsumable ||
+                item.TypeId == Constants.ItemTypeIdRelic)
+            {
+                return false;
+            }
+
+            if (item.RarityId == Constants.ItemRarityIdJunk ||
+                item.RarityId == Constants.ItemRarityIdCommon ||
+                item.RarityId == Constants.ItemRarityIdLegendary ||
+                item.RarityId == Constants.ItemRarityIdMythic ||
+                item.RarityId == Constants.ItemRarityIdVision ||
+                item.RarityId == Constants.ItemRarityIdBlizzard)
+            {
+                return false;
+            }
+
+            var level = this.character.Entity.GetComponent<ExperienceComponent>().Experience.Level;
+
+            if (level < 20 && item.RarityId == Constants.ItemRarityIdUnique)
+            {
+                return false;
+            }
+
+            if (level < 30 && (item.SetId > 0 || item.TypeId == Constants.ItemTypeIdEnchantment))
+            {
+                return false;
+            }
+
+            if (item.RarityId == Constants.ItemRarityIdUnique && !RNG.Test(0.25f))
+            {
+                return false;
+            }
+
+            return Item.MatchDropByMonsterLevel(item, level);
         }
 
         private void OnBuy(Item item)
@@ -77,16 +157,17 @@ namespace DarkBestiary.UI.Controllers
             {
                 this.character.Entity.GetComponent<InventoryComponent>().Buy(item);
                 this.assortment.Remove(item);
+                this.buyback.Remove(item);
 
                 item.PriceMultiplier = 1;
 
-                View.Display(this.assortment);
+                DisplayAssortment();
 
                 AudioManager.Instance.PlayItemBuy();
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
         }
 
@@ -102,7 +183,7 @@ namespace DarkBestiary.UI.Controllers
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
         }
     }

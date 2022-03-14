@@ -8,7 +8,7 @@ namespace DarkBestiary.Effects
 {
     public class RandomElementDamageEffect : DamageEffect
     {
-        public RandomElementDamageEffect(DamageEffectData data, List<Validator> validators,
+        public RandomElementDamageEffect(DamageEffectData data, List<ValidatorWithPurpose> validators,
             IEffectRepository effectRepository) : base(data, validators, effectRepository)
         {
         }

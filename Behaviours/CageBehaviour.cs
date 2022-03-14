@@ -3,7 +3,6 @@ using DarkBestiary.Data;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Effects;
 using DarkBestiary.GameBoard;
-using DarkBestiary.Messaging;
 using DarkBestiary.Validators;
 using UnityEngine;
 
@@ -19,7 +18,7 @@ namespace DarkBestiary.Behaviours
 
         public CageBehaviour(CageBehaviourData data,
             BoardNavigator boardNavigator, IEffectRepository effectRepository,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.boardNavigator = boardNavigator;
 

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace DarkBestiary.UI.Elements
 {
-    public class AchievementPopupManager : Singleton<AchievementPopupManager>
+    public class AchievementPopupManager : MonoBehaviour
     {
         [SerializeField] private AchievementPopup achievementPopupPrefab;
         [SerializeField] private Transform achievementPopupContainer;
@@ -15,6 +15,11 @@ namespace DarkBestiary.UI.Elements
 
         private void OnAchievementUnlocked(Achievement achievement)
         {
+            if (Game.Instance == null)
+            {
+                return;
+            }
+
             Instantiate(this.achievementPopupPrefab, this.achievementPopupContainer).Initialize(achievement);
         }
     }

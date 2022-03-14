@@ -11,7 +11,7 @@ namespace DarkBestiary.Effects
     {
         private readonly HealFromTargetHealthEffectData data;
 
-        public HealFromTargetHealthEffect(HealFromTargetHealthEffectData data, List<Validator> validators) : base(data, validators)
+        public HealFromTargetHealthEffect(HealFromTargetHealthEffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }
@@ -24,7 +24,7 @@ namespace DarkBestiary.Effects
         protected override void Apply(GameObject caster, GameObject target)
         {
             caster.GetComponent<HealthComponent>().Heal(
-                caster, new Healing(target.GetComponent<HealthComponent>().HealthMax * this.data.Fraction));
+                caster, new Healing(target.GetComponent<HealthComponent>().HealthMax * this.data.Fraction, HealFlags.None, Skill));
 
             TriggerFinished();
         }

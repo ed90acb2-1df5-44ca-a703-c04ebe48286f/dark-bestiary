@@ -14,7 +14,7 @@ namespace DarkBestiary.Skills.Targeting
 
         public bool IsValidTarget(Skill skill, object target)
         {
-            return target is Vector3;
+            return target is Vector3 || target is GameObject;
         }
 
         public bool IsValidCell(Skill skill, BoardCell cell)

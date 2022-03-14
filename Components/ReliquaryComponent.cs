@@ -8,9 +8,11 @@ namespace DarkBestiary.Components
 {
     public class ReliquaryComponent : Component
     {
-        public event Payload<ReliquaryComponent, Relic> Equipped;
-        public event Payload<ReliquaryComponent, Relic> Unequipped;
-        public event Payload<ReliquaryComponent, Relic> Unlocked;
+        public static event Payload<ReliquaryComponent, Relic> AnyRelicUnlocked;
+
+        public event Payload<Relic> Equipped;
+        public event Payload<Relic> Unequipped;
+        public event Payload<Relic> Unlocked;
 
         public List<RelicSlot> Slots { get; private set; }
         public List<Relic> Available { get; private set; }
@@ -35,18 +37,13 @@ namespace DarkBestiary.Components
 
         public void GiveExperience(int experience)
         {
-            var relics = GetActiveRelics();
+            var activeRelics = GetActiveRelics();
+            var levelingRelics = activeRelics.Where(relic => !relic.Experience.IsMaxLevel).ToList();
+            var experiencePerRelic = levelingRelics.Count > 0 ? experience / levelingRelics.Count : 0;
 
-            if (relics.Count == 0)
+            foreach (var relic in activeRelics)
             {
-                return;
-            }
-
-            var experiencePerRelic = experience / relics.Count;
-
-            foreach (var relic in relics)
-            {
-                relic.Experience.CreateSnapshot(experiencePerRelic);
+                relic.Experience.CreateSnapshot(relic.Experience.IsMaxLevel ? 0 : experiencePerRelic);
                 relic.Experience.Add(experiencePerRelic);
             }
         }
@@ -98,7 +95,7 @@ namespace DarkBestiary.Components
 
             slot.Equip(relic);
 
-            Equipped?.Invoke(this, relic);
+            Equipped?.Invoke(relic);
         }
 
         public void Unequip(Relic relic)
@@ -106,7 +103,7 @@ namespace DarkBestiary.Components
             relic.Unequip();
             FindContainingSlot(relic)?.Unequip();
 
-            Unequipped?.Invoke(this, relic);
+            Unequipped?.Invoke(relic);
         }
 
         public void Unlock(int relicId)
@@ -119,10 +116,15 @@ namespace DarkBestiary.Components
 
         public void Unlock(Relic relic)
         {
+            UnlockSilently(relic);
+            Unlocked?.Invoke(relic);
+            AnyRelicUnlocked?.Invoke(this, relic);
+        }
+
+        public void UnlockSilently(Relic relic)
+        {
             relic.Owner = gameObject;
             Available.Add(relic);
-
-            Unlocked?.Invoke(this, relic);
         }
 
         private RelicSlot FindContainingSlot(Relic relic)

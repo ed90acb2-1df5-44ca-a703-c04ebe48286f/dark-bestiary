@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using DarkBestiary.Components;
 using DarkBestiary.Items;
+using DarkBestiary.Messaging;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,6 +10,8 @@ namespace DarkBestiary.UI.Elements
 {
     public class ContainerWindow : Singleton<ContainerWindow>
     {
+        public event Payload Hidden;
+
         [SerializeField] private TextMeshProUGUI title;
         [SerializeField] private Image icon;
         [SerializeField] private VictoryPanelLoot loot;
@@ -16,7 +19,7 @@ namespace DarkBestiary.UI.Elements
 
         private void Start()
         {
-            this.okayButton.PointerUp += OnOkayButtonPointerUp;
+            this.okayButton.PointerClick += OnOkayButtonPointerClick;
             Instance.Hide();
 
             this.loot.Initialize();
@@ -27,10 +30,9 @@ namespace DarkBestiary.UI.Elements
             Construct(container);
             gameObject.SetActive(true);
 
-            loot.RollDropAsync(entity.GetComponent<UnitComponent>().Level, items =>
+            loot.RollDrop(entity.GetComponent<UnitComponent>().Level, items =>
             {
                 entity.GetComponent<InventoryComponent>().Pickup(items);
-
                 Instance.Show(container, items);
             });
         }
@@ -53,9 +55,10 @@ namespace DarkBestiary.UI.Elements
         public void Hide()
         {
             gameObject.SetActive(false);
+            Hidden?.Invoke();
         }
 
-        private void OnOkayButtonPointerUp()
+        private void OnOkayButtonPointerClick()
         {
             Hide();
         }

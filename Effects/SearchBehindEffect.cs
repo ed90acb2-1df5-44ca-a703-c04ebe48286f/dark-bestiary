@@ -12,7 +12,7 @@ namespace DarkBestiary.Effects
         private readonly SearchBehindEffectData data;
         private readonly IEffectRepository effectRepository;
 
-        public SearchBehindEffect(SearchBehindEffectData data, List<Validator> validators,
+        public SearchBehindEffect(SearchBehindEffectData data, List<ValidatorWithPurpose> validators,
             IEffectRepository effectRepository) : base(data, validators)
         {
             this.data = data;

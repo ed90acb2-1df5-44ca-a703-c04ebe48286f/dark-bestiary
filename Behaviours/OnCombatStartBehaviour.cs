@@ -13,7 +13,7 @@ namespace DarkBestiary.Behaviours
         private readonly IEffectRepository effectRepository;
 
         public OnCombatStartBehaviour(EffectBehaviourData data, IEffectRepository effectRepository,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
             this.effectRepository = effectRepository;
@@ -31,10 +31,14 @@ namespace DarkBestiary.Behaviours
 
         private void OnAnyEncounterStarted(Encounter encounter)
         {
-            if (encounter is CombatEncounter)
+            if (!(encounter is CombatEncounter))
             {
-                this.effectRepository.Find(this.data.EffectId).Apply(Caster, Caster);
+                return;
             }
+
+            var effect = this.effectRepository.Find(this.data.EffectId);
+            effect.StackCount = StackCount;
+            effect.Apply(Caster, Caster);
         }
     }
 }

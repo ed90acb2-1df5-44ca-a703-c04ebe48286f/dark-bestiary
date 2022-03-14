@@ -56,34 +56,7 @@ namespace DarkBestiary.Interaction
 
             Scenario.AnyScenarioExit += _ => EnterSelectionState();
             Scenario.AnyScenarioCompleted += _ => EnterSelectionState();
-
-            CombatEncounter.AnyCombatTurnEnded += entity =>
-            {
-                if (!entity.IsCharacter())
-                {
-                    return;
-                }
-
-                EnterSelectionState();
-            };
-
-            Episode.AnyEpisodeCompleted += OnAnyEpisodeCompleted;
-            Episode.AnyEpisodeFailed += OnAnyEpisodeCompleted;
-        }
-
-        private void OnAnyEpisodeCompleted(Episode episode)
-        {
-            Timer.Instance.WaitForFixedUpdate(() =>
-            {
-                if (episode.Scenario.IsActiveEpisodeLast || !this.characterManager.Character.Entity.IsAlive())
-                {
-                    EnterSelectionState();
-                }
-                else
-                {
-                    EnterMoveState(this.characterManager.Character.Entity);
-                }
-            });
+            CombatEncounter.AnyCombatTurnEnded += _ => EnterSelectionState();
         }
 
         public void Tick()

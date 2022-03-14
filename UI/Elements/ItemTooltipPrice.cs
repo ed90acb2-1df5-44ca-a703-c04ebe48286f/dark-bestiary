@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using DarkBestiary.Currencies;
 using UnityEngine;
 
@@ -24,7 +25,7 @@ namespace DarkBestiary.UI.Elements
         {
             this.currencyPool.DespawnAll();
 
-            foreach (var currency in price)
+            foreach (var currency in price.Where(currency => currency.Amount > 0))
             {
                 this.currencyPool.Spawn().Initialize(currency);
             }

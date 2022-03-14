@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using DarkBestiary.Components;
 using DarkBestiary.Extensions;
@@ -25,8 +26,12 @@ namespace DarkBestiary.GameBoard
         public event Payload<BoardCell> MouseEnter;
         public event Payload<BoardCell> MouseExit;
 
+        public int Index;
+        public int X;
+        public int Y;
+
         public GameObject OccupiedBy { get; private set; }
-        public List<GameObject> GameObjectsInside { get; } = new List<GameObject>();
+        public HashSet<GameObject> GameObjectsInside { get; } = new HashSet<GameObject>();
         public bool IsOccupied => OccupiedBy != null;
         public bool IsAvailable { get; private set; }
 
@@ -49,6 +54,13 @@ namespace DarkBestiary.GameBoard
         private bool isHovered;
         private bool isWalkable;
 
+        public void Construct(int index, int x, int y)
+        {
+            Index = index;
+            X = x;
+            Y = y;
+        }
+
         public void Initialize()
         {
             UnitComponent.AnyUnitTerminated += OnAnyUnitTerminated;
@@ -61,7 +73,17 @@ namespace DarkBestiary.GameBoard
             NotAvailable();
         }
 
-        public bool IsOnLineOfSight(Vector3 target)
+        public bool IsLineOfSightWalkable(Vector3 target)
+        {
+            return IsOnLineOfSight(target, cell => cell.IsWalkable);
+        }
+
+        public bool IsLineOfSightWalkableAndEmpty(Vector3 target)
+        {
+            return IsOnLineOfSight(target, cell => cell.IsWalkable && !cell.IsOccupied);
+        }
+
+        public bool IsOnLineOfSight(Vector3 target, Func<BoardCell, bool> predicate)
         {
             if (!IsWalkable)
             {
@@ -74,13 +96,13 @@ namespace DarkBestiary.GameBoard
             return Physics2D
                 .RaycastAll(transform.position, direction, magnitude - Board.Instance.CellSize)
                 .ToCells()
-                .All(hitCell => hitCell.IsWalkable);
+                .All(predicate);
         }
 
         public void Available(Color color)
         {
             IsAvailable = true;
-            this.renderer.color = color;
+            this.renderer.color = SettingsManager.Instance.HighContrastMode ? color.With(a: color.a + 0.5f) : color;
         }
 
         public void NotAvailable()
@@ -143,6 +165,54 @@ namespace DarkBestiary.GameBoard
             this.highlight.color = Color.white.With(a: 0);
         }
 
+        public void OnEnter(GameObject entity)
+        {
+            if (entity.IsMovingViaScript())
+            {
+                return;
+            }
+
+            GameObjectsInside.Add(entity);
+            AnyEntityEnterCell?.Invoke(entity, this);
+
+            var unit = entity.GetComponent<UnitComponent>();
+
+            if (unit == null || unit.IsDummy && !unit.IsBlocksMovement)
+            {
+                return;
+            }
+
+            if (!entity.GetComponent<HealthComponent>().IsAlive)
+            {
+                return;
+            }
+
+            Occupy(entity);
+        }
+
+        public void OnExit(GameObject entity)
+        {
+            GameObjectsInside.Remove(entity);
+
+            Timer.Instance.WaitForFixedUpdate(() =>
+            {
+                // Scenario termination disables entities which is triggering OnTriggerExit events.
+                if (entity == null)
+                {
+                    return;
+                }
+
+                AnyEntityExitCell?.Invoke(entity, this);
+            });
+
+            if (entity != OccupiedBy)
+            {
+                return;
+            }
+
+            Refuse();
+        }
+
         private void Occupy(GameObject entity)
         {
             if (IsOccupied)
@@ -178,7 +248,7 @@ namespace DarkBestiary.GameBoard
         private void MaybeOccupyByUnitInside()
         {
             var unitInside = GameObjectsInside.FirstOrDefault(
-                inside => !inside.IsDummy() && inside.IsAlive() && inside.IsBlocksMovement());
+                inside => !inside.IsDummy() && !inside.IsMovingViaScript() && inside.IsAlive() && inside.IsBlocksMovement());
 
             if (unitInside == null)
             {
@@ -212,35 +282,12 @@ namespace DarkBestiary.GameBoard
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            GameObjectsInside.Add(other.gameObject);
-            AnyEntityEnterCell?.Invoke(other.gameObject, this);
-
-            var unit = other.gameObject.GetComponent<UnitComponent>();
-
-            if (unit == null || unit.Flags.HasFlag(UnitFlags.Dummy) && !unit.Flags.HasFlag(UnitFlags.BlocksMovement))
-            {
-                return;
-            }
-
-            if (!other.GetComponent<HealthComponent>().IsAlive)
-            {
-                return;
-            }
-
-            Occupy(other.gameObject);
+            OnEnter(other.gameObject);
         }
 
         private void OnTriggerExit2D(Collider2D other)
         {
-            GameObjectsInside.Remove(other.gameObject);
-            AnyEntityExitCell?.Invoke(other.gameObject, this);
-
-            if (other.gameObject != OccupiedBy)
-            {
-                return;
-            }
-
-            Refuse();
+            OnExit(other.gameObject);
         }
 
         private void OnMouseEnter()
@@ -281,7 +328,7 @@ namespace DarkBestiary.GameBoard
 
         private void OnMouseDown()
         {
-            if (!IsWalkable || UIManager.Instance.ViewStack.Count > 0)
+            if (!IsWalkable || UIManager.Instance.IsAnyFullscreenUiOpen())
             {
                 return;
             }
@@ -296,7 +343,7 @@ namespace DarkBestiary.GameBoard
 
         private void OnMouseUp()
         {
-            if (!IsWalkable || UIManager.Instance.ViewStack.Count > 0)
+            if (!IsWalkable || UIManager.Instance.IsAnyFullscreenUiOpen())
             {
                 return;
             }

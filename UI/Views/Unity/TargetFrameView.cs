@@ -25,7 +25,7 @@ namespace DarkBestiary.UI.Views.Unity
 
         private void Start()
         {
-            this.unsummonButton.PointerUp += () => UnsummonButtonClicked?.Invoke();
+            this.unsummonButton.PointerClick += () => UnsummonButtonClicked?.Invoke();
         }
 
         public void SetKillButtonActive(bool active)

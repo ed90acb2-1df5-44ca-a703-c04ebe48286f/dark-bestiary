@@ -48,9 +48,20 @@ namespace DarkBestiary.Scenarios.Encounters
             });
         }
 
+        protected override void OnStop()
+        {
+            if (IsCompleted)
+            {
+                return;
+            }
+
+            OnComplete();
+        }
+
         protected override void OnComplete()
         {
             SpeechBubble.Instance.Hidden -= OnContinue;
+            SpeechBubble.Instance.Hide();
 
             if (ActionBarView.Active != null)
             {

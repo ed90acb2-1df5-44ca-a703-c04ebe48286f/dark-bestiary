@@ -1,3 +1,4 @@
+using DarkBestiary.Utility;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -6,9 +7,15 @@ namespace DarkBestiary.UI.Elements
 {
     public class NavigationViewButton : Interactable
     {
-        [SerializeField] private KeyCode hotkey;
         [SerializeField] private string tooltipKey;
         [SerializeField] private Image outline;
+
+        private KeyCode keyCode = KeyCode.None;
+
+        public void ChangeHotkey(KeyCode keyCode)
+        {
+            this.keyCode = keyCode;
+        }
 
         public void Highlight()
         {
@@ -22,9 +29,9 @@ namespace DarkBestiary.UI.Elements
 
         protected override void OnPointerEnter()
         {
-            Tooltip.Instance.Show(
-                $"[{KeyCodes.GetLabel(this.hotkey)}] {I18N.Instance.Get(this.tooltipKey)}",
-                GetComponent<RectTransform>());
+            var keyCodePrefix = this.keyCode == KeyCode.None ? "" : $"[{EnumTranslator.Translate(this.keyCode)}] ";
+
+            Tooltip.Instance.Show($"{keyCodePrefix}{I18N.Instance.Get(this.tooltipKey)}", GetComponent<RectTransform>());
         }
 
         protected override void OnPointerExit()
@@ -34,7 +41,7 @@ namespace DarkBestiary.UI.Elements
 
         private void Update()
         {
-            if (!Input.GetKeyDown(this.hotkey) || EventSystem.current.currentSelectedGameObject != null)
+            if (!Input.GetKeyDown(this.keyCode) || EventSystem.current.currentSelectedGameObject != null)
             {
                 return;
             }

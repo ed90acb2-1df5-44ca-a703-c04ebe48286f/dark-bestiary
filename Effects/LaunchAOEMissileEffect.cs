@@ -15,25 +15,22 @@ namespace DarkBestiary.Effects
     public class LaunchAOEMissileEffect : Effect
     {
         private readonly LaunchAOEMissileEffectData data;
-        private readonly List<Validator> validators;
         private readonly IMissileRepository missileRepository;
         private readonly IEffectRepository effectRepository;
 
         private readonly List<GameObject> hits = new List<GameObject>();
 
-        public LaunchAOEMissileEffect(LaunchAOEMissileEffectData data, List<Validator> validators,
-            IMissileRepository missileRepository, IEffectRepository effectRepository) : base(data, new List<Validator>())
+        public LaunchAOEMissileEffect(LaunchAOEMissileEffectData data, List<ValidatorWithPurpose> validators,
+            IMissileRepository missileRepository, IEffectRepository effectRepository) : base(data, validators)
         {
             this.data = data;
-            this.validators = validators;
             this.missileRepository = missileRepository;
             this.effectRepository = effectRepository;
         }
 
         protected override Effect New()
         {
-            return new LaunchAOEMissileEffect(
-                this.data, this.validators, this.missileRepository, this.effectRepository);
+            return new LaunchAOEMissileEffect(this.data, this.Validators, this.missileRepository, this.effectRepository);
         }
 
         protected override void Apply(GameObject caster, GameObject target)
@@ -90,11 +87,9 @@ namespace DarkBestiary.Effects
             AssignEffects(missile);
 
             missile.Mover = Mover.Factory(this.data.Mover);
-            missile.Mover.Finished += OnMoverFinished;
+            missile.Mover.Stopped += OnMoverStopped;
             missile.EnterCell += OnMissileEnterCell;
             missile.FlyHeight = this.data.MissileFlyHeight;
-            missile.StopOnEntityCollision = this.data.StopOnEntityCollision;
-            missile.StopOnEnvironmentCollision = this.data.StopOnEnvironmentCollision;
             missile.gameObject.SetActive(false);
             missile.transform.position = origin;
             missile.Launch(caster, target, destination);
@@ -106,7 +101,7 @@ namespace DarkBestiary.Effects
             var entities = BoardNavigator.Instance
                 .WithinCircle(cell.transform.position, this.data.Radius)
                 .ToEntities()
-                .Where(entity => !this.hits.Contains(entity) && this.validators.All(v => v.Validate(Caster, entity)))
+                .Where(entity => !this.hits.Contains(entity) && this.Validators.ByPurpose(ValidatorPurpose.Other).Validate(Caster, entity))
                 .ToList();
 
             foreach (var entity in entities)
@@ -116,7 +111,7 @@ namespace DarkBestiary.Effects
             }
         }
 
-        private void OnMoverFinished()
+        private void OnMoverStopped()
         {
             TriggerFinished();
         }
@@ -133,6 +128,7 @@ namespace DarkBestiary.Effects
             if (finalEffect != null)
             {
                 finalEffect.Skill = Skill;
+                finalEffect.DamageMultiplier = DamageMultiplier;
                 missile.FinalEffect = finalEffect;
             }
 
@@ -141,6 +137,7 @@ namespace DarkBestiary.Effects
             if (collideWithEntitiesEffect != null)
             {
                 collideWithEntitiesEffect.Skill = Skill;
+                collideWithEntitiesEffect.DamageMultiplier = DamageMultiplier;
                 missile.CollideWithEntitiesEffect = collideWithEntitiesEffect;
             }
 
@@ -149,6 +146,7 @@ namespace DarkBestiary.Effects
             if (collideWithEnvironmentEffect != null)
             {
                 collideWithEnvironmentEffect.Skill = Skill;
+                collideWithEnvironmentEffect.DamageMultiplier = DamageMultiplier;
                 missile.CollideWithEnvironmentEffect = collideWithEnvironmentEffect;
             }
 
@@ -157,6 +155,7 @@ namespace DarkBestiary.Effects
             if (enterCellEffect != null)
             {
                 enterCellEffect.Skill = Skill;
+                enterCellEffect.DamageMultiplier = DamageMultiplier;
                 missile.EnterCellEffect = enterCellEffect;
             }
 
@@ -165,6 +164,7 @@ namespace DarkBestiary.Effects
             if (exitCellEffect != null)
             {
                 exitCellEffect.Skill = Skill;
+                exitCellEffect.DamageMultiplier = DamageMultiplier;
                 missile.ExitCellEffect = exitCellEffect;
             }
         }

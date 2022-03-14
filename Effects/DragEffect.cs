@@ -3,11 +3,13 @@ using DarkBestiary.Components;
 using DarkBestiary.Data;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Extensions;
+using DarkBestiary.GameBoard;
 using DarkBestiary.Messaging;
 using DarkBestiary.Movers;
 using DarkBestiary.Pathfinding;
 using DarkBestiary.Validators;
 using UnityEngine;
+using Behaviour = DarkBestiary.Behaviours.Behaviour;
 
 namespace DarkBestiary.Effects
 {
@@ -18,9 +20,10 @@ namespace DarkBestiary.Effects
         private readonly DragEffectData data;
         private readonly IPathfinder pathfinder;
 
+        private BehavioursComponent behaviours;
         private Mover mover;
 
-        public DragEffect(DragEffectData data, List<Validator> validators,
+        public DragEffect(DragEffectData data, List<ValidatorWithPurpose> validators,
             IPathfinder pathfinder) : base(data, validators)
         {
             this.data = data;
@@ -39,63 +42,104 @@ namespace DarkBestiary.Effects
 
         protected override void Apply(GameObject caster, Vector3 target)
         {
+            var unit = caster.GetComponent<UnitComponent>();
+
+            if (unit.IsMovingViaScript)
+            {
+                TriggerFinished();
+                return;
+            }
+
+            unit.Flags |= UnitFlags.MovingViaScript;
+
             caster.GetComponent<ActorComponent>().PlayAnimation(this.data.StartAnimation);
 
             if (this.data.IsAirborne)
             {
-                caster.GetComponent<UnitComponent>().Flags |= UnitFlags.Airborne;
+                unit.Flags |= UnitFlags.Airborne;
+            }
+            else
+            {
+                this.behaviours = caster.GetComponent<BehavioursComponent>();
+                this.behaviours.BehaviourApplied += OnBehaviourApplied;
             }
 
             this.mover = Mover.Factory(this.data.Mover);
-            this.mover.Finished += OnMoverFinished;
-            this.mover.CollidingWithEntity += OnCollidingWithEntity;
-            this.mover.CollidingWithEnvironment += OnCollidingWithEnvironment;
-            this.mover.Start(caster, target);
-        }
+            this.mover.Stopped += OnMoverStopped;
 
-        private void OnCollidingWithEnvironment()
-        {
-            var effect = Container.Instance.Resolve<IEffectRepository>().Find(this.data.CollideWithEnvironmentEffectId);
-            effect?.Apply(Caster, Caster);
-
-            if (this.data.StopOnEnvironmentCollision)
+            if (this.data.CollideWithEntityEffectId > 0 || this.data.CollideWithEnvironmentEffectId > 0)
             {
-                this.mover.Stop();
+                this.mover.FindAnyCollisionAndMove(caster, target);
+            }
+            else if (this.data.StopOnCollision)
+            {
+                this.mover.FindAnyCollisionAndMove(caster, target, (caster.transform.position - target).magnitude);
+            }
+            else
+            {
+                this.mover.Move(caster, target);
             }
         }
 
-        private void OnCollidingWithEntity(GameObject entity)
+        private Effect GetEffect(int effectId)
         {
-            var effect = Container.Instance.Resolve<IEffectRepository>().Find(this.data.CollideWithEntityEffectId);
-            effect?.Apply(Caster, entity);
+            var effect = Container.Instance.Resolve<IEffectRepository>().Find(effectId);
 
-            if (this.data.StopOnEntityCollision)
-            {
-                this.mover.Stop();
-            }
+            return effect == null ? null : Inherit(effect);
         }
 
-        private void OnMoverFinished()
+        private void OnBehaviourApplied(Behaviour behaviour)
         {
-            Container.Instance.Resolve<IEffectRepository>()
-                .Find(this.data.FinalEffectId)?
-                .Apply(Caster, Caster);
+            if (!this.behaviours.IsUncontrollable && !this.behaviours.IsImmobilized)
+            {
+                return;
+            }
 
+            this.mover.Stop();
+        }
+
+        private void OnMoverStopped()
+        {
             Caster.GetComponent<ActorComponent>().PlayAnimation(this.data.EndAnimation);
-            Caster.transform.position = Caster.transform.position.Snapped();
+
+            var unit = Caster.GetComponent<UnitComponent>();
+            unit.Flags &= ~UnitFlags.MovingViaScript;
 
             if (this.data.IsAirborne)
             {
-                Caster.GetComponent<UnitComponent>().Flags &= ~UnitFlags.Airborne;
+                unit.Flags &= ~UnitFlags.Airborne;
             }
 
-            this.mover.CollidingWithEnvironment -= OnCollidingWithEnvironment;
-            this.mover.CollidingWithEntity -= OnCollidingWithEntity;
-            this.mover.Finished -= OnMoverFinished;
+            if (this.behaviours != null)
+            {
+                this.behaviours.BehaviourApplied -= OnBehaviourApplied;
+            }
+
+            this.mover.Stopped -= OnMoverStopped;
+
+            Caster.transform.position = Caster.transform.position.Snapped();
+            BoardNavigator.Instance.NearestCell(Caster.transform.position).OnEnter(Caster);
+
+            ApplyEffects();
 
             AnyDragEffectFinished?.Invoke(this);
-
             TriggerFinished();
+        }
+
+        private void ApplyEffects()
+        {
+            if (this.mover.CollidesWithEntity)
+            {
+                GetEffect(this.data.CollideWithEntityEffectId)?.Apply(Caster, this.mover.CollidesWithEntity);
+            }
+            else if (this.mover.CollidesWithEnvironment)
+            {
+                GetEffect(this.data.CollideWithEnvironmentEffectId)?.Apply(Caster, Caster);
+            }
+            else
+            {
+                GetEffect(this.data.FinalEffectId)?.Apply(Caster, Caster);
+            }
         }
     }
 }

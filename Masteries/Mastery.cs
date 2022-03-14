@@ -14,7 +14,7 @@ namespace DarkBestiary.Masteries
 {
     public abstract class Mastery
     {
-        public const int MaxLevel = 5;
+        private const int MaxLevel = 6;
 
         public static event Payload<Mastery> AnyMasteryLevelUp;
 
@@ -31,8 +31,8 @@ namespace DarkBestiary.Masteries
         private PropertiesComponent properties;
         private AttributesComponent attributes;
 
-        private List<PropertyModifier> propertyModifiers;
-        private List<AttributeModifier> attributeModifiers;
+        private readonly List<PropertyModifier> propertyModifiers = new List<PropertyModifier>();
+        private readonly List<AttributeModifier> attributeModifiers = new List<AttributeModifier>();
 
         protected Mastery(MasteryData data, ItemModifier modifier)
         {
@@ -69,14 +69,14 @@ namespace DarkBestiary.Masteries
             OnTerminate();
         }
 
-        public List<AttributeModifier> GetAttributeModifiers()
+        public List<AttributeModifier> GetAttributeModifiers(int level)
         {
-            return this.modifier.GetAttributeModifiers(Experience.Level, 0);
+            return this.modifier.GetAttributeModifiers(level, 0);
         }
 
-        public List<PropertyModifier> GetPropertyModifiers()
+        public List<PropertyModifier> GetPropertyModifiers(int level)
         {
-            return this.modifier.GetPropertyModifiers(Experience.Level, 0);
+            return this.modifier.GetPropertyModifiers(level, 0);
         }
 
         protected virtual void OnInitialize()
@@ -102,18 +102,19 @@ namespace DarkBestiary.Masteries
 
         protected void ApplyModifiers(int times = 1)
         {
-            if (this.attributeModifiers != null || this.propertyModifiers != null)
-            {
-                RemoveModifiers();
-            }
+            RemoveModifiers();
 
-            this.attributeModifiers = new List<AttributeModifier>();
-            this.propertyModifiers = new List<PropertyModifier>();
+            var level = Experience.Level - 1;
+
+            if (level <= 0)
+            {
+                return;
+            }
 
             for (var i = 0; i < times; i++)
             {
-                this.attributeModifiers.AddRange(GetAttributeModifiers());
-                this.propertyModifiers.AddRange(GetPropertyModifiers());
+                this.attributeModifiers.AddRange(GetAttributeModifiers(level));
+                this.propertyModifiers.AddRange(GetPropertyModifiers(level));
             }
 
             this.attributes.ApplyModifiers(this.attributeModifiers);
@@ -122,18 +123,11 @@ namespace DarkBestiary.Masteries
 
         protected void RemoveModifiers()
         {
-            if (this.attributeModifiers != null)
-            {
-                this.attributes.RemoveModifiers(this.attributeModifiers);
-            }
+            this.attributes.RemoveModifiers(this.attributeModifiers);
+            this.attributeModifiers.Clear();
 
-            if (this.propertyModifiers != null)
-            {
-                this.properties.RemoveModifiers(this.propertyModifiers);
-            }
-
-            this.attributeModifiers = null;
-            this.propertyModifiers = null;
+            this.properties.RemoveModifiers(this.propertyModifiers);
+            this.propertyModifiers.Clear();
         }
 
         private static int RequiredExperienceAtLevel(int level)
@@ -146,84 +140,97 @@ namespace DarkBestiary.Masteries
             return (int) (29 + Math.Pow(level + 2, 5) / 2);
         }
 
+        public string GetDamageString(GameObject entity)
+        {
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.DamageIncrease));
+        }
+
         public string GetMinionDamageString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.MinionDamage));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.MinionDamage));
         }
 
         public string GetMinionHealthString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.MinionHealth));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.MinionHealth));
         }
 
         public string GetCriticalChanceString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.CriticalHitChance));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.CriticalHitChance));
         }
 
         public string GetCriticalDamageString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.CriticalHitDamage));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.CriticalHitDamage));
         }
 
         public string GetArmorPenetrationString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.ArmorPenetration));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.ArmorPenetration));
         }
 
         public string GetMagicPenetrationString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.MagicPenetration));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.MagicPenetration));
         }
 
         public string GetBlockAmountString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.BlockAmount));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.BlockAmount));
         }
 
         public string GetDodgeChanceString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.Dodge));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.Dodge));
         }
 
         public string GetHealingString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.HealingIncrease));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.HealingIncrease));
         }
 
         public string GetArcaneDamageString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.ArcaneDamageIncrease));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.ArcaneDamageIncrease));
         }
 
         public string GetColdDamageString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.ColdDamageIncrease));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.ColdDamageIncrease));
         }
 
         public string GetFireDamageString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.FireDamageIncrease));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.FireDamageIncrease));
         }
 
         public string GetHolyDamageString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.HolyDamageIncrease));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.HolyDamageIncrease));
         }
 
         public string GetLightningDamageString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.LightningDamageIncrease));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.LightningDamageIncrease));
         }
 
         public string GetPoisonDamageString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.PoisonDamageIncrease));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.PoisonDamageIncrease));
         }
 
         public string GetShadowDamageString(GameObject entity)
         {
-            return PropertyModifierValueString(GetPropertyModifiers().First(m => m.Property.Type == PropertyType.ShadowDamageIncrease));
+            return PropertyModifierValueString(PropertyModifiersForTooltip().First(m => m.Property.Type == PropertyType.ShadowDamageIncrease));
+        }
+
+        private List<PropertyModifier> PropertyModifiersForTooltip()
+        {
+            // Note: At level '0' I need to display values for level '1'.
+            var level =  Mathf.Max(1, Experience.Level - 1);
+
+            return GetPropertyModifiers(level);
         }
 
         private string PropertyModifierValueString(PropertyModifier modifier, bool absolute = false)

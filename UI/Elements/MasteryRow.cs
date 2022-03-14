@@ -9,7 +9,7 @@ using UnityEngine.UI;
 
 namespace DarkBestiary.UI.Elements
 {
-    public class MasteryRow : PoolableMonoBehaviour, IPointerUpHandler
+    public class MasteryRow : PoolableMonoBehaviour, IPointerClickHandler
     {
         public event Payload<MasteryRow> Clicked;
 
@@ -49,7 +49,7 @@ namespace DarkBestiary.UI.Elements
             this.highlight.color = this.highlight.color.With(a: 0);
         }
 
-        public void OnPointerUp(PointerEventData pointer)
+        public void OnPointerClick(PointerEventData pointer)
         {
             Clicked?.Invoke(this);
         }
@@ -67,7 +67,7 @@ namespace DarkBestiary.UI.Elements
                 star.gameObject.SetActive(false);
             }
 
-            foreach (var star in this.stars.Take(experience.Level))
+            foreach (var star in this.stars.Take(experience.Level - 1))
             {
                 star.gameObject.SetActive(true);
             }

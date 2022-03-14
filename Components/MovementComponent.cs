@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using DarkBestiary.Data;
 using DarkBestiary.Extensions;
-using DarkBestiary.GameBoard;
 using DarkBestiary.Messaging;
 using DarkBestiary.Movers;
 using DarkBestiary.Pathfinding;
@@ -15,6 +14,9 @@ namespace DarkBestiary.Components
     public class MovementComponent : Component
     {
         private const int ActionPointCostPerCell = 2;
+
+        public static event Payload<MovementComponent> AnyMovementStarted;
+        public static event Payload<MovementComponent> AnyMovementStopped;
 
         public event Payload<MovementComponent> Started;
         public event Payload<MovementComponent> Stopped;
@@ -36,7 +38,7 @@ namespace DarkBestiary.Components
             this.pathfinder = pathfinder;
 
             this.mover = new LinearMover(new MoverData(MoverType.Linear, 6, 0, 0, false));
-            this.mover.Finished += OnMoverFinish;
+            this.mover.Stopped += OnMoverFinish;
 
             return this;
         }
@@ -60,7 +62,7 @@ namespace DarkBestiary.Components
         {
             Scenario.AnyScenarioExit -= ScenarioOnAnyScenarioExit;
 
-            this.mover.Finished -= OnMoverFinish;
+            this.mover.Stopped -= OnMoverFinish;
 
             Stop();
 
@@ -84,9 +86,10 @@ namespace DarkBestiary.Components
             }
 
             Started?.Invoke(this);
+            AnyMovementStarted?.Invoke(this);
             IsMoving = true;
 
-            if (!CanMove() || !HasEnoughActionPoints())
+            if (!CanMove())
             {
                 Stop();
                 return;
@@ -129,6 +132,7 @@ namespace DarkBestiary.Components
             this.mover.Stop();
 
             Stopped?.Invoke(this);
+            AnyMovementStopped?.Invoke(this);
         }
 
         public bool HasEnoughResourcesToCompletePath(List<Vector3> path)
@@ -202,6 +206,7 @@ namespace DarkBestiary.Components
 
             if (this.currentPointIndex >= this.points.Count || !HasEnoughActionPoints())
             {
+                transform.position = this.currentPoint;
                 Stop();
                 return;
             }
@@ -211,7 +216,7 @@ namespace DarkBestiary.Components
 
             this.currentPoint = this.points[this.currentPointIndex];
             this.actor.Model.LookAt(this.currentPoint);
-            this.mover.Start(gameObject, this.currentPoint);
+            this.mover.Move(gameObject, this.currentPoint);
         }
 
         private void AdjustMoverSpeed()

@@ -1,40 +1,55 @@
-﻿using DarkBestiary.UI.Views;
+﻿using DarkBestiary.Messaging;
+using DarkBestiary.UI.Views;
+
 namespace DarkBestiary.UI.Controllers
 {
-    public abstract class ViewController<T> : IController where T : class, IView
+    public abstract class ViewController<TView> : IViewController<TView> where TView : IView
     {
-        protected bool IsTerminated { get; private set; }
+        public event Payload<IViewController<TView>> Initialized;
+        public event Payload<IViewController<TView>> Terminated;
 
-        protected ViewController(T view)
+        public TView View { get; }
+
+        protected ViewController(TView view)
         {
             View = view;
         }
 
-        public T View { get; }
-
-        public void Initialize()
+        public virtual void Initialize()
         {
-            OnInitialize();
-
             View.Initialize();
+            View.Shown += OnViewShown;
+            View.Hidden += OnViewHidden;
 
-            OnViewInitialized();
+            OnInitialize();
+            Initialized?.Invoke(this);
         }
 
         public void Terminate()
         {
-            IsTerminated = true;
-
-            OnTerminate();
+            if (ViewControllerRegistry.IsPersistent(GetType()))
+            {
+                View.Hide();
+                return;
+            }
 
             View.Terminate();
+            View.Shown -= OnViewShown;
+            View.Hidden -= OnViewHidden;
+
+            OnTerminate();
+            Terminated?.Invoke(this);
         }
 
         protected virtual void OnInitialize()
         {
         }
 
-        protected virtual void OnViewInitialized()
+        protected virtual void OnViewShown()
+        {
+        }
+
+        protected virtual void OnViewHidden()
         {
         }
 

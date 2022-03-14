@@ -41,7 +41,14 @@ namespace DarkBestiary.UI.Elements
 
         public void OnPointerEnter(PointerEventData pointer)
         {
-            Tooltip.Instance.Show(Behaviour.Name, Behaviour.Description.ToString(new StringVariableContext(Behaviour.Caster)), GetComponent<RectTransform>());
+            var description = Behaviour.Description.ToString(new StringVariableContext(Behaviour.Caster));
+
+            if (Behaviour.IsDispellable)
+            {
+                description += $"\n\n<color=green>{I18N.Instance.Translate("ui_can_be_dispelled")}</color>";
+            }
+
+            Tooltip.Instance.Show(Behaviour.Name, description, GetComponent<RectTransform>());
         }
 
         public void OnPointerExit(PointerEventData pointer)

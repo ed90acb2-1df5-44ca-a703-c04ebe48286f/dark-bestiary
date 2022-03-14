@@ -1,202 +1,188 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using DarkBestiary.Components;
+using DarkBestiary.Exceptions;
 using DarkBestiary.Extensions;
 using DarkBestiary.Items;
-using DarkBestiary.Items.Alchemy;
 using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
 using DarkBestiary.UI.Elements;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace DarkBestiary.UI.Views.Unity
 {
     public class AlchemyView : View, IAlchemyView
     {
-        public event Payload<Item> AddItem;
-        public event Payload<Item, int> AddItemIndex;
-        public event Payload<Item, Item> SwapItems;
-        public event Payload<Item> RemoveItem;
-        public event Payload Combine;
-
-        [SerializeField] private InventoryPanel inventoryPanel;
-        [SerializeField] private EquipmentPanel equipmentPanel;
-        [SerializeField] private CharacterPanel characterPanel;
+        [SerializeField] private CraftViewRecipeRow recipeRowPrefab;
+        [SerializeField] private CraftViewRecipePanel recipePanel;
+        [SerializeField] private Transform recipeRowContainer;
         [SerializeField] private Interactable closeButton;
-        [SerializeField] private Interactable combineButton;
-        [SerializeField] private InventoryItemSlot slotPrefab;
-        [SerializeField] private Transform slotContainer;
-        [SerializeField] private Interactable openRecipesButton;
-        [SerializeField] private Interactable closeRecipesButton;
-        [SerializeField] private GameObject recipesPanel;
-        [SerializeField] private AlchemyRecipe alchemyRecipePrefab;
-        [SerializeField] private Transform alchemyRecipeContainer;
-        [SerializeField] private Sprite crossIcon;
-        [SerializeField] private Sprite unknownIcon;
-        [SerializeField] private Image recipeIcon;
-        [SerializeField] private TextMeshProUGUI recipeText;
-        [SerializeField] private GameObject particlesPrefab;
+        [SerializeField] private TMP_InputField searchInput;
 
-        private readonly List<InventoryItemSlot> slots = new List<InventoryItemSlot>();
+        private readonly List<CraftViewRecipeRow> recipeRows = new List<CraftViewRecipeRow>();
 
-        private Character character;
-        private InventoryComponent inventory;
-        private EquipmentComponent equipment;
+        private bool requiresUpdate;
+        private MonoBehaviourPool<CraftViewRecipeRow> recipePool;
+        private CraftViewRecipeRow selectedRecipe;
+        private InventoryComponent characterInventory;
+        private InventoryComponent ingredientInventory;
+        private List<Recipe> recipes;
 
-        public void Construct(Character character, List<Item> items, List<IAlchemyRecipe> recipes)
+        public void Construct(List<Recipe> recipes, InventoryComponent characterInventory, InventoryComponent ingredientInventory)
         {
-            this.character = character;
-            this.inventory = character.Entity.GetComponent<InventoryComponent>();
-            this.equipment = character.Entity.GetComponent<EquipmentComponent>();
+            this.recipes = recipes;
+            this.characterInventory = characterInventory;
+            this.ingredientInventory = ingredientInventory;
 
-            foreach (var item in items)
+            if (this.recipes.Count == 0)
             {
-                var slot = Instantiate(this.slotPrefab, this.slotContainer);
-                slot.Construct(item);
-                slot.ItemDroppedIn += OnItemDroppedIn;
-                slot.ItemDroppedOut += OnItemDroppedOut;
-                slot.InventoryItem.RightClicked += OnSlotItemRightClicked;
-                this.slots.Add(slot);
+                return;
             }
 
-            foreach (var recipe in recipes)
-            {
-                var recipeView = Instantiate(this.alchemyRecipePrefab, this.alchemyRecipeContainer);
-                recipeView.Construct(recipe);
-            }
+            this.recipePool = MonoBehaviourPool<CraftViewRecipeRow>.Factory(
+                this.recipeRowPrefab, this.recipeRowContainer);
 
-            ClearResult();
-        }
+            this.ingredientInventory.ItemPicked += OnItemPicked;
+            this.ingredientInventory.ItemRemoved += OnItemRemoved;
+            this.ingredientInventory.ItemStackCountChanged += OnItemStackCountChanged;
 
-        protected override void OnInitialize()
-        {
-            this.openRecipesButton.PointerUp += OnOpenRecipesButtonPointerUp;
-            this.closeRecipesButton.PointerUp += OnCloseRecipesButtonPointerUp;
-            this.combineButton.PointerUp += OnCombineButtonPointerUp;
-            this.closeButton.PointerUp += Hide;
+            this.recipePanel.Initialize(this.ingredientInventory);
+            this.recipePanel.CraftButtonClicked += OnCraftButtonClicked;
 
-            this.characterPanel.Initialize(this.character);
-            this.equipmentPanel.Initialize(this.equipment);
-            this.inventoryPanel.Initialize(this.inventory);
-            this.inventoryPanel.ItemRightClicked += OnInventoryItemRightClicked;
+            this.searchInput.onValueChanged.AddListener(OnSearchInputChanged);
+            this.closeButton.PointerClick += OnCloseButtonPointerClick;
+
+            Refresh(this.recipes);
         }
 
         protected override void OnTerminate()
         {
-            this.openRecipesButton.PointerUp -= OnOpenRecipesButtonPointerUp;
-            this.closeRecipesButton.PointerUp -= OnCloseRecipesButtonPointerUp;
-            this.combineButton.PointerUp -= OnCombineButtonPointerUp;
-            this.closeButton.PointerUp -= Hide;
+            this.recipePool.Clear();
 
-            this.characterPanel.Terminate();
-            this.equipmentPanel.Terminate();
-            this.inventoryPanel.Terminate();
-            this.inventoryPanel.ItemRightClicked -= OnInventoryItemRightClicked;
-        }
+            this.ingredientInventory.ItemPicked -= OnItemPicked;
+            this.ingredientInventory.ItemRemoved -= OnItemRemoved;
+            this.ingredientInventory.ItemStackCountChanged -= OnItemStackCountChanged;
 
-        private void OnOpenRecipesButtonPointerUp()
-        {
-            this.recipesPanel.gameObject.SetActive(true);
-        }
+            this.recipePanel.Terminate();
 
-        private void OnCloseRecipesButtonPointerUp()
-        {
-            this.recipesPanel.gameObject.SetActive(false);
-        }
-
-        public void OnSuccess()
-        {
-            AudioManager.Instance.PlayAlchemyCombine();
-            Instantiate(this.particlesPrefab, this.slotContainer.parent).DestroyAsVisualEffect();
-        }
-
-        public void Block(Item item)
-        {
-            this.inventoryPanel.Block(item);
-        }
-
-        public void Unblock(Item item)
-        {
-            this.inventoryPanel.Unblock(item);
-        }
-
-        public void ShowResult(Recipe recipe)
-        {
-            this.recipeIcon.color = this.recipeIcon.color.With(a: 1);
-            this.recipeIcon.sprite = Resources.Load<Sprite>(recipe.Item.Icon);
-            this.recipeText.text = $"<size=150%><smallcaps>{recipe.Item.Name}</smallcaps></size>\n{recipe.Item.ConsumeDescription}";
-        }
-
-        public void ShowUnknownResult()
-        {
-            this.recipeIcon.color = this.recipeIcon.color.With(a: 1);
-            this.recipeIcon.sprite = this.unknownIcon;
-            this.recipeText.text = I18N.Instance.Get("ui_unknown_result");
-        }
-
-        public void ShowImpossibleCombination()
-        {
-            this.recipeIcon.color = this.recipeIcon.color.With(a: 1);
-            this.recipeIcon.sprite = this.crossIcon;
-            this.recipeText.text = I18N.Instance.Get("ui_impossible_combination");
-        }
-
-        public void ClearResult()
-        {
-            this.recipeIcon.color = this.recipeIcon.color.With(a: 0);
-            this.recipeText.text = "";
-        }
-
-        public void RefreshItems(List<Item> items)
-        {
-            var index = 0;
-
-            foreach (var item in items)
+            foreach (var recipeRow in this.recipeRows)
             {
-                this.slots[index].ChangeItem(item);
-                index++;
+                recipeRow.Clicked -= OnRecipeRowClicked;
             }
         }
 
-        private void OnCombineButtonPointerUp()
+        private void OnSearchInputChanged(string search)
         {
-            Combine?.Invoke();
-        }
-
-        private void OnSlotItemRightClicked(InventoryItem inventoryItem)
-        {
-            RemoveItem?.Invoke(inventoryItem.Item);
-        }
-
-        private void OnInventoryItemRightClicked(InventoryItem inventoryItem)
-        {
-            AddItem?.Invoke(inventoryItem.Item);
-        }
-
-        private void OnItemDroppedIn(ItemDroppedEventData data)
-        {
-            var containing = this.slots.FirstOrDefault(s => s.InventoryItem.Item == data.InventoryItem.Item);
-
-            if (containing == null)
+            foreach (var recipeRow in this.recipeRows)
             {
-                AddItemIndex?.Invoke(data.InventoryItem.Item, this.slots.IndexOf(data.InventorySlot));
+                recipeRow.gameObject.SetActive(recipeRow.Recipe.Item.Name.LikeIgnoreCase($"%{search}%") ||
+                                               recipeRow.Recipe.Item.Type.Name.LikeIgnoreCase($"%{search}%"));
+            }
+        }
+
+        public void Refresh(List<Recipe> recipes)
+        {
+            this.selectedRecipe = null;
+
+            DestroyRecipeRows();
+
+            foreach (var recipe in recipes)
+            {
+                var recipeRow = this.recipePool.Spawn();
+                recipeRow.Clicked += OnRecipeRowClicked;
+                recipeRow.Construct(recipe, this.ingredientInventory);
+                this.recipeRows.Add(recipeRow);
+            }
+
+            if (this.recipeRows.Count > 0)
+            {
+                OnRecipeRowClicked(this.recipeRows.First());
+            }
+        }
+
+        private void DestroyRecipeRows()
+        {
+            this.recipePool.DespawnAll();
+
+            foreach (var recipeRow in this.recipeRows)
+            {
+                recipeRow.Clicked -= OnRecipeRowClicked;
+            }
+
+            this.recipeRows.Clear();
+        }
+
+        private void MarkRecipesForRefresh()
+        {
+            this.requiresUpdate = true;
+        }
+
+        private void OnItemStackCountChanged(ItemStackCountChangedEventData data)
+        {
+            MarkRecipesForRefresh();
+        }
+
+        private void OnItemPicked(ItemPickupEventData data)
+        {
+            MarkRecipesForRefresh();
+        }
+
+        private void OnItemRemoved(ItemRemovedEventData data)
+        {
+            MarkRecipesForRefresh();
+        }
+
+        private void OnCloseButtonPointerClick()
+        {
+            Hide();
+        }
+
+        private void OnRecipeRowClicked(CraftViewRecipeRow recipeRow)
+        {
+            if (this.selectedRecipe != null)
+            {
+                this.selectedRecipe.Deselect();
+            }
+
+            this.selectedRecipe = recipeRow;
+            this.selectedRecipe.Select();
+
+            this.recipePanel.Refresh(this.selectedRecipe.Recipe);
+        }
+
+        private void OnCraftButtonClicked(CraftViewRecipePanel recipePanel)
+        {
+            try
+            {
+                var item = recipePanel.Recipe.Item.Clone();
+
+                this.ingredientInventory.WithdrawIngredients(recipePanel.Recipe);
+                this.characterInventory.Pickup(item);
+
+                AudioManager.Instance.PlayAlchemyBrew();
+            }
+            catch (GameplayException exception)
+            {
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
+            }
+        }
+
+        private void Update()
+        {
+            if (!this.requiresUpdate)
+            {
                 return;
             }
 
-            SwapItems?.Invoke(containing.InventoryItem.Item, data.InventorySlot.InventoryItem.Item);
-        }
+            this.requiresUpdate = false;
 
-        private void OnItemDroppedOut(ItemDroppedEventData data)
-        {
-            if (this.slots.Any(s => s == data.InventorySlot))
+            foreach (var recipeRow in this.recipeRows)
             {
-                return;
+                recipeRow.Refresh(recipeRow.Recipe);
             }
 
-            // Note: to prevent Empty item dropping into inventory slot
-            Timer.Instance.WaitForFixedUpdate(() => RemoveItem?.Invoke(data.InventoryItem.Item));
+            this.recipePanel.Refresh(this.selectedRecipe.Recipe);
         }
     }
 }

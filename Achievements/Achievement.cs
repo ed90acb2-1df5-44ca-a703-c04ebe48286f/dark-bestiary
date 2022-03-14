@@ -74,7 +74,7 @@ namespace DarkBestiary.Achievements
 
         public void Evaluate()
         {
-            if (IsUnlocked || Quantity < RequiredQuantity)
+            if (!this.Data.IsEnabled || IsUnlocked || Quantity < RequiredQuantity)
             {
                 return;
             }

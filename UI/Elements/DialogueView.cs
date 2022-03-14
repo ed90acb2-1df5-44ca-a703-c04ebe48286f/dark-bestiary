@@ -18,7 +18,7 @@ namespace DarkBestiary.UI.Elements
         {
             Instance.Hide();
 
-            this.closeButton.PointerUp += Hide;
+            this.closeButton.PointerClick += Hide;
 
             this.actionViewPool = MonoBehaviourPool<DialogueActionView>.Factory(
                 this.actionViewPrefab, this.actionViewContainer, 5);

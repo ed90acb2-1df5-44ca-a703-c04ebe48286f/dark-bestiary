@@ -21,6 +21,7 @@ namespace DarkBestiary.Data.Mappers
         private readonly IUnitRepository unitRepository;
         private readonly ITalentRepository talentRepository;
         private readonly IMasteryRepository masteryRepository;
+        private readonly ISpecializationDataRepository specializationDataRepository;
         private readonly MasterySaveDataMapper masterySaveDataMapper;
         private readonly RelicSaveDataMapper relicSaveDataMapper;
         private readonly ItemSaveDataMapper itemSaveDataMapper;
@@ -32,6 +33,8 @@ namespace DarkBestiary.Data.Mappers
             this.unitRepository = Container.Instance.Resolve<IUnitRepository>();
             this.talentRepository = Container.Instance.Resolve<ITalentRepository>();
             this.masteryRepository = Container.Instance.Resolve<IMasteryRepository>();
+            this.specializationDataRepository = Container.Instance.Resolve<ISpecializationDataRepository>();
+
             this.masterySaveDataMapper = Container.Instance.Resolve<MasterySaveDataMapper>();
             this.relicSaveDataMapper = Container.Instance.Resolve<RelicSaveDataMapper>();
             this.itemSaveDataMapper = Container.Instance.Resolve<ItemSaveDataMapper>();
@@ -140,6 +143,11 @@ namespace DarkBestiary.Data.Mappers
                 Available = this.relicSaveDataMapper.ToData(reliquary.Available),
             };
 
+            var specializationsComponent = character.Entity.GetComponent<SpecializationsComponent>();
+            var specializations = specializationsComponent.Specializations
+                .Select(specialization => new SpecializationSaveData(specialization))
+                .ToList();
+
             var masteries = character.Entity.GetComponent<MasteriesComponent>().Masteries
                 .Select(this.masterySaveDataMapper.ToData)
                 .ToList();
@@ -160,17 +168,17 @@ namespace DarkBestiary.Data.Mappers
                 ActiveSkills = activeSkills,
                 Talents = characterTalents,
                 Attributes = attributes,
-                AvailableScenarios = character.AvailableScenarios,
-                CompletedScenarios = character.CompletedScenarios,
+                AvailableScenarios = character.AvailableScenarios.Distinct().ToList(),
+                CompletedScenarios = character.CompletedScenarios.Distinct().ToList(),
                 Relics = relics,
+                SkillPoints = specializationsComponent.SkillPoints,
+                Specializations = specializations,
                 Masteries = masteries,
 
                 IsHelmHidden = !character.Entity.GetComponent<ActorComponent>().IsHelmVisible,
 
                 Rerolls = character.Data.Rerolls,
-                IsDead = character.Data.IsDead,
-                IsRandomSkills = character.Data.IsRandomSkills,
-                IsHardcore = character.Data.IsHardcore,
+                FreeSkills = character.Data.FreeSkills,
                 HairstyleIndex = character.Data.HairstyleIndex,
                 HairColorIndex = character.Data.HairColorIndex,
                 SkinColorIndex = character.Data.SkinColorIndex,
@@ -199,12 +207,15 @@ namespace DarkBestiary.Data.Mappers
                 entity.AddComponent<ExperienceComponent>().Construct(data.Level, data.Experience),
                 entity.AddComponent<CurrenciesComponent>().Construct(LoadCurrencies(data)),
                 entity.AddComponent<MasteriesComponent>().Construct(LoadMasteries(data)),
-                entity.AddComponent<InventoryComponent>().Construct(120),
-                entity.AddComponent<EquipmentComponent>().Construct(),
+                entity.AddComponent<InventoryComponent>().Construct(140),
+                entity.GetOrAddComponent<EquipmentComponent>().Construct(),
                 entity.AddComponent<ReliquaryComponent>().Construct(),
                 entity.AddComponent<FoodComponent>().Construct(),
+                entity.AddComponent<SpecializationsComponent>().Construct(LoadSpecializations(data), data.SkillPoints),
                 entity.AddComponent<TalentsComponent>().Construct(
-                    this.talentRepository.FindAll(), data.Talents.Learned, data.Talents.Points
+                    this.talentRepository.Find(t => t.CategoryId != Constants.TalentCategoryIdDreams),
+                    data.Talents.Learned,
+                    data.Talents.Points
                 ),
             };
 
@@ -285,7 +296,7 @@ namespace DarkBestiary.Data.Mappers
 
             foreach (var relic in this.relicSaveDataMapper.ToEntity(data.Relics.Available))
             {
-                reliquary.Unlock(relic);
+                reliquary.UnlockSilently(relic);
 
                 if (data.Relics.Active.Any(r => r.RelicId == relic.Id))
                 {
@@ -308,7 +319,17 @@ namespace DarkBestiary.Data.Mappers
 
                 item.Inventory = inventory;
 
+                foreach (var rune in item.Runes)
+                {
+                    rune.Inventory = inventory;
+                }
+
                 equipment.Equip(item);
+
+                if (!equipment.IsEquipped(item))
+                {
+                    inventory.Pickup(item);
+                }
             }
 
             equipment.SetAltWeaponSet(data.AltWeapon.Select(this.itemSaveDataMapper.ToEntity).ToList());
@@ -331,6 +352,29 @@ namespace DarkBestiary.Data.Mappers
                     inventory.PickupDoNotStack(item);
                 }
             }
+        }
+
+        private List<Specialization> LoadSpecializations(CharacterData characterData)
+        {
+            var specializations = new List<Specialization>();
+
+            foreach (var data in this.specializationDataRepository.FindAll())
+            {
+                var specialization = new Specialization(data);
+                specializations.Add(specialization);
+
+                var specializationSaveData = characterData.Specializations.FirstOrDefault(x => x.SpecializationId == data.Id);
+
+                if (specializationSaveData == null)
+                {
+                    specialization.Construct(1, 0);
+                    continue;
+                }
+
+                specialization.Construct(specializationSaveData.Level, specializationSaveData.Experience);
+            }
+
+            return specializations;
         }
 
         private List<Mastery> LoadMasteries(CharacterData characterData)

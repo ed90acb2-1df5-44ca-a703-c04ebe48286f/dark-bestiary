@@ -1,7 +1,7 @@
-﻿using DarkBestiary.Messaging;
+﻿using DarkBestiary.Managers;
+using DarkBestiary.Messaging;
 using DarkBestiary.UI.Elements;
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 namespace DarkBestiary
 {
@@ -46,7 +46,7 @@ namespace DarkBestiary
         {
             this.isHovered = true;
 
-            if (EventSystem.current.IsPointerOverGameObject())
+            if (UIManager.Instance.IsGameFieldBlockedByUI())
             {
                 return;
             }
@@ -81,7 +81,7 @@ namespace DarkBestiary
 
         private void OnMouseDown()
         {
-            if (EventSystem.current.IsPointerOverGameObject())
+            if (UIManager.Instance.IsGameFieldBlockedByUI())
             {
                 return;
             }
@@ -96,9 +96,9 @@ namespace DarkBestiary
             }
         }
 
-        private void OnMouseUp()
+        private void OnMouseUpAsButton()
         {
-            if (!this.isHovered || EventSystem.current.IsPointerOverGameObject())
+            if (!this.isHovered || UIManager.Instance.IsGameFieldBlockedByUI())
             {
                 return;
             }

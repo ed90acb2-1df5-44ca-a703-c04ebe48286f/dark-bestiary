@@ -90,7 +90,16 @@ namespace DarkBestiary.Data.Mappers
 
                     if (monsterLevel > 20)
                     {
-                        monsterLevel += RNG.Range(-1, 1);
+                        monsterLevel += RNG.Range(-2, 2);
+                    }
+
+                    if (data.IsAscension)
+                    {
+                        var episodeIndex = episodes.IndexOf(episode);
+                        var episodeNumber = episodeIndex + 1;
+
+                        monsterLevel += episodeIndex * TowerManager.MonsterLevelGrowthPerEpisode +
+                                        episodeNumber / TowerManager.BossEpisodeNumber * TowerManager.MonsterLevelGrowthPerBoss;
                     }
 
                     entity.GetComponent<UnitComponent>().Level = monsterLevel;
@@ -117,7 +126,7 @@ namespace DarkBestiary.Data.Mappers
 
                     foreach (var affix in affixes)
                     {
-                        behaviours.Apply(affix, entity);
+                        behaviours.ApplyAllStacks(affix, entity);
                     }
                 }
             }

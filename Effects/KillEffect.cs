@@ -11,7 +11,7 @@ namespace DarkBestiary.Effects
     {
         private readonly EffectData data;
 
-        public KillEffect(EffectData data, List<Validator> validators) : base(data, validators)
+        public KillEffect(EffectData data, List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
         }
@@ -23,7 +23,7 @@ namespace DarkBestiary.Effects
 
         protected override void Apply(GameObject caster, GameObject target)
         {
-            target.GetComponent<HealthComponent>().Kill(target, new Damage(0, DamageType.Health));
+            target.GetComponent<HealthComponent>().Kill(target, new Damage(0, DamageType.Health, WeaponSound.None, DamageFlags.None, DamageInfoFlags.None, Skill));
             TriggerFinished();
         }
     }

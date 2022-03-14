@@ -71,7 +71,7 @@ namespace DarkBestiary.Interaction
         {
             if (!Skill.UseStrategy.IsValidCell(Skill, cell) || !cell.IsAvailable)
             {
-                UiErrorFrame.Instance.Push(I18N.Instance.Get("exception_invalid_target"));
+                UiErrorFrame.Instance.ShowMessage(I18N.Instance.Get("exception_invalid_target"));
                 this.interactor.EnterSelectionState();
                 return;
             }
@@ -109,7 +109,7 @@ namespace DarkBestiary.Interaction
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
         }
 

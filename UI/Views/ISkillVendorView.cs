@@ -12,11 +12,8 @@ namespace DarkBestiary.UI.Views
         event Payload<Skill> SkillBuyed;
 
         void Construct(List<SkillSet> sets, List<Skill> skills, List<SkillCategory> categories, List<Currency> currencies);
-
         void MarkExpensive(Func<Skill, bool> isExpensive);
-
         void MarkAlreadyKnown(Func<int, bool> isAlreadyKnown);
-
         void UnlockSkill(Skill skill);
     }
 }

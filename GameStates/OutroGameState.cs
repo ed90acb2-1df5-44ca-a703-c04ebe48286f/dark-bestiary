@@ -1,4 +1,5 @@
 using DarkBestiary.UI.Controllers;
+using DarkBestiary.UI.Views;
 
 namespace DarkBestiary.GameStates
 {
@@ -8,8 +9,8 @@ namespace DarkBestiary.GameStates
 
         protected override void OnEnter()
         {
-            this.controller = Container.Instance.Instantiate<OutroViewController>();
-            this.controller.Initialize();
+            this.controller = ViewControllerRegistry.Initialize<OutroViewController>();
+            this.controller.View.Show();
         }
 
         protected override void OnExit()

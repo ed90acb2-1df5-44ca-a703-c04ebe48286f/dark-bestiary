@@ -10,6 +10,7 @@ namespace DarkBestiary.Movers
 
         private Vector3 origin;
         private Vector3 direction;
+        private float distance;
         private float timeTotal;
         private float timeElapsed;
 
@@ -21,6 +22,7 @@ namespace DarkBestiary.Movers
         protected override void OnStart(Vector3 destination)
         {
             this.origin = Entity.transform.position;
+            this.distance = (destination - Entity.transform.position).magnitude;
             this.direction = (destination - Entity.transform.position).normalized;
             this.timeTotal = (destination - Entity.transform.position).magnitude / Speed;
             this.timeElapsed = 0;
@@ -34,13 +36,14 @@ namespace DarkBestiary.Movers
                 return false;
             }
 
-            this.origin += Speed * delta * this.direction;
-
             this.timeElapsed = Mathf.Min(this.timeElapsed + delta, this.timeTotal);
 
+            var fraction = this.timeElapsed / this.timeTotal;
+            var linear = this.origin + this.direction * this.distance * Curves.Instance.Linear.Evaluate(fraction);
+
             position = new Vector3(
-                this.origin.x,
-                this.origin.y + Curves.Instance.Parabolic.Evaluate(this.timeElapsed / this.timeTotal) * this.height,
+                linear.x,
+                linear.y + Curves.Instance.Parabolic.Evaluate(fraction) * this.height,
                 0);
 
             return this.timeElapsed < this.timeTotal;

@@ -4,11 +4,11 @@ namespace DarkBestiary
 {
     public static class RNG
     {
-        private static readonly Random Random = new Random();
+        public static readonly Random Random = new Random();
 
         public static int Range(int min, int max)
         {
-            return Random.Next(min, max);
+            return Random.Next(min, max + 1);
         }
 
         public static float Range(float min, float max)

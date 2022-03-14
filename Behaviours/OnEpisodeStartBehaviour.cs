@@ -13,7 +13,7 @@ namespace DarkBestiary.Behaviours
         private readonly IEffectRepository effectRepository;
 
         public OnEpisodeStartBehaviour(EffectBehaviourData data, IEffectRepository effectRepository,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.data = data;
             this.effectRepository = effectRepository;

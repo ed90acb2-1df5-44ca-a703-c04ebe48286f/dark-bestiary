@@ -13,15 +13,13 @@ namespace DarkBestiary.Effects
     {
         private readonly Effect effect;
         private readonly SearchLineEffectData data;
-        private readonly List<Validator> validators;
         private readonly BoardNavigator boardNavigator;
         private readonly IEffectRepository effectRepository;
 
-        public SearchLineEffect(SearchLineEffectData data, List<Validator> validators,
-            BoardNavigator boardNavigator, IEffectRepository effectRepository) : base(data, new List<Validator>())
+        public SearchLineEffect(SearchLineEffectData data, List<ValidatorWithPurpose> validators,
+            BoardNavigator boardNavigator, IEffectRepository effectRepository) : base(data, validators)
         {
             this.data = data;
-            this.validators = validators;
             this.boardNavigator = boardNavigator;
             this.effectRepository = effectRepository;
             this.effect = effectRepository.Find(data.EffectId);
@@ -29,7 +27,7 @@ namespace DarkBestiary.Effects
 
         protected override Effect New()
         {
-            return new SearchLineEffect(this.data, this.validators, this.boardNavigator, this.effectRepository);
+            return new SearchLineEffect(this.data, this.Validators, this.boardNavigator, this.effectRepository);
         }
 
         protected override void Apply(GameObject caster, GameObject target)
@@ -55,7 +53,7 @@ namespace DarkBestiary.Effects
             }
 
             var entities = cells.ToEntities()
-                .Where(entity => entity.IsAlive() && this.validators.All(validator => validator.Validate(caster, entity)))
+                .Where(entity => entity.IsAlive() && this.Validators.ByPurpose(ValidatorPurpose.Other).Validate(caster, entity))
                 .OrderBy(entity => (entity.transform.position - target).sqrMagnitude)
                 .ToList();
 

@@ -19,16 +19,12 @@ namespace DarkBestiary.UI.Controllers
         protected override void OnInitialize()
         {
             View.Continue += OnContinue;
+            View.Text = this.texts.Dequeue();
         }
 
         protected override void OnTerminate()
         {
             View.Continue -= OnContinue;
-        }
-
-        protected override void OnViewInitialized()
-        {
-            View.Text = this.texts.Dequeue();
         }
 
         private void OnContinue()

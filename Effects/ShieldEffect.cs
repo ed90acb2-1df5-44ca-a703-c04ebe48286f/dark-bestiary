@@ -15,7 +15,7 @@ namespace DarkBestiary.Effects
         private readonly ShieldEffectData data;
         private readonly IBehaviourRepository behaviourRepository;
 
-        public ShieldEffect(ShieldEffectData data, List<Validator> validators,
+        public ShieldEffect(ShieldEffectData data, List<ValidatorWithPurpose> validators,
             IBehaviourRepository behaviourRepository) : base(data, validators)
         {
             this.data = data;
@@ -41,7 +41,7 @@ namespace DarkBestiary.Effects
                     shieldBehaviour.Target = target;
                     shieldBehaviour.ChangeAmount(amount);
 
-                    target.GetComponent<BehavioursComponent>().Apply(shieldBehaviour, caster);
+                    target.GetComponent<BehavioursComponent>().ApplyAllStacks(shieldBehaviour, caster);
                 }
             }
 

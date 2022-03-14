@@ -24,7 +24,7 @@ namespace DarkBestiary.UI.Elements
             Deselect();
         }
 
-        protected override void OnPointerUp()
+        protected override void OnPointerClick()
         {
             Clicked?.Invoke(this);
         }

@@ -35,7 +35,7 @@ namespace DarkBestiary.UI.Elements
             foreach (var set in Skill.Sets)
             {
                 Instantiate(this.circleIconPrefab, this.circleIconContainer)
-                    .Construct(Resources.Load<Sprite>(set.Icon));
+                    .Construct(Resources.Load<Sprite>(set.Icon), set.Name);
             }
         }
 

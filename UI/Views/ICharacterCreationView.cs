@@ -1,9 +1,33 @@
 ﻿using System.Collections.Generic;
 using DarkBestiary.Messaging;
+using DarkBestiary.Skills;
 using UnityEngine;
 
 namespace DarkBestiary.UI.Views
 {
+    public struct CharacterCreationViewContext
+    {
+        public List<Background> Backgrounds { get; }
+        public List<Color> HairColors { get; }
+        public List<Color> SkinColors { get; }
+        public int HairstyleCount { get; }
+        public int BeardCount { get; }
+
+        public CharacterCreationViewContext(
+            List<Background> backgrounds,
+            List<Color> hairColors,
+            List<Color> skinColors,
+            int hairstyleCount,
+            int beardCount)
+        {
+            Backgrounds = backgrounds;
+            HairColors = hairColors;
+            SkinColors = skinColors;
+            HairstyleCount = hairstyleCount;
+            BeardCount = beardCount;
+        }
+    }
+
     public interface ICharacterCreationView : IView
     {
         event Payload Cancel;
@@ -15,6 +39,7 @@ namespace DarkBestiary.UI.Views
         event Payload<Background> BackgroundSelected;
         event Payload<CharacterCreationEventData> Create;
 
-        void Construct(List<Background> backgrounds, List<Color> hairColors, List<Color> skinColors, int hairstyleCount, int beardCount);
+        void Construct(CharacterCreationViewContext context);
+        void UpdateSkillSlots(List<SkillSlot> slots);
     }
 }

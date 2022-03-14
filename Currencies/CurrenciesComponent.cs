@@ -34,9 +34,14 @@ namespace DarkBestiary.Currencies
             }
         }
 
+        public bool HasEnough(CurrencyType type, int amount)
+        {
+            return Get(type)?.Amount >= amount;
+        }
+
         public bool HasEnough(Currency currency)
         {
-            return Get(currency.Type)?.Amount >= currency.Amount;
+            return HasEnough(currency.Type, currency.Amount);
         }
 
         public bool HasEnough(List<Currency> currencies)

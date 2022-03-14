@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DarkBestiary.Components;
 using DarkBestiary.Currencies;
 using DarkBestiary.Data;
@@ -15,15 +16,19 @@ namespace DarkBestiary
         public I18NString Name { get; }
         public I18NString Description { get; }
         public List<BackgroundItem> Items { get; }
-        public List<Skill> Skills { get; }
         public int Gold { get; }
+
+        private readonly BackgroundData data;
+        private readonly ISkillRepository skillRepository;
 
         public Background(BackgroundData data, IItemRepository itemRepository, ISkillRepository skillRepository)
         {
+            this.data = data;
+            this.skillRepository = skillRepository;
+
             Name = I18N.Instance.Get(data.NameKey);
             Description = I18N.Instance.Get(data.DescriptionKey);
             Items = new List<BackgroundItem>();
-            Skills = new List<Skill>();
             Gold = data.Gold;
 
             foreach (var backgroundItemData in data.Items)
@@ -41,11 +46,6 @@ namespace DarkBestiary
                 {
                     Items.Add(new BackgroundItem(item.Clone(), backgroundItemData.IsEquipped));
                 }
-            }
-
-            foreach (var skill in data.Skills)
-            {
-                Skills.Add(skillRepository.FindOrFail(skill));
             }
         }
 
@@ -71,7 +71,7 @@ namespace DarkBestiary
                 }
             }
 
-            foreach (var skill in Skills)
+            foreach (var skill in this.skillRepository.Find(this.data.Skills))
             {
                 try
                 {
@@ -102,7 +102,7 @@ namespace DarkBestiary
                 }
             }
 
-            foreach (var skill in Skills)
+            foreach (var skill in this.data.Skills)
             {
                 try
                 {

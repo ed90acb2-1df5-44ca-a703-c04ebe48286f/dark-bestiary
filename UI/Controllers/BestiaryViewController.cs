@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using DarkBestiary.Components;
 using DarkBestiary.Data;
@@ -13,7 +14,7 @@ namespace DarkBestiary.UI.Controllers
     {
         private readonly IUnitDataRepository unitDataRepository;
         private readonly IUnitRepository unitRepository;
-        private readonly Character character;
+        private readonly CharacterManager characterManager;
 
         private UnitComponent selected;
         private int level;
@@ -23,21 +24,30 @@ namespace DarkBestiary.UI.Controllers
         {
             this.unitDataRepository = unitDataRepository;
             this.unitRepository = unitRepository;
-            this.character = characterManager.Character;
-            this.level = this.character.Entity.GetComponent<ExperienceComponent>().Experience.Level;
+            this.characterManager = characterManager;
+
+            this.level = this.characterManager
+                .Character
+                .Entity
+                .GetComponent<ExperienceComponent>()
+                .Experience
+                .Level;
         }
 
         protected override void OnInitialize()
         {
-            var units = this.unitDataRepository
-                .Find(u => !u.Flags.HasFlag(UnitFlags.Playable) &&
-                           !u.Flags.HasFlag(UnitFlags.Dummy) &&
-                           this.character.Data.UnlockedMonsters.Any(unitId => u.Id == unitId))
-                .ToList();
-
             View.Selected += OnUnitSelected;
             View.LevelChanged += OnLevelChanged;
-            View.Construct(units);
+            View.Construct(FindUnlockedMonsters(), this.level);
+        }
+
+        private List<UnitData> FindUnlockedMonsters()
+        {
+            return this.unitDataRepository
+                .Find(u => !u.Flags.HasFlag(UnitFlags.Playable) &&
+                           !u.Flags.HasFlag(UnitFlags.Dummy) &&
+                           this.characterManager.Character.Data.UnlockedMonsters.Any(unitId => u.Id == unitId))
+                .ToList();
         }
 
         protected override void OnTerminate()

@@ -24,7 +24,7 @@ namespace DarkBestiary
 
         private static I18NDictionary LoadDictionary(string locale)
         {
-            var json = File.ReadAllText(Application.streamingAssetsPath + "/i18n/" + locale + ".json");
+            var json = File.ReadAllText(Environment.StreamingAssetsPath + "/compiled/i18n/" + locale + ".json");
 
             return JsonConvert.DeserializeObject<I18NDictionary>(json);
         }
@@ -34,12 +34,11 @@ namespace DarkBestiary
             return CultureInfo.CurrentCulture.Name;
         }
 
-        private I18N(II18NStringRepository i18NStringRepository)
+        public I18N(II18NStringRepository i18NStringRepository)
         {
             this.i18NStringRepository = i18NStringRepository;
 
-            var files = Directory.GetFiles(
-                Application.streamingAssetsPath + "/i18n", "*.json", SearchOption.TopDirectoryOnly);
+            var files = Directory.GetFiles(Environment.StreamingAssetsPath + "/compiled/i18n", "*.json");
 
             foreach (var file in files)
             {
@@ -80,7 +79,7 @@ namespace DarkBestiary
                 return new I18NString(new I18NStringData(""));
             }
 
-            var i18NString = this.i18NStringRepository.Find(key);
+            var i18NString = this.i18NStringRepository.FindByKey(key);
 
             return i18NString.IsNullOrEmpty() ? new I18NString(new I18NStringData(key)) : i18NString;
         }

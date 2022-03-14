@@ -2,6 +2,7 @@
 using DarkBestiary.Data;
 using DarkBestiary.Data.Repositories;
 using DarkBestiary.Effects;
+using DarkBestiary.Extensions;
 using DarkBestiary.GameBoard;
 using DarkBestiary.Validators;
 using UnityEngine;
@@ -13,7 +14,7 @@ namespace DarkBestiary.Behaviours
         private readonly Effect effect;
 
         public OnEnterCellBehaviour(EffectBehaviourData data, IEffectRepository effectRepository,
-            List<Validator> validators) : base(data, validators)
+            List<ValidatorWithPurpose> validators) : base(data, validators)
         {
             this.effect = effectRepository.FindOrFail(data.EffectId);
         }
@@ -30,12 +31,14 @@ namespace DarkBestiary.Behaviours
 
         private void OnEntityEnterCell(GameObject entity, BoardCell cell)
         {
-            if (!Target.Equals(entity))
+            if (!Target.Equals(entity) || Target.IsMovingViaScript())
             {
                 return;
             }
 
-            this.effect.Clone().Apply(Caster, Target);
+            var clone = this.effect.Clone();
+            clone.StackCount = StackCount;
+            clone.Apply(Caster, Target);
         }
     }
 }

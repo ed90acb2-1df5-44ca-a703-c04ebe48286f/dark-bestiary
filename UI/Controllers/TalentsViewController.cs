@@ -1,4 +1,5 @@
-﻿using DarkBestiary.Components;
+﻿using System;
+using DarkBestiary.Components;
 using DarkBestiary.Managers;
 using DarkBestiary.Talents;
 using DarkBestiary.UI.Views;
@@ -8,10 +9,12 @@ namespace DarkBestiary.UI.Controllers
     public class TalentsViewController : ViewController<ITalentsView>
     {
         private readonly TalentsComponent talents;
+        private readonly ExperienceComponent experience;
 
         public TalentsViewController(ITalentsView view, CharacterManager characterManager) : base(view)
         {
             this.talents = characterManager.Character.Entity.GetComponent<TalentsComponent>();
+            this.experience = characterManager.Character.Entity.GetComponent<ExperienceComponent>();
         }
 
         protected override void OnInitialize()
@@ -62,7 +65,8 @@ namespace DarkBestiary.UI.Controllers
                 return;
             }
 
-            this.talents.Reset();
+            this.talents.Points = Math.Min(20, this.experience.Experience.Level) / 2;
+            this.talents.UnlearnAll();
         }
     }
 }

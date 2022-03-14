@@ -1,4 +1,5 @@
 ﻿using System;
+using DarkBestiary.GameBoard;
 using DarkBestiary.Messaging;
 using DarkBestiary.Properties;
 using DarkBestiary.Values;
@@ -30,33 +31,28 @@ namespace DarkBestiary.Components
 
         public Damage Modify(GameObject source, Damage damage)
         {
-            if (this.properties == null || damage.Type == DamageType.Health)
+            if (this.properties == null || damage.Type == DamageType.Chaos || damage.Type == DamageType.Health || damage.IsTrue())
             {
                 return damage;
             }
 
-            var reduced = damage;
-            reduced -= reduced * ReductionMultiplier(source, damage);
-            reduced *= ResistanceMultiplier(source, damage);
+            var multiplier = GetDamageMultiplier(source, damage);
 
             foreach (var behaviour in this.behaviours.DefensiveDamageBehaviours())
             {
-                reduced = behaviour.Modify(gameObject, source, reduced);
+                multiplier += behaviour.GetDamageMultiplier(gameObject, source, ref damage);
             }
 
-            reduced = RollDiceDodge(source, reduced);
+            damage -= damage * Mathf.Clamp01(multiplier);
+            damage *= GetResistanceMultiplier(source, damage);
+            damage = RollDiceDodge(source, damage);
 
-            return reduced.IsDodged() ? reduced : RollDiceBlock(reduced);
+            return damage.IsDodged() ? damage : RollDiceBlock(damage);
         }
 
-        private float ReductionMultiplier(GameObject source, Damage damage)
+        private float GetDamageMultiplier(GameObject source, Damage damage)
         {
-            if (damage.Type == DamageType.Chaos || damage.Type == DamageType.Health)
-            {
-                return 0;
-            }
-
-            float multiplier;
+            var multiplier = 0f;
 
             switch (damage.Type)
             {
@@ -90,8 +86,6 @@ namespace DarkBestiary.Components
                 case DamageType.Lightning:
                     multiplier = this.properties.Get(PropertyType.IncomingLightningDamageReduction).Value();
                     break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(damage.Type), damage.Type, null);
             }
 
             if (damage.IsPhysicalType())
@@ -106,16 +100,11 @@ namespace DarkBestiary.Components
 
             multiplier += this.properties.Get(PropertyType.IncomingDamageReduction).Value();
 
-            return Mathf.Min(multiplier, 1);
+            return Mathf.Clamp01(multiplier);
         }
 
-        private float ResistanceMultiplier(GameObject source, Damage damage)
+        private float GetResistanceMultiplier(GameObject source, Damage damage)
         {
-            if (damage.Type == DamageType.Chaos || damage.Type == DamageType.Health)
-            {
-                return 1;
-            }
-
             float multiplier;
 
             switch (damage.Type)
@@ -180,6 +169,11 @@ namespace DarkBestiary.Components
 
             var dodgeChance = this.properties.Get(PropertyType.Dodge).Value();
 
+            if (damage.IsMagicalType())
+            {
+                dodgeChance *= 0.5f;
+            }
+
             if (!RNG.Test(dodgeChance))
             {
                 return damage;
@@ -201,6 +195,11 @@ namespace DarkBestiary.Components
             }
 
             var chance = this.properties.Get(PropertyType.BlockChance).Value();
+
+            if (damage.IsMagicalType())
+            {
+                chance *= 0.5f;
+            }
 
             if (!RNG.Test(chance))
             {
@@ -229,6 +228,11 @@ namespace DarkBestiary.Components
 
             var thorns = this.properties.Get(PropertyType.Thorns).Value();
 
+            if ((data.Victim.transform.position - data.Attacker.transform.position).magnitude > Board.Instance.CellSize * 2)
+            {
+                thorns /= 2;
+            }
+
             if (thorns < 1)
             {
                 return;
@@ -236,14 +240,16 @@ namespace DarkBestiary.Components
 
             Timer.Instance.Wait(0.5f, () =>
             {
-                data.Attacker.GetComponent<HealthComponent>().Damage(
-                    gameObject, new Damage(
-                        thorns,
-                        DamageType.Piercing,
-                        DamageFlags.CantBeCritical | DamageFlags.CantBeBlocked | DamageFlags.CantBeDodged,
-                        DamageInfoFlags.Reflected
-                    )
+                var thornsDamage = new Damage(
+                    thorns,
+                    DamageType.Piercing,
+                    WeaponSound.None,
+                    DamageFlags.CantBeCritical | DamageFlags.CantBeBlocked | DamageFlags.CantBeDodged,
+                    DamageInfoFlags.Reflected | DamageInfoFlags.Thorns,
+                    null
                 );
+
+                data.Attacker.GetComponent<HealthComponent>().Damage(gameObject, thornsDamage);
             });
         }
 
@@ -265,7 +271,7 @@ namespace DarkBestiary.Components
                         DamageFlags.CantBeDodged;
 
             var reflected = new Damage(
-                data.Damage.Amount, data.Damage.Type, data.Damage.WeaponSound, flags, DamageInfoFlags.Reflected);
+                data.Damage.Amount, data.Damage.Type, data.Damage.WeaponSound, flags, DamageInfoFlags.Reflected, data.Damage.Skill);
 
             if (reflected < 1)
             {
@@ -284,6 +290,7 @@ namespace DarkBestiary.Components
             return victim == gameObject &&
                    attacker != victim &&
                    damage.Type != DamageType.Health &&
+                   !damage.IsTrue() &&
                    !damage.IsDodged() &&
                    !damage.IsReflected() &&
                    !damage.IsDOT();

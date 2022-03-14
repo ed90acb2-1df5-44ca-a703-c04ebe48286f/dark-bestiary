@@ -1,10 +1,8 @@
-﻿using System.Linq;
-using DarkBestiary.Components;
+﻿using DarkBestiary.Components;
 using DarkBestiary.Exceptions;
 using DarkBestiary.Managers;
 using DarkBestiary.Messaging;
 using DarkBestiary.Scenarios;
-using TMPro;
 using UnityEngine;
 
 namespace DarkBestiary.UI.Elements
@@ -16,7 +14,6 @@ namespace DarkBestiary.UI.Elements
 
         [SerializeField] private VictoryPanelExperience experience;
         [SerializeField] private VictoryPanelLoot loot;
-        [SerializeField] private TextMeshProUGUI text;
         [SerializeField] private Transform rewards;
         [SerializeField] private VictoryPanelReward rewardPrefab;
         [SerializeField] private Transform rewardContainer;
@@ -45,7 +42,7 @@ namespace DarkBestiary.UI.Elements
 
             var character = CharacterManager.Instance.Character.Entity;
 
-            this.experience.Construct(character.GetComponent<ExperienceComponent>().Experience.Snapshot);
+            this.experience.Construct(character.GetComponent<ExperienceComponent>().Experience.Snapshot, scenarioLoot.SkillPoints);
 
             var reliquary = character.GetComponent<ReliquaryComponent>();
 
@@ -59,8 +56,7 @@ namespace DarkBestiary.UI.Elements
                 this.experience.Simulate();
             });
 
-            this.completeButton.PointerUp += OnCompleteButtonPointerUp;
-            this.text.text = scenario.CompleteText;
+            this.completeButton.PointerClick += OnCompleteButtonPointerClick;
 
             CreateRewards(scenario);
         }
@@ -82,14 +78,14 @@ namespace DarkBestiary.UI.Elements
             {
                 var reward = Instantiate(this.rewardPrefab, this.rewardContainer);
                 reward.Clicked += OnRewardClicked;
-                reward.Initialize(item, false);
+                reward.Construct(item, false);
             }
 
             foreach (var item in scenario.ChoosableRewards)
             {
                 var reward = Instantiate(this.rewardPrefab, this.rewardContainer);
                 reward.Clicked += OnRewardClicked;
-                reward.Initialize(item, true);
+                reward.Construct(item, true);
             }
         }
 
@@ -111,7 +107,7 @@ namespace DarkBestiary.UI.Elements
             ChooseReward?.Invoke(reward);
         }
 
-        private void OnCompleteButtonPointerUp()
+        private void OnCompleteButtonPointerClick()
         {
             try
             {
@@ -120,7 +116,7 @@ namespace DarkBestiary.UI.Elements
             }
             catch (GameplayException exception)
             {
-                UiErrorFrame.Instance.Push(exception.Message);
+                UiErrorFrame.Instance.ShowMessage(exception.Message);
             }
         }
     }

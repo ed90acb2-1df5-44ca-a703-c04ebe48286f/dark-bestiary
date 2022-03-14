@@ -4,19 +4,21 @@ namespace DarkBestiary.UI.Views
 {
     public interface IView
     {
-        event Payload Hidding;
-        event Payload Showing;
+        event Payload Hidden;
+        event Payload Shown;
 
-        bool Visible { get; }
-
-        void Initialize();
-
-        void Terminate();
+        bool RequiresConfirmationOnClose { get; set; }
+        bool IsVisible { get; }
 
         void Show();
-
         void Hide();
-
+        void ForceHide();
         void Toggle();
+        void Initialize();
+        void Terminate();
+
+        void Connect(IView view);
+        void Disconnect(IView view);
+        void DisconnectAll();
     }
 }
