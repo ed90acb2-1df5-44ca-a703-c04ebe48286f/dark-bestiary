@@ -10,11 +10,11 @@ namespace DarkBestiary.Editor
     [CustomEditor(typeof(AiComponent))]
     public class EntityEditor : UnityEditor.Editor
     {
-        private AiComponent ai;
+        private AiComponent m_AI;
 
         private void OnEnable()
         {
-            this.ai = target as AiComponent;
+            m_AI = target as AiComponent;
         }
 
         public override void OnInspectorGUI()
@@ -22,12 +22,12 @@ namespace DarkBestiary.Editor
             base.OnInspectorGUI();
 
             GUILayout.Space(25);
-            EditorGUILayout.LabelField("Combat", this.ai.Tree.Context.Combat != null ? "True" : "False");
-            EditorGUILayout.LabelField("Target Entity", this.ai.Tree.Context.TargetEntity == null ? "Null" : this.ai.Tree.Context.TargetEntity.name);
-            EditorGUILayout.LabelField("Target Point", this.ai.Tree.Context.TargetPoint.HasValue ? this.ai.Tree.Context.TargetPoint.Value.ToString() : "Null");
-            EditorGUILayout.LabelField("Opened Nodes", string.Join(", ", this.ai.Tree.Context.OpenedNodes.Select(node => node.GetType().Name)));
+            EditorGUILayout.LabelField("Combat", m_AI.Tree.Context.Combat != null ? "True" : "False");
+            EditorGUILayout.LabelField("Target Entity", m_AI.Tree.Context.TargetEntity == null ? "Null" : m_AI.Tree.Context.TargetEntity.name);
+            EditorGUILayout.LabelField("Target Point", m_AI.Tree.Context.TargetPoint.HasValue ? m_AI.Tree.Context.TargetPoint.Value.ToString() : "Null");
+            EditorGUILayout.LabelField("Opened Nodes", string.Join(", ", m_AI.Tree.Context.OpenedNodes.Select(node => node.GetType().Name)));
             GUILayout.Space(25);
-            DisplayParentNode(this.ai.Tree, this.ai.Tree.Root, 0);
+            DisplayParentNode(m_AI.Tree, m_AI.Tree.Root, 0);
             GUILayout.Space(25);
         }
 

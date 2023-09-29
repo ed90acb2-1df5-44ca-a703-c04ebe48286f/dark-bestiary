@@ -11,7 +11,7 @@ namespace DarkBestiary.Editor
     [CustomEditor(typeof(LootDropTester))]
     public class LootDropTesterEditor : UnityEditor.Editor
     {
-        private List<Item> items = new List<Item>();
+        private List<Item> m_Items = new List<Item>();
 
         public override void OnInspectorGUI()
         {
@@ -29,24 +29,24 @@ namespace DarkBestiary.Editor
 
             if (GUILayout.Button("Test"))
             {
-                this.items = ((LootDropTester) target).Test();
+                m_Items = ((LootDropTester) target).Test();
             }
 
             if (GUILayout.Button("Clear"))
             {
-                this.items.Clear();
+                m_Items.Clear();
             }
 
             GUILayout.EndHorizontal();
 
             GUILayout.Space(25);
 
-            if (this.items.Count == 0)
+            if (m_Items.Count == 0)
             {
                 GUILayout.Label("...");
             }
 
-            foreach (var byRarity in this.items.OrderBy(item => item.Rarity.Type).ThenBy(item => item.Name).GroupBy(item => item.Rarity.Id))
+            foreach (var byRarity in m_Items.OrderBy(item => item.Rarity.Type).ThenBy(item => item.Name).GroupBy(item => item.Rarity.Id))
             {
                 GUILayout.Space(10);
 

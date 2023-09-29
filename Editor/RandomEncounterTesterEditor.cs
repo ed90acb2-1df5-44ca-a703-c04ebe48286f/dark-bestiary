@@ -11,7 +11,7 @@ namespace DarkBestiary.Editor
     [CustomEditor(typeof(RandomEncounterTester))]
     public class RandomEncounterTesterEditor : UnityEditor.Editor
     {
-        private List<UnitData> units = new List<UnitData>();
+        private List<UnitData> m_Units = new List<UnitData>();
 
         public override void OnInspectorGUI()
         {
@@ -29,19 +29,19 @@ namespace DarkBestiary.Editor
 
             if (GUILayout.Button("Test"))
             {
-                this.units = ((RandomEncounterTester) target).Test();
+                m_Units = ((RandomEncounterTester) target).Test();
             }
 
             if (GUILayout.Button("Clear"))
             {
-                this.units.Clear();
+                m_Units.Clear();
             }
 
             GUILayout.EndHorizontal();
 
             GUILayout.Space(25);
 
-            if (this.units.Count == 0)
+            if (m_Units.Count == 0)
             {
                 GUILayout.Label("...");
                 return;
@@ -50,7 +50,7 @@ namespace DarkBestiary.Editor
             GUILayout.Space(10);
             GUILayout.Label("Encounter:");
 
-            foreach (var group in this.units.GroupBy(unit => unit.Id))
+            foreach (var group in m_Units.GroupBy(unit => unit.Id))
             {
                 GUILayout.Label($"    {I18N.Instance.Get(group.First().NameKey)} x{group.Count()}");
             }

@@ -9,18 +9,18 @@ namespace DarkBestiary.Editor
     [CustomEditor(typeof(ThreatComponent))]
     public class ThreatComponentEditor : UnityEditor.Editor
     {
-        private ThreatComponent threat;
-        private IEnumerable<KeyValuePair<GameObject, float>> enemies;
+        private ThreatComponent m_Threat;
+        private IEnumerable<KeyValuePair<GameObject, float>> m_Enemies;
 
         private void OnEnable()
         {
-            this.threat = (ThreatComponent) target;
+            m_Threat = (ThreatComponent) target;
             SortEnemies();
         }
 
         private void SortEnemies()
         {
-            this.enemies = this.threat.Table.OrderByDescending(pair => pair.Value);
+            m_Enemies = m_Threat.Table.OrderByDescending(pair => pair.Value);
         }
 
         public override void OnInspectorGUI()
@@ -32,7 +32,7 @@ namespace DarkBestiary.Editor
                 SortEnemies();
             }
 
-            foreach (var pair in this.enemies)
+            foreach (var pair in m_Enemies)
             {
                 EditorGUILayout.LabelField($"{pair.Key.name} - {pair.Value:F2}");
             }

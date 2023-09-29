@@ -10,11 +10,11 @@ namespace DarkBestiary.Editor
     [CustomEditor(typeof(FontReplacer))]
     public class FontReplacerEditor : UnityEditor.Editor
     {
-        private FontReplacer replacer;
+        private FontReplacer m_Replacer;
 
         private void OnEnable()
         {
-            this.replacer = target as FontReplacer;
+            m_Replacer = target as FontReplacer;
         }
 
         public override void OnInspectorGUI()
@@ -51,16 +51,16 @@ namespace DarkBestiary.Editor
 
             var components = @object.GetComponentsInChildren<TextMeshProUGUI>();
 
-            if (components.All(c => c.font != this.replacer.From))
+            if (components.All(c => c.font != m_Replacer.From))
             {
                 return;
             }
 
             foreach (var text in components)
             {
-                if (text.font == this.replacer.From)
+                if (text.font == m_Replacer.From)
                 {
-                    text.font = this.replacer.To;
+                    text.font = m_Replacer.To;
                 }
             }
 

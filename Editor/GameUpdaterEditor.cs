@@ -7,16 +7,16 @@ namespace DarkBestiary.Editor
     [CustomEditor(typeof(GameUpdater))]
     public class GameUpdaterEditor : UnityEditor.Editor
     {
-        private GameUpdater updater;
-        private bool isUpdating;
-        private string progress;
+        private GameUpdater m_Updater;
+        private bool m_IsUpdating;
+        private string m_Progress;
 
         private void OnEnable()
         {
-            this.updater = (GameUpdater) target;
-            this.updater.UpdateStarted += OnUpdateStarted;
-            this.updater.UpdateCompleted += OnUpdateCompleted;
-            this.updater.UpdateProgress += OnUpdateProgress;
+            m_Updater = (GameUpdater) target;
+            m_Updater.UpdateStarted += OnUpdateStarted;
+            m_Updater.UpdateCompleted += OnUpdateCompleted;
+            m_Updater.UpdateProgress += OnUpdateProgress;
         }
 
         public override void OnInspectorGUI()
@@ -25,32 +25,32 @@ namespace DarkBestiary.Editor
 
             GUILayout.Space(25);
 
-            if (this.isUpdating)
+            if (m_IsUpdating)
             {
-                GUILayout.Label(this.progress);
+                GUILayout.Label(m_Progress);
             }
             else
             {
                 if (GUILayout.Button("Update"))
                 {
-                    this.updater.StartUpdate();
+                    m_Updater.StartUpdate();
                 }
             }
         }
 
         private void OnUpdateStarted()
         {
-            this.isUpdating = true;
+            m_IsUpdating = true;
         }
 
         private void OnUpdateCompleted()
         {
-            this.isUpdating = false;
+            m_IsUpdating = false;
         }
 
         private void OnUpdateProgress(string progress)
         {
-            this.progress = progress;
+            m_Progress = progress;
         }
     }
 }
